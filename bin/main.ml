@@ -1,6 +1,6 @@
-(* let setup () =
-  Raylib.init_window 800 450 "raylib [core] example - basic window";
-  Raylib.set_target_fps 60
+let setup (args : Rl2023.Cli.t) : unit =
+  Raylib.init_window args.width args.height "Rl2023 Ocaml Style";
+  Raylib.set_target_fps args.fps
 
 let rec loop () =
   match Raylib.window_should_close () with
@@ -14,16 +14,6 @@ let rec loop () =
       end_drawing ();
       loop ()
 
-let () = setup () |> loop
-
-let () =
-  for i = 0 to Array.length Sys.argv - 1 do
-    Printf.printf "[%i] %s\n" i Sys.argv.(i)
-  done *)
-
-let setup w  () =
-  Raylib.init_window 800 450 "raylib [core] example - basic window";
-  Raylib.set_target_fps 60
-
 let () = 
-  Rl2023.Cli.parse |> setup
+  Rl2023.Cli.parse |> setup |> loop
+
