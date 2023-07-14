@@ -1,8 +1,0 @@
-lib: [
-  "_build/install/default/lib/rl2023/META"
-  "_build/install/default/lib/rl2023/dune-package"
-  "_build/install/default/lib/rl2023/opam"
-]
-bin: [
-  "_build/install/default/bin/rl2023"
-]
