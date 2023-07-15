@@ -17,7 +17,7 @@ let parse: t =
       ~short: 'h'
       ~long: "height"
       ~description: "FPS for the game"
-      450
+      640
   in
 
   let fps =
