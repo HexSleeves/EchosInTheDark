@@ -2,8 +2,6 @@ open Raylib
 open Base
 open Rl2023.Spriteatlas
 
-let v_zero = Vector2.create 0.0 0.0
-
 class sharedstate (imagePath : string) (spriteWidth : int) (spriteHeight : int)
   (screenWidth : int) (screenHeight : int) =
   let spritesheet =
@@ -33,7 +31,7 @@ class sharedstate (imagePath : string) (spriteWidth : int) (spriteHeight : int)
         (Rectangle.create 0.0 0.0
            (get_screen_width () |> Float.of_int)
            (get_screen_height () |> Float.of_int))
-        v_zero 0.0 Color.white
+        Utils.v_zero 0.0 Color.white
 
     method render_layers =
       let w =
@@ -53,7 +51,7 @@ class sharedstate (imagePath : string) (spriteWidth : int) (spriteHeight : int)
       draw_texture_pro map_text
         (Rectangle.create 0.0 0.0 map_width map_height)
         (Rectangle.create 0.0 0.0 w h)
-        v_zero 0.0 Color.white;
+        Utils.v_zero 0.0 Color.white;
 
       (* Actor Layer *)
       let actor_text = RenderTexture.texture actor_layer in
@@ -62,7 +60,7 @@ class sharedstate (imagePath : string) (spriteWidth : int) (spriteHeight : int)
       draw_texture_pro actor_text
         (Rectangle.create 0.0 0.0 actor_width actor_height)
         (Rectangle.create 0.0 0.0 w h)
-        v_zero 0.0 Color.white;
+        Utils.v_zero 0.0 Color.white;
 
-      end_texture_mode
+      end_texture_mode ()
   end

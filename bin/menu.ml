@@ -75,7 +75,7 @@ let main_menu () =
 
         menu "" choices 24;
 
-        if is_key_pressed Key.A then Game.new_game ();
+        if is_key_pressed Key.A then Game.new_game () |> Game.play_game;
         if is_key_pressed Key.B then exit := true;
 
         end_drawing ();

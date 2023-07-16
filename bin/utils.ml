@@ -1,6 +1,8 @@
 open Rl2023.Engine
 open Components
 
+let v_zero = Raylib.Vector2.create 0.0 0.0
+
 let remove_entity id =
   let comps : (module Component.Sig) array =
     [|

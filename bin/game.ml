@@ -3,6 +3,7 @@ open Rl2023
 open Rl2023.Engine
 open Components
 open Utils
+open Raylib
 
 module MyGame = struct
   let systems : (module System) array = [||]
@@ -23,6 +24,29 @@ let new_game () =
          (Raylib.Key.Right, Commands.GoRight);
          (Raylib.Key.Space, Commands.Attack);
        |]
-  |> ignore
+  |> ignore;
+
+  new State.sharedstate "assets/font.png" 16 16 80 50
+
+let play_game (ss : State.sharedstate) =
+  let exit = ref false in
+
+  let rec loop () =
+    match !exit || Raylib.window_should_close () with
+    | true -> Raylib.close_window ()
+    | false ->
+        (* let pressed_key = get_char_pressed () in *)
+        begin_drawing ();
+        clear_background Color.black;
+
+        ss#render_layers;
+        ss#draw_screen_texture;
+
+        draw_fps 10 10;
+        end_drawing ();
+        loop ()
+  in
+
+  loop ()
 
 module Game = Engine.MakeGame (MyGame)
