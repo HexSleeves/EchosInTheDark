@@ -1,5 +1,4 @@
 open Raylib
-open Base
 open Rl2023.Spriteatlas
 
 class sharedstate (imagePath : string) (spriteWidth : int) (spriteHeight : int)
@@ -64,3 +63,51 @@ class sharedstate (imagePath : string) (spriteWidth : int) (spriteHeight : int)
 
       end_texture_mode ()
   end
+
+module CtrlM = struct
+  type invclass = InvGround | InvUnit
+  type invprop = invclass * int * int * Unit.t * Unit.t list
+  type t = Normal | Died of float
+end
+
+type t = { debug : bool; random_seed : string; cm : CtrlM.t }
+
+let make w h used_seed debug =
+  let _ = w in
+  let _ = h in
+  (* let geo_w = 45 in *)
+  (* let geo_h = 45 in *)
+  { debug; random_seed = used_seed; cm = CtrlM.Normal }
+
+let init seed b_debug =
+  let max_seed = 1000000000 in
+  let hash_string s =
+    Utils.fold_lim
+      (fun a i -> ((a * 256) + Char.code s.[i]) mod (max_seed / 512))
+      0 0
+      (String.length s - 1)
+  in
+
+  Random.init (hash_string seed);
+  make 25 16 seed b_debug
+
+let init_full opt_string b_debug =
+  let seed =
+    match opt_string with
+    | Some s -> s
+    | None ->
+        let rnd_seed_string () =
+          let len = 1 + Random.int 6 in
+          let s =
+            String.init len (fun _ -> Char.chr (Char.code 'a' + Random.int 26))
+          in
+          Printf.printf "Random seed: %s\n%!" s;
+          s
+        in
+
+        rnd_seed_string ()
+  in
+  init seed b_debug
+
+(* ~ game modes *)
+type game_mode = Play of t | Exit

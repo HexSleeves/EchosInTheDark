@@ -24,3 +24,4 @@ let remove_entity id =
     comps
 
 let can_die key = if Health.get key = 0 then remove_entity key
+let rec fold_lim f a x xl = if x <= xl then fold_lim f (f a x) (x + 1) xl else a
