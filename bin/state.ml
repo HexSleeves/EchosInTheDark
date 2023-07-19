@@ -1,18 +1,19 @@
 open Base
+open Common
 
 module CtrlM = struct
-  (* type openatlasprop = region_loc *)
-  (* type t = Normal | OpenAtlas of openatlasprop * t | Died of float *)
+  type openatlasprop = region_loc
+  type t = Normal | OpenAtlas of openatlasprop * t | Died of float
 end
 
-type t = { debug : bool; random_seed : string }
+type t = { debug : bool; random_seed : string; cm : CtrlM.t }
 
 (* ~ game modes *)
 type game_mode = MainMenu | Play of t | Exit
 
 let make w h used_seed debug =
-  let _ = (w, h) in
-  { debug; random_seed = used_seed }
+  let _ = (w, h, debug) in
+  { debug = true; random_seed = used_seed; cm = CtrlM.Normal }
 
 let init seed b_debug =
   let max_seed = 1000000000 in
@@ -24,7 +25,6 @@ let init seed b_debug =
   in
 
   Random.init (hash_string seed);
-
   make 25 16 seed b_debug
 
 let init_full opt_string b_debug =
@@ -46,4 +46,5 @@ let init_full opt_string b_debug =
 
         rnd_seed_string ()
   in
+
   init seed b_debug

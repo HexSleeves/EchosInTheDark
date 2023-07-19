@@ -1,4 +1,4 @@
-type t = { fps : int; width : int; height : int }
+type t = { fps : int; width : int; height : int; debug : bool }
 
 let parse : t =
   (* You can write a small introduction for the --help. *)
@@ -14,8 +14,13 @@ let parse : t =
       640
   in
 
-  let fps = Clap.default_int ~long:"fps" ~description:"FPS for the game" 30 in
+  let fps = Clap.default_int ~long:"fps" ~description:"FPS for the game" 60 in
+
+  let debug =
+    Clap.flag ~set_long:"debug" ~unset_long:"short" ~description:"Debug mode"
+      true
+  in
 
   Clap.close ();
 
-  { width; height; fps }
+  { width; height; fps; debug }

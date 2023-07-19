@@ -198,18 +198,51 @@
 
    let () = run_queue () *)
 
-let main_loop mode_state =
-  let _ = mode_state in
-  Raylib.draw_text "Hello, world!" 12 12 20 Raylib.Color.white
+(* let finalize s = Io.save_to_file s "game.save" *)
+
+let rec main_loop mode_state prev_ticks was_dead =
+  let _ = (was_dead, prev_ticks) in
+
+  let ticks = Int.of_float (Raylib.get_time ()) in
+
+  let dead_now =
+    match mode_state with
+    | State.Play s -> (
+        match s.State.cm with State.CtrlM.Died _ -> true | _ -> false)
+    | _ -> false
+  in
+
+  let mode_state' =
+    match mode_state with State.Play s -> State.Play s | ms -> ms
+  in
+
+  (* let prev_ticks = if was_dead && not dead_now then ticks else prev_ticks in *)
+  let is_dead = dead_now in
+
+  View.draw_scene (fun () ->
+      match mode_state with
+      | State.Play s ->
+          (* draw_state ticks s; *)
+          Printf.printf "ticks: %b\n" s.State.debug;
+
+          (* FPS *)
+          if s.State.debug then Raylib.draw_fps 0 0
+      | _ -> ());
+
+  if mode_state' <> State.Exit then
+    match Raylib.window_should_close () with
+    (* Keep Playing *)
+    | false -> main_loop mode_state' ticks is_dead
+    | true ->
+        (* on exit *)
+        (* (match mode_state' with State.Play s -> finalize s | _ -> ()); *)
+        main_loop State.Exit ticks is_dead
 
 let () =
   Random.self_init ();
   let args = Rl2023.Cli.parse in
   let title = Printf.sprintf "RL2023 - %dx%d" args.width args.height in
-
-  Raylib.init_window args.width args.height title;
-  Raylib.set_target_fps args.fps;
-  Raylib.set_exit_key Raylib.Key.Escape;
+  let _ = (title, main_loop) in
 
   let state =
     let s =
@@ -218,12 +251,16 @@ let () =
 
         let opt_seed = if s_prelim = "?" then None else Some s_prelim in
 
-        State.init_full opt_seed false
+        State.init_full opt_seed args.debug
       else if Sys.file_exists "game.save" then Io.load_from_file "game.save"
-      else State.init_full None false
+      else State.init_full None args.debug
     in
 
     State.Play s
   in
 
-  main_loop state
+  Raylib.init_window args.width args.height title;
+  Raylib.set_target_fps args.fps;
+  Raylib.set_exit_key Raylib.Key.Escape;
+
+  main_loop state (Int.of_float (Raylib.get_time ())) false
