@@ -223,6 +223,9 @@ let rec main_loop mode_state prev_ticks was_dead =
       match mode_state with
       | State.Play s ->
           (* draw_state ticks s; *)
+          Raylib.draw_text "@" 12 12 20 Raylib.Color.black;
+
+          (* Debug *)
           Printf.printf "ticks: %b\n" s.State.debug;
 
           (* FPS *)
