@@ -22,7 +22,12 @@ let rec loop rotation scarfy =
       (* draw_texture scarfy 0 0 Color.white; *)
       let human_y = sprite_size *. 12. in
       let rect = Rectangle.create 0.0 human_y sprite_size sprite_size in
-      draw_texture_rec scarfy rect (Vector2.create 0.0 0.0) Color.white;
+      let dest =
+        Rectangle.create 0.0 0.0 (sprite_size *. 3.) (sprite_size *. 3.)
+      in
+
+      (* draw_texture_rec scarfy rect (Vector2.create 0.0 0.0) Color.white; *)
+      draw_texture_pro scarfy rect dest (Vector2.create 0.0 0.0) 0.0 Color.white;
 
       (* draw_texture_pro scarfy source_rec dest_rec origin rotation Color.white; *)
       draw_text "(c) Scarfy sprite by Eiden Marsal" (width - 200) (height - 20)
