@@ -1,4 +1,5 @@
 (executable
  (public_name rl2023)
  (name main)
- (libraries rl2023 base stdio notty notty.unix notty.lwt raylib raygui lwt))
+ (libraries rl2023 base stdio notty notty.unix notty.lwt lwt))
+ ; (libraries rl2023 base stdio notty notty.unix notty.lwt raylib raygui lwt))
