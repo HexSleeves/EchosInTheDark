@@ -11,9 +11,14 @@ let grid xxs = xxs |> List.map I.hcat |> I.vcat
 let outline attr t =
   let w, h = LwtTerm.size t in
   let chr x = I.uchar attr x 1 1
-  and hbar = I.uchar attr 0x2500 (w - 2) 1
-  and vbar = I.uchar attr 0x2502 1 (h - 2) in
-  let a, b, c, d = (chr 0x256d, chr 0x256e, chr 0x256f, chr 0x2570) in
+  and hbar = I.uchar attr (Uchar.of_int 0x2500) (w - 2) 1
+  and vbar = I.uchar attr (Uchar.of_int 0x2502) 1 (h - 2) in
+  let a, b, c, d =
+    ( chr (Uchar.of_int 0x256d),
+      chr (Uchar.of_int 0x256e),
+      chr (Uchar.of_int 0x256f),
+      chr (Uchar.of_int 0x2570) )
+  in
   grid [ [ a; hbar; b ]; [ vbar; I.void (w - 2) 1; vbar ]; [ d; hbar; c ] ]
 
 let size_box cols rows =
@@ -34,7 +39,7 @@ let rec main t ((x, y) as pos) =
   | None -> LwtTerm.release t >>= fun () -> Lwt.return_unit
   | Some ((`Resize _ | #Unescape.event) as x) -> (
       match x with
-      | `Key (`Escape, []) | `Key (`Uchar 67, [ `Ctrl ]) ->
+      | `End | `Key (`Escape, []) | `Key (`ASCII 'C', [ `Ctrl ]) ->
           LwtTerm.release t >>= fun () -> Lwt.return_unit
       | `Resize (cols, rows) -> main t (cols, rows)
       | _ -> Lwt.return () >>= fun () -> main t pos)
