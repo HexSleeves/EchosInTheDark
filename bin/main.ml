@@ -1,25 +1,19 @@
-(* Copyright (c) 2016-2017 David Kaloper Meršinjak. All rights reserved.
-   See LICENSE.md. *)
+(* Copyright (c) 2023 Jacob LeCoq (Yendor). All rights reserved. *)
 
-(*
- * Game of Life with some ZX spectrum kitsch.
- *)
+open Arg
 
-type actions = [ `Game | `LoadGame ]
+type actions = [ `Game ]
 
 let file = ref ""
+let verbose = ref false
 let mode : actions ref = ref `Game
 
 let set v f =
   file := f;
   mode := v
 
-let arglist = [ ("--load", Arg.String (set `LoadGame), "Load a save file") ]
+let arglist = [ ("-debug", Arg.Set verbose, "Output debug information") ]
 
 let () =
-  Arg.parse arglist (fun _ -> ()) "Usage";
-  match !mode with
-  | `Game -> Frontend.run ()
-  | `LoadGame -> Frontend.run ~load:!file ()
-
-(* Lwt_main.run @@ main () *)
+  parse arglist (fun _ -> ()) "rl2023 [-verbose]";
+  match !mode with `Game -> Frontend.run ()

@@ -119,3 +119,7 @@
    let main () =
      let t = Term.create () in
      loop t (event t, timer ()) (Term.size t, 0, glider) *)
+let main init_fn =
+  let fps = 60 in
+  let _ = init_fn in
+  ()
