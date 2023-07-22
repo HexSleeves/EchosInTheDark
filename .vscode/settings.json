@@ -1,0 +1,5 @@
+{
+  "rest-client.enableTelemetry": false,
+  "gitlens.telemetry.enabled": false,
+  "dotnetAcquisitionExtension.enableTelemetry": false
+}
