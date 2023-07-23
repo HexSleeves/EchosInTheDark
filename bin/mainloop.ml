@@ -119,7 +119,45 @@
    let main () =
      let t = Term.create () in
      loop t (event t, timer ()) (Term.size t, 0, glider) *)
+open Notty
+open Lwt.Infix
+open Notty_lwt
+open Notty.Infix
+
+(* Modules *)
+module B = Backend
+module S = State
+
+type 'a t = {
+  handle_tick : 'a -> 'a Lwt.t;
+  render : 'a -> unit Lwt.t;
+  handle_event : 'a -> Event.t -> 'a * bool;
+}
+
+let timer () = Lwt_unix.sleep 0.1 >|= fun () -> `Timer
+
 let main init_fn =
-  let fps = 60 in
-  let _ = init_fn in
-  ()
+  let data, v = init_fn () in
+  let term = S.get_term data in
+
+  let event term =
+    Lwt_stream.get (Term.events term) >|= function
+    | Some ((`Resize _ | #Unescape.event) as x) -> x
+    | None -> `End
+  in
+
+  let rec loop term (e, t) dim =
+    e <?> t >>= function
+    | `End | `Key (`Escape, []) | `Key (`ASCII 'C', [ `Ctrl ]) ->
+        Lwt.return_unit
+    | `Timer ->
+        (* Render *)
+        v.render data >>= fun () ->
+        (* Handle tick *)
+        v.handle_tick data >>= fun _ ->
+        (* Loop *)
+        loop term (e, timer ()) dim
+    | _ -> loop term (event term, t) dim
+  in
+
+  loop term (event term, timer ()) (Term.size term)

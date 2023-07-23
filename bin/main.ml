@@ -1,19 +1,22 @@
 (* Copyright (c) 2023 Jacob LeCoq (Yendor). All rights reserved. *)
-
-open Arg
-
-type actions = [ `Game ]
-
-let file = ref ""
-let verbose = ref false
-let mode : actions ref = ref `Game
-
-let set v f =
-  file := f;
-  mode := v
-
-let arglist = [ ("-debug", Arg.Set verbose, "Output debug information") ]
+open Logs
 
 let () =
-  parse arglist (fun _ -> ()) "rl2023 [-verbose]";
-  match !mode with `Game -> Frontend.run ()
+  Clap.description "Rougelike Tutorial 2023";
+
+  (* [flag_enum] is a generalization of [flag] for enums with more than 2 possible values. *)
+  let level =
+    Clap.flag_enum ~description:"Logging level"
+      [
+        ([ "app" ], [ 'a' ], App);
+        ([ "info" ], [ 'i' ], Info);
+        ([ "debug" ], [ 'd' ], Debug);
+        ([ "warn" ], [ 'w' ], Warning);
+        ([ "error" ], [ 'e' ], Error);
+      ]
+      Info
+  in
+  Clap.close ();
+
+  Log.configure ~level;
+  Lwt_main.run (Frontend.run ())

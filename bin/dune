@@ -2,9 +2,9 @@
 (executable
  (public_name rl2023)
  (name main)
- (libraries rl2023 containers base stdio notty notty.unix notty.lwt lwt logs logs.fmt ppx_deriving_yojson.runtime)
+ (libraries rl2023 clap containers base stdio notty notty.unix notty.lwt lwt logs logs.fmt owl-base ppx_yojson_conv_lib tsdl)
  (preprocess
-    (staged_pps ppx_js_style ppx_import ppx_deriving.show ppx_deriving.enum ppx_deriving.eq ppx_deriving.ord lens.ppx_deriving ppx_hash ppx_deriving_yojson))
+    (pps ppx_import ppx_deriving.show ppx_deriving.enum ppx_deriving.eq ppx_deriving.ord lens.ppx_deriving ppx_hash ppx_yojson_conv ppx_let lwt_ppx))
   )
 
 ; (env
