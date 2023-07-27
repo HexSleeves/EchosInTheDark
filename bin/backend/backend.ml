@@ -11,11 +11,18 @@ module Log = (val Logs.src_log src : Logs.LOG)
    but actions can only be taken via messages (Backend.Action)
 *)
 
-type t = { seed : int; map : Tilemap.t; random : Utils.Random.State.t }
+type t =
+  { seed : int
+  ; map : Tilemap.t
+  ; random : Utils.Random.State.t
+  }
 [@@deriving yojson]
 
-let default w h ~random ~seed =
-  let map = Tilemap.generate w h ~seed in
+let bump ?(step = 1) x = x + step
+
+let default ~w ~h ~random ~seed =
+  let map = Tilemap.generate ~w ~h ~seed in
   { seed; random; map }
+;;
 
 let get_tile v x y = Tilemap.get_tile v.map x y
