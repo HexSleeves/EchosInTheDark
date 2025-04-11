@@ -1,4 +1,3 @@
-(* Modules *)
 module S = State
 module B = Backend
 module R = Renderer
@@ -12,6 +11,8 @@ type 'a t = {
 
 (* Main *)
 let main init_fn =
+  print_endline "Starting main loop";
+
   let font = R.create 80 50 in
   let data, v = init_fn font in
 

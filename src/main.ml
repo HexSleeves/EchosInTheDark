@@ -2,6 +2,7 @@
 open Logs
 
 let () =
+  print_endline "Starting main";
   Clap.description "Rougelike Tutorial 2023";
   (* [flag_enum] is a generalization of [flag] for enums with more than 2 possible values. *)
   let level =

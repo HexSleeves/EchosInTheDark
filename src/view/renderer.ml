@@ -17,7 +17,7 @@ let create ?(title = "Random Title") w h =
   font
 
 (* Dim *)
-let screen_width = Raylib.get_screen_width ()
+(* let screen_width = Raylib.get_screen_width ()
 let screen_height = Raylib.get_screen_height ()
 let render_width = Raylib.get_render_width ()
-let render_height = Raylib.get_render_height ()
+let render_height = Raylib.get_render_height () *)
