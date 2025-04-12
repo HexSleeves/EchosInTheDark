@@ -11,8 +11,6 @@ type 'a t = {
 
 (* Main *)
 let main init_fn =
-  print_endline "Starting main loop";
-
   let font = R.create 80 50 in
   let data, v = init_fn font in
 
@@ -20,7 +18,6 @@ let main init_fn =
     match Raylib.window_should_close () with
     | true -> Raylib.close_window ()
     | false -> (
-        let open Raylib in
         (* Events *)
         let data, quit = v.handle_event data in
 
