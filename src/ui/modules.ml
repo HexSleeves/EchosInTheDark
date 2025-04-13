@@ -6,28 +6,19 @@ open Modules_d
 let handle_tick (s : State.t) =
   let state =
     match s.screen with
-    (* | MainMenu m -> Mainmenu.handle_tick m *)
-    (* | Play -> Play.handle_tick s *)
+    | MainMenu m ->
+        let new_menu, should_quit, should_play = Mainmenu.handle_tick m in
+        if should_play then { s with screen = Playing }
+        else if should_quit then { s with quitting = true }
+        else { s with screen = MainMenu new_menu }
     | _ -> s
   in
   state
 
-let handle_event (s : State.t) =
-  let open Raylib in
-  match s.screen with
-  | MainMenu m ->
-      let new_menu, should_quit, should_play = Mainmenu.handle_event m in
-      if should_play then ({ s with screen = Playing }, false)
-      else ({ s with screen = MainMenu new_menu }, should_quit)
-  | MapGen -> (s, false)
-  | Playing ->
-      let new_s = Play.handle_event s in
-      (new_s, false)
-
 let render (s : State.t) =
   match s.screen with
-  | MainMenu s -> Mainmenu.render s
   | MapGen -> ()
+  | MainMenu s -> Mainmenu.render s
   | Playing -> Play.render s
 
 let run () : unit =
@@ -40,7 +31,7 @@ let run () : unit =
   (* Initialize Game *)
   let init_fn font =
     (* Create State *)
-    let create_state ?backend ?ui_options ?ui_view screen =
+    let create_state ?backend screen =
       let backend =
         match backend with
         | Some b -> b
@@ -48,17 +39,15 @@ let run () : unit =
             (* Used by different elements *)
             let random = Rng.get_state () in
             let seed = Rng.seed_int in
-            B.make ~debug:true ~w:80 ~h:50 ~random ~seed
+            B.make_default ~debug:true ~random ~seed
       in
 
-      let _ = ui_options in
-      let _ = ui_view in
-      { State.screen; backend; player_pos = (10, 10); font }
+      { font; backend; State.screen; player_pos = (10, 10); quitting = false }
     in
 
     (* Let's Roll *)
     let state = create_state (Modules_d.MainMenu Mainmenu.init) in
     (Logs.info @@ fun m -> m "initialization done.");
-    (state, Mainloop.{ handle_event; handle_tick; render })
+    (state, Mainloop.{ handle_tick; render })
   in
   Mainloop.main init_fn

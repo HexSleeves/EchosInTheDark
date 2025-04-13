@@ -23,31 +23,6 @@ let render (state : State.t) =
       let x = (x *. grid_size) +. x_offset in
       let y = (y *. grid_size) +. y_offset in
       draw_text_ex state.font tile (Vector2.create x y) font_size 0. Color.white)
-    backend.map.map;
-
-  (* Render all entities *)
-  List.iter
-    (fun (entity : Entity.t) ->
-      let symbol =
-        match entity.entity_type with
-        | Entity.Player -> "@"
-        | Entity.Enemy -> "o"
-        | Entity.Item -> "i"
-      in
-      let color =
-        match entity.entity_type with
-        | Entity.Player -> Color.red
-        | Entity.Enemy -> Color.purple
-        | Entity.Item -> Color.yellow
-      in
-      let x = entity.pos_x |> Int.to_float in
-      let y = entity.pos_y |> Int.to_float in
-      let x = (x *. grid_size) +. x_offset in
-      let y = (y *. grid_size) +. y_offset in
-      Printf.printf "Entity: %s %s %s\n" symbol
-        (Int.to_string (int_of_float x))
-        (Int.to_string (int_of_float y));
-      draw_text_ex state.font symbol (Vector2.create x y) font_size 0. color)
-    backend.entities.entities
+    backend.map.map
 
 let handle_event state = state

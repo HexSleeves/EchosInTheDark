@@ -1,16 +1,8 @@
-(* Copyright (c) 2023 Jacob LeCoq (Yendor). All rights reserved. *)
-open Arg
+(* Copyright (c) 2025 Jacob LeCoq (Yendor). All rights reserved. *)
 
-type actions = [ `Game ]
-
-let mode : actions ref = ref `Game
-let arglist = []
+open Logs
 
 let () =
-  parse arglist (fun _ -> ()) "Usage";
-  match !mode with `Game -> Modules.run ()
-
-(* let () =
   Clap.description "Rougelike Tutorial 2023";
   (* [flag_enum] is a generalization of [flag] for enums with more than 2 possible values. *)
   let level =
@@ -28,4 +20,4 @@ let () =
   Log.configure ~level;
   (* Blast Off *)
   let () = Logs.info (fun m -> m "Starting main") in
-  Frontend.run () *)
+  Modules.run ()

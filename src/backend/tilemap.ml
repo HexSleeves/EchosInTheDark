@@ -1,4 +1,5 @@
 open Ppx_yojson_conv_lib.Yojson_conv
+open Base
 
 let map_width_default = 80
 let map_height_default = 50
@@ -20,19 +21,25 @@ let get_width v = v.width
 let get_tile v x y = v.map.(Utils.calc_offset v.width x y)
 let set_tile v x y tile = v.map.(Utils.calc_offset v.width x y) <- tile
 
-let generate ?(w = map_width_default) ?(h = map_height_default) ~seed =
-  let width = w in
-  let height = h in
-  let map = Array.make (width * height) @@ Tile.Floor in
+let default_map () =
+  {
+    seed = 0;
+    width = map_width_default;
+    height = map_height_default;
+    map = Array.create ~len:(map_width_default * map_height_default) Tile.Floor;
+  }
 
-  for x = 0 to width - 1 do
-    map.(Utils.calc_offset width x 0) <- Tile.Wall;
-    map.(Utils.calc_offset width x (height - 1)) <- Tile.Wall
+let generate ~seed ~w ~h =
+  let map = Array.create ~len:(w * h) Tile.Floor in
+
+  for x = 0 to w - 1 do
+    map.(Utils.calc_offset w x 0) <- Tile.Wall;
+    map.(Utils.calc_offset w x (h - 1)) <- Tile.Wall
   done;
 
-  for y = 0 to height - 1 do
-    map.(Utils.calc_offset width 0 y) <- Tile.Wall;
-    map.(Utils.calc_offset width (width - 1) y) <- Tile.Wall
+  for y = 0 to h - 1 do
+    map.(Utils.calc_offset w 0 y) <- Tile.Wall;
+    map.(Utils.calc_offset w (w - 1) y) <- Tile.Wall
   done;
 
-  { map; seed; width; height }
+  { map; seed; width = w; height = h }

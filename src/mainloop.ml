@@ -3,11 +3,7 @@ module B = Backend
 module R = Renderer
 module G = Grafx
 
-type 'a t = {
-  render : State.t -> unit;
-  handle_tick : State.t -> State.t;
-  handle_event : State.t -> State.t * bool;
-}
+type 'a t = { render : State.t -> unit; handle_tick : State.t -> State.t }
 
 (* Main *)
 let main init_fn =
@@ -17,20 +13,14 @@ let main init_fn =
   let rec update_loop data =
     match Raylib.window_should_close () with
     | true -> Raylib.close_window ()
-    | false -> (
-        (* Events *)
-        let data, quit = v.handle_event data in
-
-        match quit with
-        | true -> ()
-        | _ ->
-            (* Ticks *)
-            let data = v.handle_tick data in
-
-            (* Render *)
-            G.draw_raylib_scene (fun () -> v.render data);
-
-            update_loop data)
+    | false ->
+        (* Ticks *)
+        let data = v.handle_tick data in
+        if data.quitting then Printf.printf "Quitting...\n"
+        else (
+          (* Render *)
+          G.draw_raylib_scene (fun () -> v.render data);
+          update_loop data)
   in
 
   update_loop data

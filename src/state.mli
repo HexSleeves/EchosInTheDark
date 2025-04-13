@@ -1,6 +1,7 @@
 (* State interface *)
 
 type t = {
+  quitting : bool;
   font : Raylib.Font.t;
   backend : Backend.t;
   screen : Modules_d.t;
