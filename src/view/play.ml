@@ -1,4 +1,4 @@
-let render (state : State.t) =
+let render (state : State.t) : State.t option =
   let open Raylib in
   let backend = state.backend in
 
@@ -23,6 +23,6 @@ let render (state : State.t) =
       let x = (x *. grid_size) +. x_offset in
       let y = (y *. grid_size) +. y_offset in
       draw_text_ex state.font tile (Vector2.create x y) font_size 0. Color.white)
-    backend.map.map
+    backend.map.map;
 
-let handle_event state = state
+  None

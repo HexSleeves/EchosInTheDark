@@ -9,7 +9,8 @@ let draw_raylib_scene draw_func =
   clear_background Color.black;
 
   (* Main Draw fn *)
-  draw_func ();
+  let result = draw_func () in
 
   (* Wrapup  *)
-  end_drawing ()
+  end_drawing ();
+  result

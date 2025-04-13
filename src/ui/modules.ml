@@ -1,25 +1,43 @@
+open Modules_d
+
 (* Main modules of game. They don't carry much state between them *)
 module R = Renderer
 module B = Backend
-open Modules_d
+
+let option_to_screen (s : State.t) (update : 'a option)
+    (scrn_constructor : 'a -> Modules_d.screen) : State.t option =
+  match update with
+  | Some new_screen_state ->
+      Some { s with screen = scrn_constructor new_screen_state }
+  | None -> None
 
 let handle_tick (s : State.t) =
   let state =
     match s.screen with
-    | MainMenu m ->
-        let new_menu, should_quit, should_play = Mainmenu.handle_tick m in
-        if should_play then { s with screen = Playing }
-        else if should_quit then { s with quitting = true }
-        else { s with screen = MainMenu new_menu }
+    | MainMenu m -> (
+        let new_mainmenu, result = Mainmenu.handle_tick m in
+        match result with
+        | Some Play -> { s with screen = MapGen Mapgen.init }
+        | Some Quit ->
+            { s with quitting = true; screen = MainMenu new_mainmenu }
+        | None -> { s with screen = MainMenu new_mainmenu })
+    | MapGen m -> (
+        let new_mapgen = Mapgen.handle_tick m in
+        match new_mapgen.action with
+        | Some `Continue -> { s with screen = Playing }
+        | Some `Back -> { s with screen = MainMenu Mainmenu.init }
+        | None -> { s with screen = MapGen new_mapgen })
     | _ -> s
   in
   state
 
-let render (s : State.t) =
+let render (s : State.t) : State.t option =
   match s.screen with
-  | MapGen -> ()
-  | MainMenu s -> Mainmenu.render s
-  | Playing -> Play.render s
+  | MapGen m ->
+      option_to_screen s (Mapgen.render m) (fun x -> Modules_d.MapGen x)
+  | MainMenu m ->
+      option_to_screen s (Mainmenu.render m) (fun x -> Modules_d.MainMenu x)
+  | Playing -> option_to_screen s (Play.render s) (fun _ -> Modules_d.Playing)
 
 let run () : unit =
   Logs.set_reporter (Logs_fmt.reporter ());
@@ -46,7 +64,7 @@ let run () : unit =
     in
 
     (* Let's Roll *)
-    let state = create_state (Modules_d.MainMenu Mainmenu.init) in
+    let state = create_state (MainMenu Mainmenu.init) in
     (Logs.info @@ fun m -> m "initialization done.");
     (state, Mainloop.{ handle_tick; render })
   in
