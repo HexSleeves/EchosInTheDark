@@ -1,0 +1,111 @@
+# Session Update Triggers
+# This file defines trigger events that prompt session updates at meaningful points
+# rather than arbitrary intervals, optimizing documentation and performance.
+
+trigger_types:
+  task_progress:
+    description: "Significant progress on the current task"
+    detection:
+      - pattern: "completed [3+] steps in current task"
+      - pattern: "finished [25%|50%|75%] of task objectives"
+      - pattern: "major milestone in current task"
+    prompt: "I notice you've completed several steps in the current task. Would you like me to update our session document to reflect this progress?"
+    priority: high
+    
+  task_transition:
+    description: "Task state changes"
+    detection:
+      - pattern: "moved task from [planned|active|hold] to [active|completed|hold]"
+      - pattern: "completed TASK-\\d{3}"
+      - pattern: "started new task TASK-\\d{3}"
+      - pattern: "put TASK-\\d{3} on hold"
+    prompt: "You've just {transition_type} TASK-{task_id}. Would you like me to update the session document with this milestone?"
+    variables:
+      - transition_type: ["completed", "started", "put on hold", "resumed"]
+      - task_id: "\\d{3}"
+    priority: high
+    
+  decision_point:
+    description: "Important decisions made during development"
+    detection:
+      - pattern: "decided to [use|implement|adopt|choose]"
+      - pattern: "made decision about"
+      - pattern: "chose [option|approach|method|tool]"
+      - pattern: "selected [option|approach|method|tool]"
+    prompt: "I see you've made an important decision about {decision_topic}. Should I document this decision in our session file?"
+    variables:
+      - decision_topic: "the decision topic detected"
+    priority: high
+    
+  content_creation:
+    description: "Creation of significant content or code"
+    detection:
+      - pattern: "created [file|document|component|module]"
+      - pattern: "implemented [feature|functionality]"
+      - pattern: "wrote [documentation|code] for"
+      - pattern: "completed implementation of"
+    prompt: "You've created significant content ({content_type}). Would you like to update the session document to capture this progress?"
+    variables:
+      - content_type: "the type of content created"
+    priority: medium
+    
+  problem_resolution:
+    description: "Resolution of issues or blockers"
+    detection:
+      - pattern: "fixed [issue|bug|error|problem]"
+      - pattern: "resolved [blocker|dependency]"
+      - pattern: "found solution for"
+      - pattern: "addressed [issue|concern]"
+    prompt: "You've resolved an important issue ({issue_type}). Should I update our session document to reflect this progress?"
+    variables:
+      - issue_type: "the type of issue resolved"
+    priority: medium
+    
+  time_based:
+    description: "Time-based triggers (used sparingly)"
+    detection:
+      - pattern: "30+ minutes since last session update"
+      - pattern: "significant work without session update"
+    prompt: "We've been working for a while without updating the session document. Would you like to save our progress now?"
+    priority: low
+    
+  context_switch:
+    description: "Switching focus to a different area"
+    detection:
+      - pattern: "switching focus to"
+      - pattern: "moving on to"
+      - pattern: "changing focus from [A] to [B]"
+    prompt: "I notice you're switching focus from {previous_focus} to {new_focus}. Would you like to update our session document to reflect this change?"
+    variables:
+      - previous_focus: "the previous focus area"
+      - new_focus: "the new focus area"
+    priority: medium
+
+implementation:
+  detection_process:
+    - monitor_user_messages: "Analyze user messages for trigger patterns"
+    - check_task_state: "Monitor task state changes"
+    - track_progress: "Track completed steps and milestones"
+    - measure_time: "Track time since last session update"
+    
+  response_process:
+    - detect_trigger: "Identify trigger event"
+    - format_prompt: "Format appropriate prompt with variables"
+    - suggest_update: "Present update suggestion to user"
+    - handle_response: "Process user response (yes/no)"
+    
+  update_process:
+    - if_approved:
+      - update_session: "Update session document with progress"
+      - confirm_update: "Confirm update to user"
+    - if_declined:
+      - note_preference: "Note user preference"
+      - continue_work: "Continue with current task"
+
+best_practices:
+  - prioritize_meaningful_events: "Focus on significant milestones over minor updates"
+  - avoid_interruption: "Don't interrupt user flow for minor updates"
+  - combine_triggers: "Combine multiple triggers into a single update suggestion"
+  - respect_preferences: "Learn from user responses to refine trigger sensitivity"
+  - provide_context: "Include specific progress details in update suggestions"
+  - balance_frequency: "Avoid too frequent or too sparse update suggestions" 

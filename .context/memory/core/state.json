@@ -1,0 +1,28 @@
+{
+  "type": "memory",
+  "category": "core",
+  "id": "framework-state",
+  "created": "2025-02-17T10:17:54-05:00",
+  "updated": "2025-02-24T11:12:00-05:00",
+  "content": {
+    "version": "0.1.0",
+    "status": "initializing",
+    "activeTask": "TASK-003",
+    "activeSession": "SESSION-001",
+    "lastOperation": null,
+    "lastSession": "SESSION-009",
+    "decisions": [],
+    "directories": {
+      "root": ".context",
+      "tasks": {
+        "active": "tasks/active",
+        "planned": "tasks/planned",
+        "hold": "tasks/hold",
+        "completed": "tasks/completed"
+      },
+      "sessions": "sessions",
+      "decisions": "project/decisions",
+      "templates": "templates"
+    }
+  }
+}

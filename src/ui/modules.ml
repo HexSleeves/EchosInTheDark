@@ -16,17 +16,9 @@ let handle_event (s : State.t) =
   let open Raylib in
   match s.screen with
   | MainMenu m ->
-      let key = get_key_pressed () in
-      (* let new_m, should_quit =
-        match key with
-        | Key.Q -> ({ s with screen = MainMenu m }, true)
-        | Key.Up -> ({ m with selected = max 0 (m.selected - 1) }, false)
-        | Key.Down -> ({ m with selected = min 1 (m.selected + 1) }, false)
-        | Key.Enter -> (m, false)
-        | _ -> (m, false)
-      in *)
-
-      ({ s with screen = MainMenu m }, false)
+      let new_menu, should_quit, should_play = Mainmenu.handle_event m in
+      if should_play then ({ s with screen = Playing }, false)
+      else ({ s with screen = MainMenu new_menu }, should_quit)
   | MapGen -> (s, false)
   | Playing ->
       let new_s = Play.handle_event s in

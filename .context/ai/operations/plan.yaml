@@ -1,0 +1,186 @@
+name: plan
+description: Creates or updates project planning document and generates initial tasks
+version: 1.0
+
+validation_source:
+  file: validation.yaml
+  type: command_validation
+  rules:
+    - plan
+
+input:
+  type: command
+  pattern: /aegis plan
+  options:
+    - name: --update
+      description: Update existing plan
+      required: false
+  validation:
+    type: plan
+    rules:
+      - framework_ready
+      - valid_command
+
+output:
+  type: operation
+  actions:
+    - create_planning_doc
+    - generate_tasks
+    - update_state
+  validation:
+    planning_document:
+      - format_valid
+      - content_complete
+    tasks:
+      - valid_format
+      - unique_ids
+
+steps:
+  1_validate:
+    - check_framework:
+        rules:
+          - framework_structure
+          - required_files
+          - permissions
+    - verify_permissions:
+        rules:
+          - state_valid
+          - can_plan
+    
+  2_prepare:
+    - load_context:
+        from: memory/project
+        required: true
+        validation:
+          - exists
+          - readable
+          - valid_format
+    - load_existing:
+        file: planning_document.md
+        required: false
+        validation:
+          - format_valid
+          - state_valid
+        
+  3_execute:
+    - create_or_update:
+        file: planning_document.md
+        template: planning
+        content:
+          - project_overview
+          - implementation_phases
+          - task_breakdown
+          - dependencies
+        validation:
+          - format_valid
+          - content_complete
+          
+    - extract_tasks:
+        from: planning_document.md
+        pattern: task
+        output: tasks/planned
+        template: tasks/TEMPLATE.md
+        required_fields:
+          - title
+          - type: task
+          - status: planned
+          - created
+          - updated
+          - id
+          - priority
+          - memory_types
+        validation:
+          - valid_format
+          - unique_ids
+          - required_fields
+        
+    - update_state:
+        type: framework
+        status: planning
+        validation:
+          - state_valid
+        
+  4_verify:
+    - validate_document:
+        file: planning_document.md
+        schema: planning
+        rules:
+          - exists
+          - valid_format
+          - complete
+        
+    - check_tasks:
+        directory: tasks/planned
+        validation:
+          - format_valid
+          - required_fields:
+              - title
+              - type
+              - status
+              - created
+              - updated
+              - id
+              - priority
+              - memory_types
+          - valid_values:
+              type: task
+              status: planned
+              memory_types:
+                - procedural
+                - semantic
+                - episodic
+
+errors:
+  framework:
+    structure: Framework structure invalid
+    permissions: Missing required permissions
+    state: Invalid framework state
+  document:
+    creation: Plan creation failed
+    format: Invalid plan format
+    content: Missing required content
+  tasks:
+    generation: Task generation failed
+    format: Invalid task format
+    duplicates: Duplicate task IDs
+
+recovery:
+  framework:
+    structure: Validate framework structure
+    permissions: Check and fix permissions
+    state: Restore framework state
+  document:
+    creation: Retry plan creation
+    format: Fix plan format
+    content: Add required content
+  tasks:
+    generation: Retry task generation
+    format: Fix task format
+    duplicates: Fix duplicate IDs
+
+templates:
+  planning:
+    format: markdown
+    required_sections:
+      - overview
+      - phases
+      - tasks
+    validation:
+      - format_valid
+      - sections_complete
+
+validation:
+  rules:
+    - framework_ready
+    - plan_valid
+    - tasks_valid
+  requirements:
+    framework:
+      - valid_structure
+      - valid_permissions
+    plan:
+      - valid_format
+      - complete_sections
+    tasks:
+      - valid_format
+      - unique_ids

@@ -1,0 +1,435 @@
+name: save
+description: Save current progress and update project state
+version: 1.0
+
+validation_source:
+  file: validation.yaml
+  type: command_validation
+  rules:
+    - save
+
+input:
+  type: command
+  pattern: /aegis save
+  options:
+    - name: --message
+      description: Save message
+      required: false
+  validation:
+    type: save
+    rules:
+      - active_session
+      - changes_present
+
+output:
+  type: operation
+  actions:
+    - save_progress
+    - analyze_session
+    - update_state
+    - log_changes
+    - extract_decisions
+    - update_project
+  validation:
+    session:
+      - format_valid
+      - state_valid
+    changes:
+      - changes_exist
+      - valid_format
+    analysis:
+      - insights_valid
+
+steps:
+  1_validate:
+    - check_session:
+        rules:
+          - session_exists
+          - session_active
+    - verify_changes:
+        rules:
+          - changes_exist
+          - changes_valid
+    - load_state:
+        rules:
+          - memory_exists
+          - state_valid
+    
+  2_prepare:
+    - get_session:
+        from: memory/session
+        required: true
+        validation:
+          - exists
+          - readable
+          - valid_format
+    - collect_changes:
+        from: active_session
+        validation:
+          - changes_exist
+          - changes_valid
+    - gather_analysis_data:
+        from:
+          - memory/session
+          - memory/project
+          - active_session
+        documentation: memory/SELF_IMPROVEMENT.md
+        validation:
+          - data_sufficient
+          - format_valid
+        
+  3_execute:
+    - save_progress:
+        type: session
+        content:
+          - changes
+          - decisions
+          - state
+        validation:
+          - format_valid
+          - content_complete
+          
+    - analyze_session:
+        type: self_improvement
+        data:
+          - session_history
+          - task_patterns
+          - decision_patterns
+          - time_allocation
+        output:
+          - insights
+          - recommendations
+        store:
+          file: memory/project/self_improvement.json
+          session_section: Self-Improvement
+        documentation: memory/SELF_IMPROVEMENT.md
+        validation:
+          - analysis_complete
+          - insights_valid
+          
+    - update_state:
+        type: framework
+        status: saved
+        validation:
+          - valid_state
+          - valid_transition
+        
+    - log_changes:
+        to: session_log
+        format: markdown
+        content:
+          - timestamp
+          - changes
+          - decisions
+          - insights
+        validation:
+          - format_valid
+          - content_complete
+        
+    - extract_decisions:
+        from: current_session
+        pattern: "## Decisions"
+        create:
+          template: decisions/TEMPLATE.md
+          location: project/decisions
+          format: DECISION-[000]
+        
+    - update_project:
+        file: project/context/project.json
+        fields:
+          - activeTasks
+          - completedTasks
+          - decisions
+          - insights
+        
+  4_verify:
+    - validate_save:
+        type: session
+        rules:
+          - state_saved
+          - changes_recorded
+        
+    - check_log:
+        file: session_log
+        rules:
+          - file_exists
+          - content_valid
+        
+    - verify_analysis:
+        type: self_improvement
+        rules:
+          - analysis_complete
+          - insights_stored
+          - session_updated
+        documentation: memory/SELF_IMPROVEMENT.md
+        
+    - verify_state:
+        type: framework
+        rules:
+          - state_valid
+          - save_complete
+
+errors:
+  framework:
+    structure: Framework structure invalid
+    permissions: Missing required permissions
+    state: Invalid framework state
+  session:
+    save: Session save failed
+    format: Invalid session format
+    changes: Missing changes
+  changes:
+    missing: No changes to save
+    format: Invalid changes format
+    record: Change recording failed
+  analysis:
+    failed: Session analysis failed
+    storage: Insight storage failed
+    format: Invalid insight format
+
+recovery:
+  framework:
+    structure: Validate framework structure
+    permissions: Check and fix permissions
+    state: Restore framework state
+  session:
+    save: Retry session save
+    format: Fix session format
+    changes: Collect changes
+  changes:
+    missing: Check for changes
+    format: Fix changes format
+    record: Retry recording
+  analysis:
+    failed: Skip analysis, continue with save
+    storage: Retry insight storage
+    format: Fix insight format
+
+templates:
+  session:
+    format: json
+    required_fields:
+      - session_id
+      - save_time
+      - changes
+    sections:
+      - progress
+      - decisions
+      - state
+      - self_improvement
+  decision:
+    base: decisions/TEMPLATE.md
+    required:
+      - title
+      - context
+      - decision
+      - consequences
+  analysis:
+    format: json
+    required_fields:
+      - timestamp
+      - session_id
+      - insights
+    sections:
+      - metrics
+      - patterns
+      - recommendations
+    documentation: memory/SELF_IMPROVEMENT.md
+
+validation:
+  rules:
+    - framework_ready
+    - session_valid
+    - changes_valid
+    - analysis_valid
+    - session_format:
+        required_sections:
+          - Overview
+          - Progress
+          - Decisions
+          - Self-Improvement
+          - Dependencies
+          - Next Steps
+    - decision_format:
+        required_fields:
+          - title
+          - type: decision
+          - status: [proposed, accepted, rejected]
+          - created: date
+          - id: DECISION-[000]
+  requirements:
+    framework:
+      - valid_structure
+      - valid_permissions
+    session:
+      - valid_format
+      - complete_fields
+    changes:
+      - changes_exist
+      - valid_format
+    analysis:
+      - insights_valid
+      - session_updated
+
+# AI Assistant State Validation Checklist
+ai_validation:
+  - check_project_json:
+      file: memory/project/context/project.json
+      verify:
+        - updated_timestamp: "Current timestamp in YYYY-MM-DDTHH:MM:SS format"
+        - active_tasks: "Match tasks in .context/tasks/active/"
+        - completed_tasks: "Match tasks in .context/tasks/completed/"
+        - decisions: "Include new decisions from current session"
+  
+  - check_self_improvement:
+      file: memory/project/self_improvement.json
+      verify:
+        - updated_timestamp: "Current timestamp"
+        - insights: "Include new insights from current session"
+        - recommendations: "Include new recommendations"
+
+# AI Assistant Implementation Guide
+ai_implementation:
+  description: "This operation saves the current session progress and updates project state"
+  
+  execution_steps:
+    1: "Validate the current session"
+    2: "Collect changes and progress"
+    3: "Identify decisions to record"
+    4: "Analyze session for self-improvement insights"
+    5: "Update session document"
+    6: "Create decision records"
+    7: "Update self-improvement record"
+    8: "Update task progress"
+    9: "Update project context"
+    10: "Verify all updates"
+  
+  execution_flowchart: |
+    START
+    |
+    v
+    [1. VALIDATE SESSION] --> [FAIL] --> [REPORT ERROR]
+    |                                      |
+    v [SUCCESS]                            |
+    [2. COLLECT CHANGES] --> [NO CHANGES] -+
+    |                                      |
+    v [CHANGES EXIST]                      |
+    [3. IDENTIFY DECISIONS]                |
+    |                                      |
+    v                                      |
+    [4. ANALYZE SESSION]                   |
+    |                                      |
+    v                                      |
+    [5. UPDATE SESSION DOCUMENT] --------->+
+    |                                      |
+    v                                      |
+    [6. CREATE DECISION RECORDS] --------->+
+    |                                      |
+    v                                      |
+    [7. UPDATE SELF-IMPROVEMENT] --------->+
+    |                                      |
+    v                                      |
+    [8. UPDATE TASK PROGRESS] ------------>+
+    |                                      |
+    v                                      |
+    [9. UPDATE PROJECT CONTEXT] ---------->+
+    |                                      |
+    v                                      |
+    [10. VERIFY ALL UPDATES] --> [FAIL] -->+
+    |                                      |
+    v [SUCCESS]                            |
+    [REPORT SUCCESS] <---------------------+
+    |
+    v
+    END
+  
+  implementation_checklist: |
+    /aegis save checklist:
+    [ ] Update session document (status, progress, timestamps)
+    [ ] Create decision record for significant decisions
+    [ ] Update self-improvement record with new insights
+    [ ] Update task progress and status
+    [ ] Update project.json with current task lists
+    [ ] Update timestamps to current time
+    [ ] Verify all files have been properly updated
+    [ ] Confirm completion only when ALL steps are checked
+  
+  example_implementation: |
+    1. Validate the current session:
+       - Check if there's an active session
+       - Verify session format is valid
+       - Check if there are changes to save
+    
+    2. Collect changes and progress:
+       - Gather changes made during the session
+       - Collect progress updates
+       - Format for inclusion in session document
+    
+    3. Identify decisions to record:
+       - Look for decision markers in session content
+       - Extract decision details (title, context, decision, consequences)
+       - Prepare for decision record creation
+    
+    4. Analyze session for self-improvement insights:
+       - Identify patterns in session activity
+       - Generate insights based on patterns
+       - Create recommendations for future sessions
+    
+    5. Update session document:
+       - Update session status
+       - Add progress information
+       - Include decisions made
+       - Add self-improvement insights
+       - Update timestamps
+    
+    6. Create decision records:
+       - For each significant decision:
+         - Create a new decision record
+         - Include context and consequences
+         - Link to related tasks
+         - Set appropriate status
+    
+    7. Update self-improvement record:
+       - Add new insights to self-improvement record
+       - Update metrics based on session activity
+       - Add new recommendations
+       - Update timestamps
+    
+    8. Update task progress:
+       - Update progress for tasks worked on
+       - Update task status if needed
+       - Update task timestamps
+    
+    9. Update project context:
+       - Update activeTasks list
+       - Update completedTasks list
+       - Add new decisions to decisions list
+       - Update timestamps
+    
+    10. Verify all updates:
+        - Check that session document was updated
+        - Verify decision records were created
+        - Confirm self-improvement record was updated
+        - Validate task progress updates
+        - Ensure project context is consistent
+  
+  error_prevention: |
+    Common failure points:
+    1. Missing decision records: Always check for decision markers and create records
+    2. Incomplete self-improvement updates: Always update insights and recommendations
+    3. Inconsistent task state: Verify task lists match directory contents
+    4. Outdated timestamps: Always use current timestamps for all updates
+    
+    Prevention strategies:
+    1. Follow the implementation checklist completely
+    2. Verify each step before proceeding to the next
+    3. Use the validation patterns in validation.yaml
+    4. Confirm all files are updated before completing
+    5. Never skip steps in the implementation
+    
+    Recovery procedures:
+    1. If a step fails, retry with more specific instructions
+    2. If a file update fails, check permissions and retry
+    3. If validation fails, fix the issues before proceeding
+    4. If the command is partially implemented, complete the missing steps
+    5. Document any issues in the session record

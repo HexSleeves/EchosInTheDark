@@ -1,0 +1,25 @@
+{
+  "type": "memory",
+  "category": "core",
+  "id": "framework-config",
+  "created": "2025-02-17T10:17:54-05:00",
+  "updated": "2025-02-24T10:28:55-05:00",
+  "content": {
+    "framework": {
+      "rootDir": ".context",
+      "memoryDir": "memory",
+      "templatesDir": "templates",
+      "operationsDir": "operations"
+    },
+    "validation": {
+      "enforceSchema": true,
+      "requireFrontMatter": true,
+      "checkReferences": true
+    },
+    "backup": {
+      "enabled": true,
+      "interval": "1h",
+      "maxBackups": 10
+    }
+  }
+}

@@ -1,0 +1,387 @@
+name: context
+description: Quick context refresh and memory update
+version: 1.0
+
+validation_source:
+  file: validation.yaml
+  type: command_validation
+  rules:
+    - context
+
+input:
+  type: command
+  pattern: /aegis context
+  options:
+    - name: --full
+      description: Show full context
+      required: false
+  validation:
+    type: context
+    rules:
+      - framework_ready
+      - valid_permissions
+
+output:
+  type: operation
+  actions:
+    - show_context
+    - refresh_memory
+  validation:
+    context:
+      - format_valid
+      - sections_complete
+    memory:
+      - state_valid
+      - updates_allowed
+
+steps:
+  1_validate:
+    - check_framework:
+        rules:
+          - framework_structure
+          - required_files
+          - permissions
+    - verify_permissions
+    - load_state:
+        rules:
+          - memory_exists
+          - state_valid
+    
+  2_prepare:
+    - get_context:
+        type: memory
+        required:
+          - core
+          - project
+          - session
+        optional:
+          - decisions
+    - get_decisions:
+        directory: project/decisions
+        filter:
+          status: [accepted, proposed]
+        sort:
+          by: created
+          order: desc
+        limit: 5
+    - get_project:
+        from: memory/project
+        required: true
+        validation:
+          - exists
+          - readable
+          - valid_format
+    - get_session:
+        from: memory/session
+        required: false
+        validation:
+          - format_valid
+          - state_valid
+    - get_tasks:
+        directory: tasks
+        filter:
+          status: [active, hold]
+        sort:
+          by: updated
+          order: desc
+    
+  3_execute:
+    - load_context:
+        type: framework
+        scope: current
+        content:
+          - active_tasks
+          - recent_changes
+          - decisions
+    - collect_context:
+        sources:
+          - active_tasks
+          - recent_changes
+          - decisions
+          - state
+        validation:
+          - sources_exist
+          - data_valid
+          
+    - show_context:
+        sections:
+          - active_task
+          - recent_decisions
+          - current_focus
+          - next_steps
+        format:
+          decisions:
+            - id
+            - title
+            - status
+            - date
+    - format_output:
+        type: context
+        format: markdown
+        sections:
+          - overview
+          - tasks
+          - changes
+          - decisions
+        validation:
+          - format_valid
+          - sections_complete
+        
+    - update_memory:
+        type: session
+        content: context
+        time: current
+    - refresh_memory:
+        type: session
+        content:
+          - context
+          - state
+        validation:
+          - state_valid
+          - updates_allowed
+        
+  4_verify:
+    - validate_context:
+        type: summary
+        schema: context
+    - validate_output:
+        type: context
+        rules:
+          - format_valid
+          - content_complete
+        
+    - check_memory:
+        type: session
+        rules:
+          - state_valid
+          - updates_complete
+
+errors:
+  framework:
+    structure: Framework structure invalid
+    permissions: Missing required permissions
+    state: Invalid framework state
+  context:
+    format: Invalid context format
+    content: Missing required content
+    sources: Invalid context sources
+  memory:
+    state: Invalid memory state
+    update: Memory update failed
+    sync: Memory sync failed
+
+recovery:
+  framework:
+    structure: Validate framework structure
+    permissions: Check and fix permissions
+    state: Restore framework state
+  context:
+    format: Fix context format
+    content: Load required content
+    sources: Validate sources
+  memory:
+    state: Fix memory state
+    update: Retry memory update
+    sync: Resync memory state
+
+templates:
+  context:
+    format: markdown
+    required_sections:
+      - overview
+      - tasks
+      - changes
+      - decisions
+
+validation:
+  rules:
+    - framework_ready
+    - context_valid
+    - memory_valid
+  requirements:
+    framework:
+      - valid_structure
+      - valid_permissions
+    context:
+      - valid_format
+      - complete_sections
+    memory:
+      - valid_state
+      - allows_updates
+
+# Command Template with Required Components
+command_template:
+  name: context
+  description: "Template for implementing the context command"
+  version: 1.0
+  
+  required_components:
+    pre_execution:
+      - project_context_loading:
+          description: "Load project context"
+          validation:
+            - context_loaded: "Project context must be loaded"
+          implementation: |
+            1. Load project context from memory/project/context/project.json
+            2. Verify project context is valid
+            3. Extract relevant information (name, version, phase, etc.)
+      
+      - active_task_loading:
+          description: "Load active tasks"
+          validation:
+            - tasks_loaded: "Active tasks must be loaded"
+          implementation: |
+            1. Load active tasks from tasks/active/
+            2. Sort tasks by priority and updated timestamp
+            3. Extract relevant information (title, progress, etc.)
+      
+      - recent_decision_loading:
+          description: "Load recent decisions"
+          validation:
+            - decisions_loaded: "Recent decisions must be loaded"
+          implementation: |
+            1. Load recent decision documents from decisions/
+            2. Sort by date (newest first)
+            3. Limit to most relevant decisions (5-10)
+    
+    execution:
+      - context_report_generation:
+          description: "Generate context report"
+          validation:
+            - report_generated: "Context report must be generated"
+          implementation: |
+            1. Create context report structure
+            2. Include project overview section
+            3. Format information in a readable way
+      
+      - active_tasks_inclusion:
+          description: "Include active tasks in report"
+          validation:
+            - tasks_included: "Active tasks must be included in report"
+          implementation: |
+            1. Format active tasks information
+            2. Include task titles, IDs, and progress
+            3. Sort by priority and status
+      
+      - recent_decisions_inclusion:
+          description: "Include recent decisions in report"
+          validation:
+            - decisions_included: "Recent decisions must be included in report"
+          implementation: |
+            1. Format recent decisions information
+            2. Include decision titles, IDs, and status
+            3. Provide brief context for each decision
+      
+      - relevant_insights_inclusion:
+          description: "Include relevant insights in report"
+          validation:
+            - insights_included: "Relevant insights must be included in report"
+          implementation: |
+            1. Load insights from self_improvement.json
+            2. Filter for most relevant insights
+            3. Include in report with priority indicators
+      
+      - memory_refresh:
+          description: "Refresh session memory with context"
+          validation:
+            - memory_refreshed: "Session memory must be refreshed"
+          implementation: |
+            1. Update active.json with current context
+            2. Update context section with latest information
+            3. Update timestamps to current time
+    
+    post_execution:
+      - report_verification:
+          description: "Verify report is complete"
+          validation:
+            - report_complete: "Report must include all required sections"
+          implementation: |
+            1. Verify all required sections are present
+            2. Check that information is current and accurate
+            3. Ensure report is properly formatted
+      
+      - memory_verification:
+          description: "Verify memory has been refreshed"
+          validation:
+            - memory_verified: "Memory refresh must be verified"
+          implementation: |
+            1. Verify active.json has been updated
+            2. Check that context information is current
+            3. Confirm timestamps are updated
+    
+    error_handling:
+      - error_detection:
+          description: "Detect and handle errors"
+          validation:
+            - errors_handled: "All potential errors must be handled"
+          implementation: |
+            1. Check for common errors (missing files, invalid format)
+            2. Implement fallback mechanisms for missing data
+            3. Provide clear error messages if needed
+      
+      - data_validation:
+          description: "Validate data completeness"
+          validation:
+            - data_valid: "All data must be valid"
+          implementation: |
+            1. Verify all required data is available
+            2. Check for inconsistencies in data
+            3. Use default values for missing non-critical data
+  
+  implementation_example: |
+    # Example implementation of /aegis context
+    
+    ## Pre-execution
+    1. Load project context:
+       - Load project.json from memory/project/context/
+       - Extract project name, version, phase
+       - Get lists of active, completed, and planned tasks
+    2. Load active tasks:
+       - Read all files in tasks/active/
+       - Sort by priority (high to low)
+       - Extract titles, IDs, and progress information
+    3. Load recent decisions:
+       - Read recent decision files from decisions/
+       - Sort by date (newest first)
+       - Limit to 5 most recent decisions
+    
+    ## Execution
+    1. Generate context report:
+       - Create report structure with sections
+       - Add project overview (name, version, phase)
+       - Format in a readable way
+    2. Include active tasks:
+       - Format list of active tasks
+       - Include task titles, IDs, and progress
+       - Highlight high-priority tasks
+    3. Include recent decisions:
+       - Format list of recent decisions
+       - Include decision titles, IDs, and status
+       - Provide brief context for each decision
+    4. Include relevant insights:
+       - Add relevant insights from self_improvement.json
+       - Include high-priority recommendations
+    5. Refresh session memory:
+       - Update active.json with current context
+       - Update context section with latest information
+       - Update timestamps to current time
+    
+    ## Post-execution
+    1. Verify report:
+       - Check that all sections are present
+       - Verify information is current and accurate
+       - Ensure report is complete
+    2. Verify memory refresh:
+       - Confirm active.json has been updated
+       - Check that context information is current
+       - Verify timestamps are updated
+    
+    ## Error handling
+    1. Handle missing data:
+       - If project.json is missing, report error
+       - If no active tasks, indicate "No active tasks"
+       - If no recent decisions, indicate "No recent decisions"
+    2. Validate data:
+       - Check for inconsistencies in task states
+       - Verify timestamps are valid
+       - Use default values for non-critical missing data

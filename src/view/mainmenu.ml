@@ -5,15 +5,21 @@ let versionString = "Version 1.0"
 let copyrightString = "(C) 2023 Yendor"
 let menu_items = [ "Play"; "Quit" ]
 
+type result = Continue of t | Play | Quit
+
+(* Handle events *)
+(* Returns a tuple of the new state, should_quit, should_play *)
 let handle_event s =
   let open Raylib in
   let key = get_key_pressed () in
-  let enter_pressed = key = Key.Enter in
+  let should_quit = false in
+  let should_play = false in
   match key with
-  | Key.Q -> (s, true, false)
-  | Key.Up -> ({ selected = max 0 (s.selected - 1) }, false, enter_pressed)
-  | Key.Down -> ({ selected = min 1 (s.selected + 1) }, false, enter_pressed)
-  | _ -> (s, false, enter_pressed)
+  | Key.Q -> (s, true, should_play)
+  | Key.Up -> ({ selected = max 0 (s.selected - 1) }, should_quit, should_play)
+  | Key.Down -> ({ selected = min 1 (s.selected + 1) }, should_quit, should_play)
+  | Key.Enter -> (s, s.selected = 1, s.selected = 0)
+  | _ -> (s, should_quit, should_play)
 
 let render (state : t) =
   let open Raylib in

@@ -1,0 +1,317 @@
+name: status
+description: Show current project state and progress
+version: 1.0
+
+validation_source:
+  file: validation.yaml
+  type: command_validation
+  rules:
+    - status
+
+input:
+  type: command
+  pattern: /aegis status
+  options:
+    - name: --detail
+      description: Show detailed status
+      required: false
+  validation:
+    type: status
+    rules:
+      - framework_ready
+      - valid_permissions
+
+output:
+  type: operation
+  actions:
+    - show_status
+    - display_progress
+  validation:
+    status:
+      - format_valid
+      - content_complete
+    display:
+      - readable
+      - organized
+
+steps:
+  1_validate:
+    - check_framework:
+        rules:
+          - framework_structure
+          - required_files
+          - permissions
+    - load_state:
+        rules:
+          - memory_exists
+          - state_valid
+    
+  2_prepare:
+    - get_project:
+        from: memory/project
+        required: true
+        validation:
+          - exists
+          - readable
+          - valid_format
+    - get_session:
+        from: memory/session
+        required: false
+        validation:
+          - format_valid
+          - state_valid
+        
+  3_execute:
+    - collect_status:
+        sources:
+          - project_state
+          - active_tasks
+          - recent_changes
+        validation:
+          - sources_exist
+          - data_valid
+          
+    - format_output:
+        type: status
+        format: markdown
+        sections:
+          - overview
+          - tasks
+          - changes
+        validation:
+          - format_valid
+          - sections_complete
+        
+  4_verify:
+    - validate_output:
+        type: status
+        rules:
+          - format_valid
+          - content_complete
+        
+    - check_content:
+        type: display
+        rules:
+          - readable
+          - organized
+          - accurate
+
+errors:
+  framework:
+    structure: Framework structure invalid
+    permissions: Missing required permissions
+    state: Invalid framework state
+  status:
+    collection: Status collection failed
+    format: Invalid status format
+    content: Missing required content
+  display:
+    format: Display format error
+    readability: Content not readable
+    organization: Poor content organization
+
+recovery:
+  framework:
+    structure: Validate framework structure
+    permissions: Check and fix permissions
+    state: Restore framework state
+  status:
+    collection: Retry status collection
+    format: Fix status format
+    content: Load required content
+  display:
+    format: Fix display format
+    readability: Improve readability
+    organization: Reorganize content
+
+templates:
+  status:
+    format: markdown
+    required_sections:
+      - overview
+      - tasks
+      - changes
+    display_rules:
+      - clear_headers
+      - consistent_format
+      - proper_indentation
+
+validation:
+  rules:
+    - framework_ready
+    - status_valid
+    - display_valid
+  requirements:
+    framework:
+      - valid_structure
+      - valid_permissions
+    status:
+      - valid_format
+      - complete_sections
+    display:
+      - readable
+      - organized
+
+# Command Template with Required Components
+command_template:
+  name: status
+  description: "Template for implementing the status command"
+  version: 1.0
+  
+  required_components:
+    pre_execution:
+      - project_context_loading:
+          description: "Load project context"
+          validation:
+            - context_loaded: "Project context must be loaded"
+          implementation: |
+            1. Load project context from memory/project/context/project.json
+            2. Verify project context is valid
+            3. Extract relevant information (name, version, phase, etc.)
+      
+      - active_task_loading:
+          description: "Load active tasks"
+          validation:
+            - tasks_loaded: "Active tasks must be loaded"
+          implementation: |
+            1. Load active tasks from tasks/active/
+            2. Sort tasks by priority and updated timestamp
+            3. Extract relevant information (title, progress, etc.)
+      
+      - recent_changes_loading:
+          description: "Load recent changes"
+          validation:
+            - changes_loaded: "Recent changes must be loaded"
+          implementation: |
+            1. Load recent session documents from sessions/
+            2. Extract changes and progress information
+            3. Sort by timestamp (most recent first)
+    
+    execution:
+      - status_report_generation:
+          description: "Generate status report"
+          validation:
+            - report_generated: "Status report must be generated"
+          implementation: |
+            1. Create status report structure
+            2. Include project overview section
+            3. Format information in a readable way
+      
+      - active_tasks_inclusion:
+          description: "Include active tasks in report"
+          validation:
+            - tasks_included: "Active tasks must be included in report"
+          implementation: |
+            1. Format active tasks information
+            2. Include task titles, IDs, and progress
+            3. Sort by priority and status
+      
+      - recent_changes_inclusion:
+          description: "Include recent changes in report"
+          validation:
+            - changes_included: "Recent changes must be included in report"
+          implementation: |
+            1. Format recent changes information
+            2. Include session dates and key progress points
+            3. Limit to most relevant/recent changes
+      
+      - self_improvement_inclusion:
+          description: "Include self-improvement insights in report"
+          validation:
+            - insights_included: "Self-improvement insights must be included in report"
+          implementation: |
+            1. Load insights from self_improvement.json
+            2. Filter for most relevant insights
+            3. Include in report with priority indicators
+    
+    post_execution:
+      - report_verification:
+          description: "Verify report is complete"
+          validation:
+            - report_complete: "Report must include all required sections"
+          implementation: |
+            1. Verify all required sections are present
+            2. Check that information is current and accurate
+            3. Ensure report is properly formatted
+      
+      - display_formatting:
+          description: "Format report for display"
+          validation:
+            - format_valid: "Report format must be valid"
+          implementation: |
+            1. Apply consistent formatting
+            2. Use clear section headers
+            3. Ensure proper indentation and spacing
+    
+    error_handling:
+      - error_detection:
+          description: "Detect and handle errors"
+          validation:
+            - errors_handled: "All potential errors must be handled"
+          implementation: |
+            1. Check for common errors (missing files, invalid format)
+            2. Implement fallback mechanisms for missing data
+            3. Provide clear error messages if needed
+      
+      - data_validation:
+          description: "Validate data completeness"
+          validation:
+            - data_valid: "All data must be valid"
+          implementation: |
+            1. Verify all required data is available
+            2. Check for inconsistencies in data
+            3. Use default values for missing non-critical data
+  
+  implementation_example: |
+    # Example implementation of /aegis status
+    
+    ## Pre-execution
+    1. Load project context:
+       - Load project.json from memory/project/context/
+       - Extract project name, version, phase
+       - Get lists of active, completed, and planned tasks
+    2. Load active tasks:
+       - Read all files in tasks/active/
+       - Sort by priority (high to low)
+       - Extract titles, IDs, and progress information
+    3. Load recent changes:
+       - Read recent session files from sessions/
+       - Extract progress information
+       - Sort by date (newest first)
+    
+    ## Execution
+    1. Generate status report:
+       - Create report structure with sections
+       - Add project overview (name, version, phase)
+       - Format in a readable way
+    2. Include active tasks:
+       - Format list of active tasks
+       - Include task titles, IDs, and progress
+       - Highlight high-priority tasks
+    3. Include recent changes:
+       - Add section for recent changes
+       - List sessions with dates and key progress
+       - Limit to 3 most recent sessions
+    4. Include self-improvement insights:
+       - Add relevant insights from self_improvement.json
+       - Include high-priority recommendations
+    
+    ## Post-execution
+    1. Verify report:
+       - Check that all sections are present
+       - Verify information is current and accurate
+       - Ensure report is complete
+    2. Format for display:
+       - Apply consistent formatting
+       - Use clear section headers
+       - Ensure proper spacing and indentation
+    
+    ## Error handling
+    1. Handle missing data:
+       - If project.json is missing, report error
+       - If no active tasks, indicate "No active tasks"
+       - If no recent sessions, indicate "No recent activity"
+    2. Validate data:
+       - Check for inconsistencies in task states
+       - Verify timestamps are valid
+       - Use default values for non-critical missing data
