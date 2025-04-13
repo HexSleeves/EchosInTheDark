@@ -1,6 +1,39 @@
-RoguelikeDev Does The Complete Roguelike Tutorial - 2023 Edition ( OCAML ;) )
+# rl2023_ocaml
 
-This is my attempt at the Complete Roguelike Tutorial using OCAML. I am using the Raylib bindings for OCAML to handle the graphics and input.
-This may or may not die off as I explore other languages to find one that I like (currently exploring Clojure, ocaml, and Scala).
+This is an experimental project for learning OCaml, inspired by a love of game design.
 
-I really enjoy Ocaml so far so I will probably stick with it.
+## Installation and Running
+
+To install dependencies and run the game, you will need [opam](https://opam.ocaml.org/) and [dune](https://dune.build/).
+
+1. Install dependencies:
+
+   ```sh
+   opam install . --deps-only
+   ```
+
+2. Build the project:
+
+   ```sh
+   dune build
+   ```
+
+3. Run the game:
+
+   ```sh
+   dune exec rl2023
+   ```
+
+## Screenshots / Videos
+
+_Add screenshots or videos of the game here. To add a screenshot, place the image in the `static/` directory and reference it below:_
+
+![Screenshot](static/your_screenshot.png)
+
+## Contributing
+
+Contributions are welcome! If you would like to contribute, please fork the repository and submit a pull request.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
