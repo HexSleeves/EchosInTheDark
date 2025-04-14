@@ -1,6 +1,30 @@
 # rl2023_ocaml
 
 This is an experimental project for learning OCaml, inspired by a love of game design.
+## Guideline: Use of Entity and EntityManager Abstractions
+
+**All new game logic and feature implementations should use the `entity` and `EntityManager` abstractions.**
+
+These abstractions provide:
+- **Extensibility:** Easily add new entity types or behaviors.
+- **Maintainability:** Centralizes entity logic, reducing code duplication and simplifying updates.
+- **Consistency:** Ensures a uniform approach to managing game objects across the codebase.
+
+See [`src/backend/types.ml`](src/backend/types.ml) for canonical definitions and constructors.
+
+**Minimal Example:**
+
+```ocaml
+open Backend.Types
+
+let mgr = EntityManager.create ()
+let player = make_player ~id:1 ~pos:(0,0) ~direction:North ~faction:0
+let () = EntityManager.add mgr player
+let found = EntityManager.find mgr 1
+```
+
+Contributors are encouraged to follow this pattern for all new features and logic. For more details and advanced usage, see the documentation and type definitions in `src/backend/types.ml`.
+
 
 ## Installation and Running
 

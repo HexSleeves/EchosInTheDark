@@ -7,5 +7,4 @@ type t = {
   quitting : bool;
   font_config : font_config;
   screen : Modules_d.screen;
-  mutable player_pos : Raylib.Vector2.t;
 }

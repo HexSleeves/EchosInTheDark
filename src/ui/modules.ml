@@ -1,4 +1,5 @@
 open Modules_d
+open Types
 
 (* Main modules of game. They don't carry much state between them *)
 module R = Renderer
@@ -34,7 +35,18 @@ let handle_tick (s : State.t) =
             }
         | Some `Back -> { s with screen = MainMenu Mainmenu.init }
         | None -> { s with screen = MapGen mapgen })
-    | _ -> s
+    | Playing -> (
+        let open Raylib in
+        let dir_opt =
+          if is_key_down Key.W || is_key_down Key.Up then Some North
+          else if is_key_down Key.S || is_key_down Key.Down then Some South
+          else if is_key_down Key.A || is_key_down Key.Left then Some West
+          else if is_key_down Key.D || is_key_down Key.Right then Some East
+          else None
+        in
+        match dir_opt with
+        | Some dir -> { s with backend = Backend.move_player s.backend dir }
+        | None -> s)
   in
   state
 
@@ -59,16 +71,10 @@ let run () : unit =
         | Some b -> b
         | None ->
             let b = B.make_default ~debug:true in
-            B.update b ~w:80 ~h:50 ~seed:0
+            B.update b ~w:20 ~h:20 ~seed:0
       in
 
-      {
-        backend;
-        font_config;
-        State.screen;
-        quitting = false;
-        player_pos = Raylib.Vector2.create 1. 1.;
-      }
+      { backend; font_config; State.screen; quitting = false }
     in
 
     (* Let's Roll *)
