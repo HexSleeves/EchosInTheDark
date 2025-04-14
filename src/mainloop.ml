@@ -10,8 +10,8 @@ type 'a t = {
 
 (* Main *)
 let main init_fn =
-  let font = R.create 80 50 in
-  let data, v = init_fn font in
+  let font_config = R.create ~title:"Rougelike Tutorial 2023" 80 50 in
+  let data, v = init_fn font_config in
 
   let rec update_loop data =
     match Raylib.window_should_close () with
@@ -24,20 +24,7 @@ let main init_fn =
           (* Render *)
           match G.draw_raylib_scene (fun () -> v.render data) with
           | None -> update_loop data
-          | Some render_data ->
-              Printf.sprintf "[Render data]: %s\n"
-                (match render_data.screen with
-                | MainMenu _ -> "MainMenu"
-                | MapGen s ->
-                    Printf.sprintf "MapGen %s"
-                      (match s.focus with
-                      | `Width -> "Width"
-                      | `Height -> "Height"
-                      | `Seed -> "Seed"
-                      | `None -> "None")
-                | Playing -> "Playing")
-              |> Stdio.print_endline;
-              update_loop render_data)
+          | Some render_data -> update_loop render_data)
   in
 
   update_loop data

@@ -1,4 +1,3 @@
-open Renderer
 open Raylib
 
 (* choose color *)

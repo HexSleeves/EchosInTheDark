@@ -22,11 +22,18 @@ let handle_tick (s : State.t) =
             { s with quitting = true; screen = MainMenu new_mainmenu }
         | None -> { s with screen = MainMenu new_mainmenu })
     | MapGen m -> (
-        let new_mapgen = Mapgen.handle_tick m in
-        match new_mapgen.action with
-        | Some `Continue -> { s with screen = Playing }
+        let mapgen = Mapgen.handle_tick m in
+        match mapgen.action with
+        | Some `Continue ->
+            {
+              s with
+              screen = Playing;
+              backend =
+                B.update s.backend ~w:mapgen.width ~h:mapgen.height
+                  ~seed:mapgen.seed;
+            }
         | Some `Back -> { s with screen = MainMenu Mainmenu.init }
-        | None -> { s with screen = MapGen new_mapgen })
+        | None -> { s with screen = MapGen mapgen })
     | _ -> s
   in
   state
@@ -40,31 +47,32 @@ let render (s : State.t) : State.t option =
   | Playing -> option_to_screen s (Play.render s) (fun _ -> Modules_d.Playing)
 
 let run () : unit =
-  Logs.set_reporter (Logs_fmt.reporter ());
   Logs.set_level (Some Debug);
 
-  Printf.printf "Loading resources...";
-  print_newline ();
+  (Logs.info @@ fun m -> m "Loading resources...");
 
   (* Initialize Game *)
-  let init_fn font =
-    (* Create State *)
+  let init_fn font_config =
     let create_state ?backend screen =
       let backend =
         match backend with
         | Some b -> b
         | None ->
-            (* Used by different elements *)
-            let random = Rng.get_state () in
-            let seed = Rng.seed_int in
-            B.make_default ~debug:true ~random ~seed
+            let b = B.make_default ~debug:true in
+            B.update b ~w:80 ~h:50 ~seed:0
       in
 
-      { font; backend; State.screen; player_pos = (10, 10); quitting = false }
+      {
+        backend;
+        font_config;
+        State.screen;
+        quitting = false;
+        player_pos = Raylib.Vector2.create 1. 1.;
+      }
     in
 
     (* Let's Roll *)
-    let state = create_state (MainMenu Mainmenu.init) in
+    let state = create_state Playing in
     (Logs.info @@ fun m -> m "initialization done.");
     (state, Mainloop.{ handle_tick; render })
   in

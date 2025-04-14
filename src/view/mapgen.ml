@@ -1,5 +1,6 @@
 open Base
 open Rl2023
+module Rl = Raylib
 module Gui = Raygui
 
 let panel_w = 400
@@ -10,8 +11,8 @@ let field_h = 32
 let panel_x screen_w = (screen_w - panel_w) / 2
 let panel_y screen_h = (screen_h - panel_h) / 2
 
-type focus_types = [ `Seed | `Width | `Height | `None ]
 type action_types = [ `Continue | `Back ]
+type focus_types = [ `Seed | `Width | `Height ]
 
 (* Removed global action ref; state is now passed explicitly *)
 
@@ -26,21 +27,24 @@ type t = {
   action : action_types option;
 }
 
-let init =
+let init : t =
+  let seed = Rng.seed_int in
+  let width = 80 in
+  let height = 50 in
   {
-    seed = 0;
-    width = 80;
-    height = 50;
-    seed_text = "0";
-    width_text = "80";
-    height_text = "50";
-    focus = `Width;
+    seed;
+    width;
+    height;
     action = None;
+    focus = `Width;
+    width_text = Int.to_string width;
+    height_text = Int.to_string height;
+    seed_text = Int.to_string seed;
   }
 
 let parse_int s default = try Int.of_string s with _ -> default
 
-let focused_text_box s (rect : Raylib.Rectangle.t) (text : string)
+let focused_text_box s (rect : Rl.Rectangle.t) (text : string)
     (focus : focus_types) =
   let filter_numeric s = String.filter s ~f:(fun c -> Char.is_digit c) in
 
@@ -50,22 +54,24 @@ let focused_text_box s (rect : Raylib.Rectangle.t) (text : string)
       filter_numeric vl
   | vl, false -> filter_numeric vl
 
-(* handle_tick is now a no-op, as all state is passed via render *)
-let handle_tick (s : t) = s
+let handle_tick (s : t) =
+  if Rl.is_key_pressed Rl.Key.Escape then { s with action = Some `Back }
+  else if Rl.is_key_pressed Rl.Key.Tab then
+    {
+      s with
+      focus =
+        (match s.focus with
+        | `Seed -> `Width
+        | `Width -> `Height
+        | `Height -> `Seed);
+    }
+  else s
 
 (*  Immediate mode rendering *)
 let render (s : t) : t option =
-  Printf.sprintf "RENDER: focused: %s\n"
-    (match s.focus with
-    | `Width -> "Width"
-    | `Height -> "Height"
-    | `Seed -> "Seed"
-    | `None -> "None")
-  |> Stdio.print_string;
-
-  let open Raylib in
-  let screen_w = Raylib.get_screen_width () in
-  let screen_h = Raylib.get_screen_height () in
+  let open Rl in
+  let screen_w = get_screen_width () in
+  let screen_h = get_screen_height () in
   let panel_x = panel_x screen_w in
   let panel_y = panel_y screen_h in
   let label_x = panel_x + 40 in
@@ -144,13 +150,6 @@ let render (s : t) : t option =
     else if back_pressed then Some `Back
     else None
   in
-
-  Printf.sprintf "Action: %s\n"
-    (match action with
-    | Some `Continue -> "Continue"
-    | Some `Back -> "Back"
-    | None -> "None")
-  |> Stdio.print_string;
 
   let new_state =
     {

@@ -5,7 +5,7 @@ type result = Play | Quit
 type t = { selected : int }
 
 let versionString = "Version 1.0"
-let copyrightString = "(C) 2023 Yendor"
+let copyrightString = "(C) 2025 Yendor"
 let menu_items = [ "Play"; "Quit" ]
 let menu_length = List.length menu_items
 let init = { selected = 0 }

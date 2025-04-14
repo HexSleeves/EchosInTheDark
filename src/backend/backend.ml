@@ -1,4 +1,5 @@
 open Mode
+open Base
 
 let src = Logs.Src.create "backend" ~doc:"Backend"
 
@@ -21,20 +22,13 @@ type t = {
 }
 (* [@@deriving yojson] *)
 
-let bump ?(step = 1) x = x + step
-
-let make ~debug ~w ~h ~random ~seed =
-  let map = Tilemap.generate ~seed ~w ~h in
+let make_default ~debug =
+  let random = Rng.get_state () in
+  let seed = Rng.seed_int in
+  let map = Tilemap.default_map () in
   { debug; seed; random; map; mode = CtrlMode.Normal; controller_id = 0 }
 
-let make_default ~debug ~random ~seed =
-  {
-    debug;
-    seed;
-    random;
-    map = Tilemap.default_map ();
-    mode = CtrlMode.Normal;
-    controller_id = 0;
-  }
+let update b_end ~w ~h ~seed =
+  { b_end with seed; map = Tilemap.generate ~seed ~w ~h }
 
 let get_tile v x y = Tilemap.get_tile v.map x y

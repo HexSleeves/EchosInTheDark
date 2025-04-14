@@ -1,10 +1,11 @@
+open Renderer
 module B = Backend
 
 (* All state *)
 type t = {
-  quitting : bool;
-  font : Raylib.Font.t;
   backend : B.t;
+  quitting : bool;
+  font_config : font_config;
   screen : Modules_d.screen;
-  mutable player_pos : int * int;
+  mutable player_pos : Raylib.Vector2.t;
 }
