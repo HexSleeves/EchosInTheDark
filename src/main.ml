@@ -1,6 +1,7 @@
 (* Copyright (c) 2025 Jacob LeCoq (Yendor). All rights reserved. *)
 
 open Logs
+open Rl2023
 
 let () =
   Clap.description "Rougelike Tutorial 2023";
@@ -19,5 +20,5 @@ let () =
   Clap.close ();
   Log.configure ~level;
   (* Blast Off *)
-  let () = Logs.info (fun m -> m "Starting main") in
+  let () = Log.info "Starting main" in
   Modules.run ()

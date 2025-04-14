@@ -10,6 +10,15 @@
 
 open Base
 
+module PosSet = struct
+  module T = struct
+    type t = int * int [@@deriving compare, sexp]
+  end
+
+  include T
+  include Comparator.Make (T)
+end
+
 let render_fps (fc : Renderer.font_config) : unit =
   let open Raylib in
   (* Draw FPS counter *)
@@ -48,18 +57,26 @@ let render (state : State.t) : State.t option =
   let backend = state.backend in
   let fc = state.font_config in
 
-  (* --- 1. Render map tiles --- *)
+  (* Collect all entity positions into a set *)
+  let entities = Backend.get_entities backend in
+  let entity_positions =
+    Base.List.fold entities
+      ~init:(Set.empty (module PosSet))
+      ~f:(fun acc e -> Set.add acc e.pos)
+  in
+
+  (* Render map tiles, skipping those with an entity *)
   Array.iteri
     ~f:(fun i t ->
       let x = i % backend.map.width in
       let y = i / backend.map.width in
-      let glyph, color = Renderer.tile_glyph_and_color t in
-      Renderer.render_cell glyph color fc (x, y))
+      if not (Set.mem entity_positions (x, y)) then
+        let glyph, color = Renderer.tile_glyph_and_color t in
+        Renderer.render_cell glyph color fc (x, y))
     backend.map.map;
 
-  (* --- 2. Render all entities --- *)
-  let entities = Backend.get_entities backend in
-  Base.List.iter entities ~f:(fun entity ->
+  (* Render all entities as before *)
+  List.iter entities ~f:(fun entity ->
       let glyph, color =
         match entity.kind with
         | Player -> ("@", Color.white)
@@ -69,9 +86,5 @@ let render (state : State.t) : State.t option =
       in
       Renderer.render_cell glyph color fc entity.pos);
 
-  (* Draw FPS counter *)
   if backend.debug then render_fps fc;
-
-  (* --- 3. (Extensible) Add effects, animations, overlays here --- *)
-  (* Example: To add player animation, replace glyph/color based on state *)
   None

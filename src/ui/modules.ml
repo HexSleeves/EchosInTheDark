@@ -60,7 +60,6 @@ let render (s : State.t) : State.t option =
 
 let run () : unit =
   Logs.set_level (Some Debug);
-
   (Logs.info @@ fun m -> m "Loading resources...");
 
   (* Initialize Game *)

@@ -19,14 +19,41 @@ let init_font_config ~font_path ~font_size =
 (* Init *)
 let create ?(title = "Random Title")
     ?(font_path = "resources/JetBrainsMono-Regular")
-    ?(font_size = Tile_coords.font_size) w h =
+    ?(font_size = Tile_coords.font_size) () =
   let open Raylib in
-  let w = w * Tile_coords.tile_width in
-  let h = h * Tile_coords.tile_height in
+  (* This is needed to get the monitor dimensions. *)
+  (* Creates a window of the monitor size. *)
+  init_window 0 0 title;
+
+  (* Get monitor dimensions *)
+  let current_monitor = get_current_monitor () in
+  let monitor_w = get_monitor_width current_monitor in
+  let monitor_h = get_monitor_height current_monitor in
+
+  (* Calculate target dimensions (e.g., 80% of height) *)
+  let target_h = float_of_int monitor_h *. 0.8 in
+  let num_tiles_h =
+    int_of_float (target_h /. float_of_int Tile_coords.tile_height)
+  in
+  let window_h = num_tiles_h * Tile_coords.tile_height in
+
+  (* Calculate width based on 80% of monitor width *)
+  let target_w = float_of_int monitor_w *. 0.8 in
+  let num_tiles_w =
+    int_of_float (target_w /. float_of_int Tile_coords.tile_width)
+  in
+  let window_w = num_tiles_w * Tile_coords.tile_width in
 
   set_target_fps 60;
-  init_window w h title;
-  set_window_min_size w h;
+
+  (* Set window size and min size *)
+  set_window_size window_w window_h;
+  set_window_min_size window_w window_h;
+
+  (* Center window on monitor *)
+  set_window_position
+    ((monitor_w / 2) - (window_w / 2))
+    ((monitor_h / 2) - (window_h / 2));
 
   let font_config = init_font_config ~font_path ~font_size in
 

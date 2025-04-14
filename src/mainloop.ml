@@ -10,7 +10,7 @@ type 'a t = {
 
 (* Main *)
 let main init_fn =
-  let font_config = R.create ~title:"Rougelike Tutorial 2023" 20 20 in
+  let font_config = R.create ~title:"Rougelike Tutorial 2023" () in
   let data, v = init_fn font_config in
 
   let rec update_loop data =
