@@ -50,9 +50,22 @@ To install dependencies and run the game, you will need [opam](https://opam.ocam
 
 ## Screenshots / Videos
 
-_Add screenshots or videos of the game here. To add a screenshot, place the image in the `static/` directory and reference it below:_
+<div align="center">
+<table>
+<tr>
+<td width="400px" align="center">
+  <img src="media/base_screen.png" alt="Base Screen" width="400px"/><br/>
+  <em>Base Screen - Main Menu</em>
+</td>
+<td width="400px" align="center">
+  <img src="media/play.gif" alt="Gameplay" width="400px"/><br/>
+  <em>Gameplay Demo</em>
+</td>
+</tr>
+</table>
+</div>
 
-![Screenshot](static/your_screenshot.png)
+_To add a screenshot, place the image in the `media/` directory and add it to the grid above._
 
 ## Contributing
 
