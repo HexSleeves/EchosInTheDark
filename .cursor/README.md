@@ -1,10 +1,10 @@
-# RL2023 OCaml Roguelike Development
+# RL2025 OCaml Roguelike Development
 
-Welcome to the AI-assisted development environment for the RL2023 OCaml Roguelike project. This environment helps manage project specifications, tasks, knowledge, and documentation.
+Welcome to the AI-assisted development environment for the RL2025 OCaml Roguelike project. This environment helps manage project specifications, tasks, knowledge, and documentation.
 
 ## Project Overview
 
-The RL2023 OCaml Roguelike is an implementation of a roguelike game using OCaml and Raylib, following the "Complete Roguelike Tutorial" but with a functional programming approach. For a complete project description, see [Project Overview](.cursor/docs/project_overview.md).
+The RL2025 OCaml Roguelike is an implementation of a roguelike game using OCaml and Raylib, following the "Complete Roguelike Tutorial" but with a functional programming approach. For a complete project description, see [Project Overview](.cursor/docs/project_overview.md).
 
 ## Directory Structure
 
@@ -97,7 +97,7 @@ dune build
 To run the game:
 
 ```bash
-dune exec rl2023
+dune exec rl2025
 ```
 
 ## Additional Resources

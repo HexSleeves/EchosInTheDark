@@ -1,9 +1,10 @@
 open Modules_d
-open Types
 
 (* Main modules of game. They don't carry much state between them *)
 module R = Renderer
 module B = Backend
+module E = Entity
+module T = Types
 
 let option_to_screen (s : State.t) (update : 'a option)
     (scrn_constructor : 'a -> Modules_d.screen) : State.t option =
@@ -35,18 +36,7 @@ let handle_tick (s : State.t) =
             }
         | Some `Back -> { s with screen = MainMenu Mainmenu.init }
         | None -> { s with screen = MapGen mapgen })
-    | Playing -> (
-        let open Raylib in
-        let dir_opt =
-          if is_key_down Key.W || is_key_down Key.Up then Some North
-          else if is_key_down Key.S || is_key_down Key.Down then Some South
-          else if is_key_down Key.A || is_key_down Key.Left then Some West
-          else if is_key_down Key.D || is_key_down Key.Right then Some East
-          else None
-        in
-        match dir_opt with
-        | Some dir -> { s with backend = Backend.move_player s.backend dir }
-        | None -> s)
+    | Playing -> Play.handle_tick s
   in
   state
 
@@ -70,7 +60,7 @@ let run () : unit =
         | Some b -> b
         | None ->
             let b = B.make_default ~debug:true in
-            B.update b ~w:20 ~h:20 ~seed:0
+            B.update b ~w:60 ~h:39 ~seed:0
       in
 
       { backend; font_config; State.screen; quitting = false }
@@ -78,6 +68,12 @@ let run () : unit =
 
     (* Let's Roll *)
     let state = create_state Playing in
+
+    (* TODO: Remove this once we move back to release mode *)
+    let backend = state.backend in
+    let em = backend.entities in
+    Spawner.spawn_player em ~pos:(1, 1) ~direction:T.North;
+
     (Logs.info @@ fun m -> m "initialization done.");
     (state, Mainloop.{ handle_tick; render })
   in

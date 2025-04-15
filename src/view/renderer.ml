@@ -17,7 +17,7 @@ let init_font_config ~font_path ~font_size =
   { font; font_size }
 
 (* Init *)
-let create ?(title = "Random Title")
+let create ?(title = "Rougelike Tutorial 2025")
     ?(font_path = "resources/JetBrainsMono-Regular")
     ?(font_size = Tile_coords.font_size) () =
   let open Raylib in
@@ -43,6 +43,9 @@ let create ?(title = "Random Title")
     int_of_float (target_w /. float_of_int Tile_coords.tile_width)
   in
   let window_w = num_tiles_w * Tile_coords.tile_width in
+
+  Logs.info (fun m -> m "Num tiles: %d %d" num_tiles_w num_tiles_h);
+  Logs.info (fun m -> m "Window size: %d %d" window_w window_h);
 
   set_target_fps 60;
 

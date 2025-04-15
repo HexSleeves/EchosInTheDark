@@ -1,22 +1,22 @@
 (lang dune 3.9)
 
-(name rl2023)
+(name rl2025)
 
 (generate_opam_files true)
 
 (source
  (github username/reponame))
 
-(authors "Author Name")
+(authors "Jacob LeCoq")
 
-(maintainers "Maintainer Name")
+(maintainers "Jacob LeCoq")
 
-(license LICENSE)
+(license MIT)
 
-(documentation https://url/to/documentation)
+(documentation https://github.com/Yendor/rl2025)
 
 (package
- (name rl2023)
+ (name rl2025)
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends ocaml dune)

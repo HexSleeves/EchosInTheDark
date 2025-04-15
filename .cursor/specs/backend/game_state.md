@@ -2,7 +2,7 @@
 
 ## Overview
 
-This specification defines the game state management system for the RL2023 OCaml Roguelike game. The state management system is responsible for storing, updating, and providing access to the game state, including map, entities, control modes, and randomization.
+This specification defines the game state management system for the RL2025 OCaml Roguelike game. The state management system is responsible for storing, updating, and providing access to the game state, including map, entities, control modes, and randomization.
 
 ## Requirements
 

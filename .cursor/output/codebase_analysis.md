@@ -1,4 +1,4 @@
-# RL2023 OCaml Project Analysis
+# RL2025 OCaml Project Analysis
 
 ## Project Overview
 
@@ -89,7 +89,7 @@ The project depends on:
 
 The project uses Dune for building, with the following key features:
 
-- Main executable target: `rl2023`
+- Main executable target: `rl2025`
 - Various preprocessing options with PPX
 - Library dependencies
 

@@ -1,4 +1,4 @@
-# rl2023_ocaml
+# rl2025_ocaml
 
 This is an experimental project for learning OCaml, inspired by a love of game design.
 ## Guideline: Use of Entity and EntityManager Abstractions
@@ -45,7 +45,7 @@ To install dependencies and run the game, you will need [opam](https://opam.ocam
 3. Run the game:
 
    ```sh
-   dune exec rl2023
+   dune exec rl2025
    ```
 
 ## Screenshots / Videos

@@ -1,6 +1,6 @@
-# RL2023 OCaml Roguelike Learnings
+# RL2025 OCaml Roguelike Learnings
 
-This document indexes all learning documents for the RL2023 OCaml Roguelike project.
+This document indexes all learning documents for the RL2025 OCaml Roguelike project.
 
 ## Programming Concepts
 

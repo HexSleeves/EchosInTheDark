@@ -1,8 +1,8 @@
-# RL2023 OCaml Roguelike Overview
+# RL2025 OCaml Roguelike Overview
 
 ## Project Description
 
-RL2023 is a roguelike game implementation in OCaml, following the "Complete Roguelike Tutorial" but using OCaml's functional programming paradigm instead of the more traditional procedural approach. The project uses Raylib bindings for OCaml to handle graphics and input.
+RL2025 is a roguelike game implementation in OCaml, following the "Complete Roguelike Tutorial" but using OCaml's functional programming paradigm instead of the more traditional procedural approach. The project uses Raylib bindings for OCaml to handle graphics and input.
 
 ## Project Goals
 

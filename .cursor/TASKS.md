@@ -1,6 +1,6 @@
-# RL2023 OCaml Roguelike Tasks
+# RL2025 OCaml Roguelike Tasks
 
-This document indexes all tasks for the RL2023 OCaml Roguelike project.
+This document indexes all tasks for the RL2025 OCaml Roguelike project.
 
 ## Active Tasks
 

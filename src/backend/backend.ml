@@ -1,6 +1,7 @@
 open Mode
 open Base
 open Types
+open Entity
 
 let src = Logs.Src.create "backend" ~doc:"Backend"
 
@@ -28,13 +29,8 @@ let make_default ~debug =
   let random = Rng.get_state () in
   let seed = Rng.seed_int in
   let map = Tilemap.default_map () in
-  let entities = EntityManager.create () in
-  let player_id = 1 in
 
-  let player_entity =
-    make_player ~id:player_id ~pos:(10, 10) ~direction:North ~faction:0
-  in
-  EntityManager.add entities player_entity;
+  let entities = EntityManager.create () in
 
   {
     debug;
@@ -43,17 +39,22 @@ let make_default ~debug =
     map;
     entities;
     mode = CtrlMode.Normal;
-    player = { entity_id = player_id };
+    player = { entity_id = 0 };
   }
 
 let update b_end ~w ~h ~seed =
   { b_end with seed; map = Tilemap.generate ~seed ~w ~h }
 
-let get_tile v x y = Tilemap.get_tile v.map x y
+(* Helper function to get all entities *)
+let get_entities (backend : t) : entity list =
+  EntityManager.to_list backend.entities
 
 let get_entity_at_pos (entities : EntityManager.t) (pos : loc) : entity option =
-  EntityManager.to_list entities
-  |> List.find ~f:(fun e -> phys_equal e.pos pos)
+  EntityManager.find_by_pos entities pos
+
+(* Helper function to get player entity *)
+let get_player_entity (backend : t) : entity option =
+  EntityManager.find backend.entities backend.player.entity_id
 
 (** [move_player backend direction]: Attempts to move the player in the given
     direction. If the target tile is walkable and no entity blocks the way,
@@ -98,11 +99,3 @@ let move_player (backend : t) (dir : direction) : t =
         EntityManager.update backend.entities backend.player.entity_id (fun _ ->
             updated_player);
         backend
-
-(* Helper function to get all entities *)
-let get_entities (backend : t) : entity list =
-  EntityManager.to_list backend.entities
-
-(* Helper function to get player entity *)
-let get_player_entity (backend : t) : entity option =
-  EntityManager.find backend.entities backend.player.entity_id

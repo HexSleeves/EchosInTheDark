@@ -2,12 +2,12 @@
 opam-version: "2.0"
 synopsis: "A short synopsis"
 description: "A longer description"
-maintainer: ["Maintainer Name"]
-authors: ["Author Name"]
-license: "LICENSE"
+maintainer: ["Jacob LeCoq"]
+authors: ["Jacob LeCoq"]
+license: "MIT"
 tags: ["topics" "to describe" "your" "project"]
 homepage: "https://github.com/username/reponame"
-doc: "https://url/to/documentation"
+doc: "https://github.com/Yendor/rl2025"
 bug-reports: "https://github.com/username/reponame/issues"
 depends: [
   "ocaml"

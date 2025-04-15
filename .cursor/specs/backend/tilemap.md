@@ -2,7 +2,7 @@
 
 ## Overview
 
-This specification defines the tilemap system for the RL2023 OCaml Roguelike game. The tilemap system is responsible for representing, generating, and managing the game's map, including tiles, terrain, and spatial relationships.
+This specification defines the tilemap system for the RL2025 OCaml Roguelike game. The tilemap system is responsible for representing, generating, and managing the game's map, including tiles, terrain, and spatial relationships.
 
 ## Requirements
 

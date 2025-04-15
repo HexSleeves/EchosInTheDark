@@ -88,3 +88,18 @@ let render (state : State.t) : State.t option =
 
   if backend.debug then render_fps fc;
   None
+
+let handle_tick (state : State.t) : State.t =
+  let open Raylib in
+  let dir_opt =
+    if is_key_pressed Key.W || is_key_pressed Key.Up then Some Types.North
+    else if is_key_pressed Key.S || is_key_pressed Key.Down then
+      Some Types.South
+    else if is_key_pressed Key.A || is_key_pressed Key.Left then Some Types.West
+    else if is_key_pressed Key.D || is_key_pressed Key.Right then
+      Some Types.East
+    else None
+  in
+  match dir_opt with
+  | Some dir -> { state with backend = Backend.move_player state.backend dir }
+  | None -> state

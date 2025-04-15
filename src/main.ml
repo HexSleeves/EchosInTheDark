@@ -1,7 +1,7 @@
 (* Copyright (c) 2025 Jacob LeCoq (Yendor). All rights reserved. *)
 
 open Logs
-open Rl2023
+open Rl2025
 
 let () =
   Clap.description "Rougelike Tutorial 2023";

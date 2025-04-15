@@ -1,6 +1,6 @@
-# RL2023 OCaml Roguelike Specifications
+# RL2025 OCaml Roguelike Specifications
 
-This document indexes all specifications for the RL2023 OCaml Roguelike project.
+This document indexes all specifications for the RL2025 OCaml Roguelike project.
 
 ## Backend Specifications
 
