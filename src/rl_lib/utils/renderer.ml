@@ -9,7 +9,7 @@ type font_config = { font : Font.t; font_size : int }
 
 (* Initialize font and measure character metrics *)
 let init_font_config ~font_path ~font_size =
-  Logs.info (fun m -> m "Creating font config");
+  Log.info "Creating font config";
 
   let font = load_font_ex font_path font_size None in
   gen_texture_mipmaps (addr (Font.texture font));
@@ -41,8 +41,8 @@ let create ?(title = "Rougelike Tutorial 2025")
   let num_tiles_w = int_of_float (target_w /. float_of_int tile_width) in
   let window_w = num_tiles_w * tile_width in
 
-  Logs.info (fun m -> m "Num tiles: %d %d" num_tiles_w num_tiles_h);
-  Logs.info (fun m -> m "Window size: %d %d" window_w window_h);
+  (Logs.info @@ fun m -> m "Num tiles: %d %d" num_tiles_w num_tiles_h);
+  (Logs.info @@ fun m -> m "Window size: %d %d" window_w window_h);
 
   set_target_fps 60;
 
@@ -61,5 +61,6 @@ let create ?(title = "Rougelike Tutorial 2025")
 
 (** [cleanup font_config] unloads the font and closes the Raylib window. *)
 let cleanup (fc : font_config) =
+  Log.info "Cleaning up font config";
   Raylib.unload_font fc.font;
   Raylib.close_window ()

@@ -2,11 +2,13 @@ open Raylib
 module R = Renderer
 
 (* Get glyph and color for a tile *)
-let tile_glyph_and_color (tile : Tile.t) : string * Color.t =
+let[@warning "-11"] tile_glyph_and_color (tile : Tile.t) : string * Color.t =
   match tile with
   | Tile.Wall -> ("#", Color.gray)
   | Tile.Floor -> (".", Color.lightgray)
-  | _ -> ("?", Color.red)
+  | _ ->
+      Printf.printf "Warning: Unhandled tile type encountered\n";
+      ("?", Color.red)
 
 (* Map grid (tile) position to screen position using FontConfig *)
 let grid_to_screen (x, y) =
