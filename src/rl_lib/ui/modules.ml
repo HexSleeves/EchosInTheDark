@@ -4,7 +4,7 @@ open Modules_d
 module R = Renderer
 module B = Backend
 module E = Entity
-module T = Types
+module P = Pos
 
 (* Helper to convert optional screen update to State.t option *)
 let option_to_screen (s : State.t) (update : 'a option)
@@ -65,11 +65,25 @@ let create_initial_state font_config =
     { backend; font_config; State.screen; quitting = false }
   in
   let state = create_state Playing in
+
   let backend = state.backend in
   let em = backend.entities in
-  Spawner.spawn_player em ~pos:(1, 1) ~direction:T.North;
+  let tq = backend.turn_queue in
+  let am = backend.actor_manager in
+  let player_id = backend.player.entity_id in
+
+  (* Add to turn queue *)
+  Turn_queue.schedule_turn tq 0 100;
+
+  (* Add to actor manager *)
+  let player_actor = Actor.create ~speed:100 ~next_turn_time:100 in
+  Actor_manager.add am player_id player_actor;
+
+  (* Spawn player *)
+  Spawner.spawn_player em ~pos:(1, 1) ~direction:P.North ~actor_id:player_id;
+
   Logs.info (fun m -> m "Initialization done.");
-  state
+  { state with backend = { backend with actor_manager = am } }
 
 (* Run the game *)
 let run () : unit =

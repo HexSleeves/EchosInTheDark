@@ -9,6 +9,8 @@
     as needed. *)
 
 open Base
+module M = Mode
+module P = Pos
 module R = Renderer
 
 module PosSet = struct
@@ -90,17 +92,41 @@ let render (state : State.t) : State.t option =
   if backend.debug then render_fps fc;
   None
 
-let handle_tick (state : State.t) : State.t =
+let handle_player_input (state : State.t) : State.t =
   let open Raylib in
   let dir_opt =
-    if is_key_pressed Key.W || is_key_pressed Key.Up then Some Types.North
-    else if is_key_pressed Key.S || is_key_pressed Key.Down then
-      Some Types.South
-    else if is_key_pressed Key.A || is_key_pressed Key.Left then Some Types.West
-    else if is_key_pressed Key.D || is_key_pressed Key.Right then
-      Some Types.East
+    if is_key_pressed Key.W || is_key_pressed Key.Up then Some P.North
+    else if is_key_pressed Key.S || is_key_pressed Key.Down then Some P.South
+    else if is_key_pressed Key.A || is_key_pressed Key.Left then Some P.West
+    else if is_key_pressed Key.D || is_key_pressed Key.Right then Some P.East
     else None
   in
   match dir_opt with
-  | Some dir -> { state with backend = Backend.move_player state.backend dir }
+  | Some dir ->
+      let am = state.backend.actor_manager in
+      let entity = Backend.get_player state.backend in
+      let action = Actions.make_move_action dir entity in
+
+      Actor_manager.update am entity.id (fun actor ->
+          Actor.queue_action actor action);
+
+      {
+        state with
+        backend =
+          { state.backend with mode = M.CtrlMode.Normal; actor_manager = am };
+      }
   | None -> state
+
+let handle_tick (state : State.t) : State.t =
+  let backend = state.backend in
+
+  match backend.mode with
+  | M.CtrlMode.Normal ->
+      let entities = backend.entities in
+      let turn_queue = backend.turn_queue in
+      let new_backend = Turn_system.process_turns backend turn_queue entities in
+      { state with backend = new_backend }
+  | M.CtrlMode.WaitInput -> handle_player_input state
+  | M.CtrlMode.Died _ ->
+      (Logs.info @@ fun m -> m "Player died");
+      state

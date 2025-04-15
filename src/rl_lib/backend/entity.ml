@@ -1,8 +1,24 @@
-open Types
 open Base
+open Common
+open Pos
 open Ppx_yojson_conv_lib.Yojson_conv
 
-type entity_id = int [@@deriving yojson, show]
+type entity_id = int [@@deriving yojson, show, compare, sexp_of]
+
+type entity_kind = Player | Creature | Item | Other of string
+[@@deriving yojson]
+
+(* Data specific to each entity kind *)
+type entity_data =
+  | PlayerData of { health : int; faction : faction; actor_id : int }
+  | CreatureData of {
+      species : string;
+      faction : faction;
+      health : int;
+      actor_id : int;
+    }
+  | ItemData of { item_type : string; quantity : int }
+[@@deriving yojson]
 
 type entity = {
   id : entity_id;
@@ -14,7 +30,7 @@ type entity = {
   kind : entity_kind;
   data : entity_data;
 }
-[@@deriving yojson, show]
+[@@deriving yojson]
 
 (* Player reference type *)
 type player = { entity_id : entity_id } [@@deriving yojson]
@@ -37,6 +53,11 @@ module EntityManager = struct
   let add (mgr : t) (ent : entity) = Hashtbl.set mgr ~key:ent.id ~data:ent
   let remove (mgr : t) (id : int) = Hashtbl.remove mgr id
   let find (mgr : t) (id : int) : entity option = Hashtbl.find mgr id
+
+  let find_unsafe (mgr : t) (id : int) : entity =
+    match find mgr id with
+    | Some ent -> ent
+    | None -> failwith (Printf.sprintf "Entity not found: %d" id)
 
   let find_by_pos (mgr : t) (pos : loc) : entity option =
     Hashtbl.fold mgr ~init:None ~f:(fun ~key:_ ~data acc ->
