@@ -1,54 +1,77 @@
-# rl2025_ocaml
+# RL2025 OCaml
 
-This is an experimental project for learning OCaml, inspired by a love of game design.
-## Guideline: Use of Entity and EntityManager Abstractions
+Welcome to RL2025, an experimental roguelike game project built in OCaml! This project is designed for learning, experimentation, and fun with game design and functional programming.
 
-**All new game logic and feature implementations should use the `entity` and `EntityManager` abstractions.**
+---
 
-These abstractions provide:
-- **Extensibility:** Easily add new entity types or behaviors.
-- **Maintainability:** Centralizes entity logic, reducing code duplication and simplifying updates.
-- **Consistency:** Ensures a uniform approach to managing game objects across the codebase.
+## 🚀 Project Overview
 
-See [`src/backend/types.ml`](src/backend/types.ml) for canonical definitions and constructors.
+RL2025 is a turn-based, entity-driven game engine and demo, using OCaml's strong type system and modern tooling. The project is structured for extensibility, maintainability, and clarity, making it a great starting point for both new and experienced OCaml developers interested in games.
 
-**Minimal Example:**
+- **Entity-Component System**: All game objects are managed via a flexible entity system.
+- **Raylib Integration**: Uses Raylib (via OCaml bindings) for graphics, input, and audio.
+- **Modular Architecture**: Clean separation of game logic, rendering, and resources.
 
-```ocaml
-open Backend.Types
+---
 
-let mgr = EntityManager.create ()
-let player = make_player ~id:1 ~pos:(0,0) ~direction:North ~faction:0
-let () = EntityManager.add mgr player
-let found = EntityManager.find mgr 1
+## 📚 Documentation
+
+- **[Project Memory Docs](.docs/memory/)**: In-depth architecture, guidelines, and roadmap
+  - [Project Overview](.docs/memory/00_project_overview.md)
+  - [Technical Architecture](.docs/memory/01_technical_architecture.md)
+  - [Development Guidelines](.docs/memory/02_development_guidelines.md)
+  - [Project Roadmap](.docs/memory/03_project_roadmap.md)
+
+---
+
+## 🛠️ Getting Started
+
+### Prerequisites
+
+- [OCaml](https://ocaml.org/) (recommended via [opam](https://opam.ocaml.org/))
+- [Dune](https://dune.build/)
+- [Raylib](https://www.raylib.com/) (and OCaml bindings)
+
+### Installation
+
+```sh
+opam install . --deps-only
 ```
 
-Contributors are encouraged to follow this pattern for all new features and logic. For more details and advanced usage, see the documentation and type definitions in `src/backend/types.ml`.
+### Build & Run
 
+```sh
+dune build
+dune exec rl2025
+```
 
-## Installation and Running
+---
 
-To install dependencies and run the game, you will need [opam](https://opam.ocaml.org/) and [dune](https://dune.build/).
+## 🏗️ Project Structure
 
-1. Install dependencies:
+- `src/` — Main source code
+- `lib/` — Shared libraries
+- `test/` — Tests
+- `media/` — Screenshots and assets
+- `resources/` — Game resources
+- `static/` — Static files
+- `.docs/memory/` — Project documentation
 
-   ```sh
-   opam install . --deps-only
-   ```
+---
 
-2. Build the project:
+## 🧑‍💻 Contributing
 
-   ```sh
-   dune build
-   ```
+We welcome contributions! To get started:
 
-3. Run the game:
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
 
-   ```sh
-   dune exec rl2025
-   ```
+Please read our [Development Guidelines](.docs/memory/02_development_guidelines.md) before contributing.
 
-## Screenshots / Videos
+---
+
+## 📸 Screenshots
 
 <div align="center">
 <table>
@@ -65,12 +88,16 @@ To install dependencies and run the game, you will need [opam](https://opam.ocam
 </table>
 </div>
 
-_To add a screenshot, place the image in the `media/` directory and add it to the grid above._
+---
 
-## Contributing
+## 📄 License
 
-Contributions are welcome! If you would like to contribute, please fork the repository and submit a pull request.
+MIT — see [LICENSE](LICENSE) for details.
 
-## License
+---
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+## 💡 More Info
+
+- For technical details, see the [Technical Architecture](.docs/memory/01_technical_architecture.md).
+- For project goals and roadmap, see the [Project Roadmap](.docs/memory/03_project_roadmap.md).
+- For help or questions, open an issue or discussion!

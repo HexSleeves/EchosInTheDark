@@ -1,14 +1,11 @@
-(include_subdirs unqualified)
-
 (executable
  (public_name rl2025)
- (name main)
- (libraries rl2025 raylib raygui clap containers base stdio lwt lwt.unix fmt logs logs.fmt owl-base ppx_yojson_conv_lib)
- (preprocess
-    (pps ppx_compare ppx_import ppx_hash ppx_sexp_conv ppx_yojson_conv ppx_deriving.show ppx_deriving.enum ppx_deriving.eq ppx_deriving.ord lens.ppx_deriving))
-  (modes exe)
-  )
+ (modules main_run)
+ (name main_run)
+ (libraries rl_lib)
+ (modes exe))
 
 (env
-  (dev
-    (flags (:standard -warn-error -A -w -30))))
+ (dev
+  (flags
+   (:standard -warn-error -A -w -30))))
