@@ -2,7 +2,7 @@ type t = { fps : int; width : int; height : int; debug : bool }
 
 let parse : t =
   (* You can write a small introduction for the --help. *)
-  Clap.description "Rougelike Tutorial 2023";
+  Clap.description "Rougelike Tutorial 2025";
 
   let width =
     Clap.default_int ~short:'w' ~long:"width" ~description:"FPS for the game"

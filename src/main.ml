@@ -4,7 +4,7 @@ open Logs
 open Rl2025
 
 let () =
-  Clap.description "Rougelike Tutorial 2023";
+  Clap.description "Rougelike Tutorial 2025";
   (* [flag_enum] is a generalization of [flag] for enums with more than 2 possible values. *)
   let level =
     Clap.flag_enum ~description:"Logging level"
