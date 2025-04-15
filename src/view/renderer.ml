@@ -1,10 +1,11 @@
 open Raylib
 
+let font_size = 20
+let tile_width = font_size
+let tile_height = font_size
+
 (* Font configuration for grid rendering *)
 type font_config = { font : Font.t; font_size : int }
-
-(* Entity type for grid-based rendering *)
-type entity = { glyph : string; color : Color.t; pos : int * int }
 
 (* Initialize font and measure character metrics *)
 let init_font_config ~font_path ~font_size =
@@ -18,8 +19,8 @@ let init_font_config ~font_path ~font_size =
 
 (* Init *)
 let create ?(title = "Rougelike Tutorial 2025")
-    ?(font_path = "resources/JetBrainsMono-Regular")
-    ?(font_size = Tile_coords.font_size) () =
+    ?(font_path = "resources/JetBrainsMono-Regular") ?(font_size = font_size) ()
+    =
   let open Raylib in
   (* This is needed to get the monitor dimensions. *)
   (* Creates a window of the monitor size. *)
@@ -32,17 +33,13 @@ let create ?(title = "Rougelike Tutorial 2025")
 
   (* Calculate target dimensions (e.g., 80% of height) *)
   let target_h = float_of_int monitor_h *. 0.8 in
-  let num_tiles_h =
-    int_of_float (target_h /. float_of_int Tile_coords.tile_height)
-  in
-  let window_h = num_tiles_h * Tile_coords.tile_height in
+  let num_tiles_h = int_of_float (target_h /. float_of_int tile_height) in
+  let window_h = num_tiles_h * tile_height in
 
   (* Calculate width based on 80% of monitor width *)
   let target_w = float_of_int monitor_w *. 0.8 in
-  let num_tiles_w =
-    int_of_float (target_w /. float_of_int Tile_coords.tile_width)
-  in
-  let window_w = num_tiles_w * Tile_coords.tile_width in
+  let num_tiles_w = int_of_float (target_w /. float_of_int tile_width) in
+  let window_w = num_tiles_w * tile_width in
 
   Logs.info (fun m -> m "Num tiles: %d %d" num_tiles_w num_tiles_h);
   Logs.info (fun m -> m "Window size: %d %d" window_w window_h);
@@ -61,31 +58,3 @@ let create ?(title = "Rougelike Tutorial 2025")
   let font_config = init_font_config ~font_path ~font_size in
 
   font_config
-
-(* Get glyph and color for a tile *)
-let tile_glyph_and_color = function
-  | Tile.Wall -> ("#", Color.gray)
-  | Tile.Floor -> (".", Color.lightgray)
-
-(* Map grid (tile) position to screen position using FontConfig *)
-let grid_to_screen (x, y) =
-  Raylib.Vector2.create
-    (float_of_int x *. float_of_int Tile_coords.tile_width)
-    (float_of_int y *. float_of_int Tile_coords.tile_height)
-
-let render_cell glyph color (fc : font_config) (x, y) =
-  let font_size = float_of_int fc.font_size in
-  let glyph_size = measure_text_ex fc.font glyph font_size 0. in
-
-  let offset =
-    Vector2.create
-      ((float_of_int Tile_coords.tile_width -. Vector2.x glyph_size) /. 2.)
-      ((float_of_int Tile_coords.tile_height -. Vector2.y glyph_size) /. 2.)
-  in
-
-  let spacing = 0. in
-  let screen_pos = grid_to_screen (x, y) in
-  let centered_pos = Vector2.add screen_pos offset in
-
-  (* Font, Text, Position, Font-size, Spacing, Color *)
-  draw_text_ex fc.font glyph centered_pos font_size spacing color

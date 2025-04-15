@@ -71,8 +71,8 @@ let render (state : State.t) : State.t option =
       let x = i % backend.map.width in
       let y = i / backend.map.width in
       if not (Set.mem entity_positions (x, y)) then
-        let glyph, color = Renderer.tile_glyph_and_color t in
-        Renderer.render_cell glyph color fc (x, y))
+        let glyph, color = Grafx.tile_glyph_and_color t in
+        Grafx.render_cell glyph color fc (x, y))
     backend.map.map;
 
   (* Render all entities as before *)
@@ -84,7 +84,7 @@ let render (state : State.t) : State.t option =
         | Item -> ("i", Color.yellow)
         | Other _ -> ("?", Color.gray)
       in
-      Renderer.render_cell glyph color fc entity.pos);
+      Grafx.render_cell glyph color fc entity.pos);
 
   if backend.debug then render_fps fc;
   None

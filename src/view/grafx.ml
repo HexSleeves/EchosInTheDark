@@ -1,15 +1,30 @@
 open Raylib
+open Renderer
 
-(* choose color *)
-(* let set_color r g b a = Raylib.color_to_hsv.color ~alpha:a (r, g, b) *)
+(* Get glyph and color for a tile *)
+let tile_glyph_and_color = function
+  | Tile.Wall -> ("#", Color.gray)
+  | Tile.Floor -> (".", Color.lightgray)
 
-let draw_raylib_scene draw_func =
-  begin_drawing ();
-  clear_background Color.black;
+(* Map grid (tile) position to screen position using FontConfig *)
+let grid_to_screen (x, y) =
+  Raylib.Vector2.create
+    (float_of_int x *. float_of_int tile_width)
+    (float_of_int y *. float_of_int tile_height)
 
-  (* Main Draw fn *)
-  let result = draw_func () in
+let render_cell glyph color (fc : font_config) (x, y) =
+  let font_size = float_of_int fc.font_size in
+  let glyph_size = measure_text_ex fc.font glyph font_size 0. in
 
-  (* Wrapup  *)
-  end_drawing ();
-  result
+  let offset =
+    Vector2.create
+      ((float_of_int tile_width -. Vector2.x glyph_size) /. 2.)
+      ((float_of_int tile_height -. Vector2.y glyph_size) /. 2.)
+  in
+
+  let spacing = 0. in
+  let screen_pos = grid_to_screen (x, y) in
+  let centered_pos = Vector2.add screen_pos offset in
+
+  (* Font, Text, Position, Font-size, Spacing, Color *)
+  draw_text_ex fc.font glyph centered_pos font_size spacing color
