@@ -9,9 +9,6 @@ type t = {
   actions : Common.game_action ref Deque.t;
 }
 
-let create ~speed ~alive ~next_turn_time ~actions =
-  { speed; alive; next_turn_time; actions }
-
 let yojson_of_t (t : t) : Yojson.Safe.t =
   `Assoc
     [
@@ -65,17 +62,3 @@ let peek_next_action t : Common.game_action option =
 
 (* Is alive? *)
 let is_alive t = t.alive
-
-(* Example usage: *)
-(*
-class my_action = object
-  method execute () = printf "Action!\n"
-end
-
-let actor = create ~speed:10
-let () =
-  queue_action actor (new my_action) |> ignore;
-  match next_action actor with
-  | Some action -> action#execute ()
-  | None -> ()
-*)

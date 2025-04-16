@@ -22,3 +22,14 @@ let update (manager : t) (actor_id : actor_id) (f : Actor.t -> Actor.t) : unit =
   match get manager actor_id with
   | Some actor -> Hashtbl.replace manager actor_id (f actor)
   | None -> ()
+
+(* Actors *)
+
+(* Create a player actor *)
+let create_player_actor = Actor.create ~speed:100
+
+(* Create a rat actor *)
+let create_rat_actor = Actor.create ~speed:110
+
+(* Create a goblin actor *)
+let create_goblin_actor = Actor.create ~speed:150

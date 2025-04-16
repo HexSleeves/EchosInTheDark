@@ -122,9 +122,7 @@ let handle_tick (state : State.t) : State.t =
 
   match backend.mode with
   | M.CtrlMode.Normal ->
-      let entities = backend.entities in
-      let turn_queue = backend.turn_queue in
-      let new_backend = Turn_system.process_turns backend turn_queue entities in
+      let new_backend = Turn_system.process_turns backend in
       { state with backend = new_backend }
   | M.CtrlMode.WaitInput -> handle_player_input state
   | M.CtrlMode.Died _ ->
