@@ -27,14 +27,27 @@ let create () =
     turn_queue = Pairing_heap.create ~min_size:5 ~cmp:TimeEntity.compare ();
   }
 
+let current_time t = t.current_time
+
 let print_queue t =
-  Stdio.printf "Current time: %d, Turn queue: [%s]\n" t.current_time
-    (Pairing_heap.to_list t.turn_queue
-    |> List.map ~f:(fun (time, actor) -> Printf.sprintf "(%d,%d)" time actor)
-    |> String.concat ~sep:"; ")
+  let queue_str =
+    Pairing_heap.to_list t.turn_queue
+    |> List.map ~f:(fun (time, actor) -> sprintf "(%d,%d)" time actor)
+    |> String.concat ~sep:"; "
+  in
+  Logs.info (fun m ->
+      m "Current time: %d, Turn queue: [%s]" t.current_time queue_str)
 
 let schedule_turn t (entity : Entity.entity_id) (next_time : int) =
   Pairing_heap.add t.turn_queue (next_time, entity)
+
+let remove_actor t (entity : Entity.entity_id) =
+  let token =
+    Pairing_heap.find_elt t.turn_queue ~f:(fun (_, e) -> e = entity)
+  in
+  match token with
+  | None -> failwith "Actor not found in turn queue"
+  | Some token -> Pairing_heap.remove t.turn_queue token
 
 let get_next_actor t : (Entity.entity_id * int) option =
   if Pairing_heap.is_empty t.turn_queue then None
@@ -43,8 +56,6 @@ let get_next_actor t : (Entity.entity_id * int) option =
     t.current_time <- time;
     (* t.turn_queue <- heap; *)
     Some (entity_id, time)
-
-let current_time t = t.current_time
 
 let peek_next t : (Entity.entity_id * int) option =
   Pairing_heap.top t.turn_queue

@@ -45,78 +45,70 @@ let should_wait_for_player_input entity actor =
 (* Remove dead actor from queue *)
 let remove_dead_actor turn_queue entity_id =
   Log.info (fun m -> m "Removing dead actor %d from queue" entity_id);
-  () (* Implement if Turn_queue supports removal; else, just log *)
+  Turn_queue.remove_actor turn_queue entity_id
+
+(* Add helper to process a single actor's turn *)
+let process_actor_event (backend : B.t) turn_queue entities entity_id time : B.t
+    =
+  Log.info (fun m -> m "Processing turn for entity: %d" entity_id);
+  match get_entity_safe entities entity_id with
+  | None -> backend
+  | Some entity -> (
+      match get_actor_safe backend.actor_manager entity with
+      | None -> backend
+      | Some actor -> (
+          if not (Actor.is_alive actor) then (
+            Log.info (fun m ->
+                m "Actor %d is dead. Removing from queue." entity_id);
+            remove_dead_actor turn_queue entity_id;
+            backend)
+          else if should_wait_for_player_input entity actor then (
+            (Log.info @@ fun m -> m "Player is awaiting input");
+            let backend = { backend with B.mode = Mode.CtrlMode.WaitInput } in
+            Turn_queue.schedule_turn turn_queue entity_id time;
+            backend)
+          else
+            match Actor.next_action actor with
+            | None ->
+                Log.info (fun m ->
+                    m "No action for entity: %d. Rescheduling turn." entity_id);
+                Turn_queue.schedule_turn turn_queue entity_id time;
+                backend
+            | Some action -> (
+                Log.info (fun m ->
+                    m "Action for entity: %d. Executing..." entity_id);
+                match action#execute (Backend.to_common_backend backend) with
+                | Ok d_time ->
+                    Turn_queue.schedule_turn turn_queue entity_id (time + d_time);
+                    backend
+                | Error e ->
+                    Log.err (fun m ->
+                        m "Failed to perform action: %s" (Exn.to_string e));
+                    let delay =
+                      match entity.E.kind with
+                      | E.Player -> 0
+                      | _ -> monster_reschedule_delay
+                    in
+                    Turn_queue.schedule_turn turn_queue entity_id (time + delay);
+                    backend)))
 
 let rec process_turns (backend : B.t) : B.t =
   let turn_queue = backend.turn_queue in
   let entities = backend.entities in
   if backend.debug then Turn_queue.print_queue turn_queue;
 
-  match backend.mode with
-  | Mode.CtrlMode.WaitInput ->
-      Log.info (fun m -> m "Waiting for player input");
-      backend
-  | _ ->
-      let rec loop (backend : B.t) =
+  let rec process_loop (backend : B.t) =
+    match backend.mode with
+    | Mode.CtrlMode.WaitInput ->
+        Log.info (fun m -> m "Waiting for player input");
+        backend
+    | _ -> (
         match Turn_queue.get_next_actor turn_queue with
         | None -> backend
-        | Some (entity_id, time) -> (
-            Log.info (fun m -> m "Processing turn for entity: %d" entity_id);
-            let entity =
-              try Some (Entity.EntityManager.find_unsafe entities entity_id)
-              with _ ->
-                Log.err (fun m -> m "Entity not found: %d" entity_id);
-                None
+        | Some (entity_id, time) ->
+            let backend =
+              process_actor_event backend turn_queue entities entity_id time
             in
-            match entity with
-            | None -> loop backend
-            | Some entity -> (
-                match get_actor_safe backend.actor_manager entity with
-                | None -> loop backend
-                | Some actor -> (
-                    if not (Actor.is_alive actor) then (
-                      Log.info (fun m ->
-                          m "Actor %d is dead. Removing from queue." entity_id);
-                      remove_dead_actor turn_queue entity_id;
-                      loop backend)
-                    else if should_wait_for_player_input entity actor then (
-                      Log.info (fun m ->
-                          m "Player is awaiting input: %d" entity_id);
-                      let new_backend =
-                        { backend with mode = Mode.CtrlMode.WaitInput }
-                      in
-                      Turn_queue.schedule_turn turn_queue entity_id time;
-                      new_backend)
-                    else
-                      match Actor.next_action actor with
-                      | None ->
-                          Log.info (fun m ->
-                              m "No action for entity: %d. Rescheduling turn."
-                                entity_id);
-                          Turn_queue.schedule_turn turn_queue entity_id time;
-                          loop backend
-                      | Some action -> (
-                          Log.info (fun m ->
-                              m "Action for entity: %d. Executing..." entity_id);
-                          (* Side effect: action may mutate game state via backend *)
-                          match
-                            action#execute (Backend.to_common_backend backend)
-                          with
-                          | Ok d_time ->
-                              Turn_queue.schedule_turn turn_queue entity_id
-                                (time + d_time);
-                              loop backend
-                          | Error e ->
-                              Log.err (fun m ->
-                                  m "Failed to perform action: %s"
-                                    (Exn.to_string e));
-                              let delay =
-                                match entity.E.kind with
-                                | E.Player -> 0
-                                | _ -> monster_reschedule_delay
-                              in
-                              Turn_queue.schedule_turn turn_queue entity_id
-                                (time + delay);
-                              loop backend))))
-      in
-      loop backend
+            process_loop backend)
+  in
+  process_loop backend
