@@ -1,23 +1,6 @@
-(include_subdirs unqualified)
-
 (library
  (name rl_lib)
- (libraries
-  base
-  core_kernel
-  core_kernel.pairing_heap
-  clap
-  containers
-  fmt
-  logs
-  logs.fmt
-  lwt
-  lwt.unix
-  owl-base
-  ppx_yojson_conv_lib
-  raygui
-  raylib
-  stdio)
+ (libraries rl_core rl_ui rl_utils)
  (inline_tests)
  (preprocess
   (staged_pps
@@ -32,8 +15,3 @@
    ppx_import
    ppx_inline_test
    ppx_yojson_conv)))
-
-(env
- (dev
-  (flags
-   (:standard -warn-error -A -w -30))))

@@ -1,9 +1,12 @@
+open Types
 open Mode
-open Base
 module P = Pos
 module E = Entity
 module Actor = Actor
 module Common = Common
+module Tilemap = Map.Tilemap
+module Tile = Map.Tile
+open Base
 
 let src = Logs.Src.create "backend" ~doc:"Backend"
 
@@ -14,7 +17,7 @@ type t = {
   debug : bool;
   map : Tilemap.t;
   mode : Mode.CtrlMode.t;
-  random : Rng.State.t;
+  random : Rl_utils.Rng.State.t;
   entities : E.EntityManager.t;
   actor_manager : Actor_manager.t;
   turn_queue : Turn_queue.t;
@@ -22,8 +25,8 @@ type t = {
 }
 
 let make_default ~debug =
-  let random = Rng.get_state () in
-  let seed = Rng.seed_int in
+  let random = Rl_utils.Rng.get_state () in
+  let seed = Rl_utils.Rng.seed_int in
   let map = Tilemap.default_map () in
 
   let entities = E.EntityManager.create () in

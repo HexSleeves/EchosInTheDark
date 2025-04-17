@@ -7,7 +7,7 @@ let calc_offset width x y = (y * width) + x
 let get_time () = Raylib.get_time ()
 let get_delta_time () = Raylib.get_frame_time ()
 
-(*  *)
+(* *)
 let round_prob xf =
   let z = int_of_float (floor xf) in
   let dz = if Rng.float 1.0 Rng.state <. xf -. float z then 1 else 0 in

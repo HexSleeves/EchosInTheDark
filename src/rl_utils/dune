@@ -1,0 +1,7 @@
+(include_subdirs qualified)
+
+(library
+ (name rl_utils)
+ (libraries base containers core_kernel logs logs.fmt raylib)
+ (preprocess
+  (staged_pps ppx_yojson_conv)))

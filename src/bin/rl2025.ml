@@ -2,7 +2,7 @@
 
 open Logs
 
-let main () =
+let () =
   Clap.description "Rougelike Tutorial 2025";
   (* [flag_enum] is a generalization of [flag] for enums with more than 2 possible values. *)
   let level =
@@ -17,7 +17,10 @@ let main () =
       Info
   in
   Clap.close ();
-  Log.configure ~level;
+
+  Logs.set_reporter (Logs_fmt.reporter ());
+  Logs.set_level (Some level);
+
   (* Blast Off *)
-  let () = Log.info "Starting main" in
-  Modules.run ()
+  let () = Logs.info (fun m -> m "Starting main") in
+  Rl_ui.Modules.run ()

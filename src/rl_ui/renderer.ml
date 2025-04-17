@@ -9,7 +9,8 @@ type font_config = { font : Font.t; font_size : int }
 
 (* Initialize font and measure character metrics *)
 let init_font_config ~font_path ~font_size =
-  Log.info "Creating font config";
+  let open Raylib in
+  Logs.info (fun m -> m "Creating font config");
 
   let font = load_font_ex font_path font_size None in
   gen_texture_mipmaps (addr (Font.texture font));
@@ -61,6 +62,6 @@ let create ?(title = "Rougelike Tutorial 2025")
 
 (** [cleanup font_config] unloads the font and closes the Raylib window. *)
 let cleanup (fc : font_config) =
-  Log.info "Cleaning up font config";
+  (Logs.info @@ fun m -> m "Cleaning up font config");
   Raylib.unload_font fc.font;
   Raylib.close_window ()

@@ -1,5 +1,4 @@
 module S = State
-module B = Backend
 module R = Renderer
 
 type 'a t = {
@@ -29,10 +28,10 @@ let main init_fn =
 
   let rec update_loop (data : State.t) =
     match Raylib.window_should_close () || data.quitting with
-    | true -> Log.info "Window closing..."
+    | true -> Logs.info (fun m -> m "Window closing...")
     | false ->
         let new_data = v.handle_tick data in
-        if new_data.quitting then Log.info "Quitting..."
+        if new_data.quitting then Logs.info (fun m -> m "Quitting...")
         else
           let updated_data =
             match draw_raylib_scene (fun () -> v.render new_data) with
@@ -45,6 +44,6 @@ let main init_fn =
   (* Ensure cleanup always runs, even if an exception occurs during the update loop *)
   Fun.protect
     ~finally:(fun () ->
-      Log.info "Cleaning up resources...";
+      Logs.info (fun m -> m "Cleaning up resources...");
       R.cleanup font_config)
     (fun () -> update_loop data)

@@ -1,10 +1,16 @@
 open Modules_d
+open Rl_core
 
 (* Main modules of game. They don't carry much state between them *)
 module R = Renderer
-module B = Backend
-module E = Entity
-module P = Pos
+module B = Rl_core.Backend
+module E = Rl_core.Entity
+module P = Rl_core.Types.Pos
+module T = Rl_core.Types
+module A = Rl_core.Actor
+module AM = Rl_core.Actor_manager
+module Actions = Rl_core.Actions
+module Turn_queue = Rl_core.Turn_queue
 
 (* Helper to convert optional screen update to State.t option *)
 let option_to_screen (s : State.t) (update : 'a option)

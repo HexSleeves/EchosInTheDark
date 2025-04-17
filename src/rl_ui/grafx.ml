@@ -1,11 +1,12 @@
 open Raylib
 module R = Renderer
+module T = Rl_core.Map.Tile
 
 (* Get glyph and color for a tile *)
-let[@warning "-11"] tile_glyph_and_color (tile : Tile.t) : string * Color.t =
+let[@warning "-11"] tile_glyph_and_color (tile : T.t) : string * Color.t =
   match tile with
-  | Tile.Wall -> ("#", Color.gray)
-  | Tile.Floor -> (".", Color.lightgray)
+  | T.Wall -> ("#", Color.gray)
+  | T.Floor -> (".", Color.lightgray)
   | _ ->
       Printf.printf "Warning: Unhandled tile type encountered\n";
       ("?", Color.red)

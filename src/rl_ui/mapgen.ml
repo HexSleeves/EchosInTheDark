@@ -1,6 +1,7 @@
 open Base
 module Rl = Raylib
 module Gui = Raygui
+module Helpers = Rl_utils.Helpers
 
 let panel_w = 400
 let panel_h = 300
@@ -27,7 +28,7 @@ type t = {
 }
 
 let init : t =
-  let seed = Rng.seed_int in
+  let seed = Rl_utils.Rng.seed_int in
   let width = 80 in
   let height = 50 in
   {

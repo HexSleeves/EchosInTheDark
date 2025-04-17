@@ -18,8 +18,8 @@ let get_height v = v.height
 let get_width v = v.width
 
 (* Tile *)
-let get_tile v x y = v.map.(Utils.calc_offset v.width x y)
-let set_tile v x y tile = v.map.(Utils.calc_offset v.width x y) <- tile
+let get_tile v x y = v.map.(Rl_utils.Utils.calc_offset v.width x y)
+let set_tile v x y tile = v.map.(Rl_utils.Utils.calc_offset v.width x y) <- tile
 
 let default_map () =
   {
@@ -33,13 +33,13 @@ let generate ~seed ~w ~h =
   let map = Array.create ~len:(w * h) Tile.Floor in
 
   for x = 0 to w - 1 do
-    map.(Utils.calc_offset w x 0) <- Tile.Wall;
-    map.(Utils.calc_offset w x (h - 1)) <- Tile.Wall
+    map.(Rl_utils.Utils.calc_offset w x 0) <- Tile.Wall;
+    map.(Rl_utils.Utils.calc_offset w x (h - 1)) <- Tile.Wall
   done;
 
   for y = 0 to h - 1 do
-    map.(Utils.calc_offset w 0 y) <- Tile.Wall;
-    map.(Utils.calc_offset w (w - 1) y) <- Tile.Wall
+    map.(Rl_utils.Utils.calc_offset w 0 y) <- Tile.Wall;
+    map.(Rl_utils.Utils.calc_offset w (w - 1) y) <- Tile.Wall
   done;
 
   { map; seed; width = w; height = h }

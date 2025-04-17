@@ -1,6 +1,6 @@
 open Base
-open Common
-open Pos
+open Types.Common
+open Types.Pos
 open Ppx_yojson_conv_lib.Yojson_conv
 
 type entity_id = int [@@deriving yojson, show, compare, sexp_of]

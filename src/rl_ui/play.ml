@@ -9,9 +9,15 @@
     as needed. *)
 
 open Base
-module M = Mode
-module P = Pos
 module R = Renderer
+module B = Rl_core.Backend
+module T = Rl_core.Types
+module M = Rl_core.Mode
+module P = T.Pos
+module A = Rl_core.Actor
+module AM = Rl_core.Actor_manager
+module Actions = Rl_core.Actions
+module Turn_system = Rl_core.Turn_system
 
 module PosSet = struct
   module T = struct
@@ -61,7 +67,7 @@ let render (state : State.t) : State.t option =
   let fc = state.font_config in
 
   (* Collect all entity positions into a set *)
-  let entities = Backend.get_entities backend in
+  let entities = B.get_entities backend in
   let entity_positions =
     Base.List.fold entities
       ~init:(Set.empty (module PosSet))
@@ -104,11 +110,10 @@ let handle_player_input (state : State.t) : State.t =
   match dir_opt with
   | Some dir ->
       let am = state.backend.actor_manager in
-      let entity = Backend.get_player state.backend in
+      let entity = B.get_player state.backend in
       let action = Actions.make_move_action dir entity in
 
-      Actor_manager.update am entity.id (fun actor ->
-          Actor.queue_action actor action);
+      AM.update am entity.id (fun actor -> A.queue_action actor action);
 
       {
         state with

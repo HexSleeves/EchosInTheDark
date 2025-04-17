@@ -1,5 +1,6 @@
-module P = Pos
 open Base
+open Types
+module P = Pos
 
 module LocKey = struct
   type t = P.loc
