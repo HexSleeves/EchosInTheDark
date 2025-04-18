@@ -1,7 +1,7 @@
 ---
-description: ALWAYS INCLUDE to HAVE Project Context
+description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 ---
 description: ALWAYS INCLUDE to HAVE Project Context.

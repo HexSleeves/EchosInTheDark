@@ -9,28 +9,32 @@
 
 ## Completed Features
 
-1. Entity Management System
-   - Entity creation and management
-   - Basic entity types
-   - Entity lifecycle management
+- [x] Entity Management System
+  - [x] Entity creation and management
+  - [x] Basic entity types
+  - [x] Entity lifecycle management
 
-2. Core Game Systems
-   - Basic game loop
-   - Player movement
-   - Direction handling
-   - Faction system
+- [x] Core Game Systems
+  - [x] Basic game loop
+  - [x] Player movement
+  - [x] Direction handling
+  - [x] Faction system
 
-3. Development Infrastructure
-   - Build system setup
-   - Development environment configuration
-   - Basic documentation
+- [x] Development Infrastructure
+  - [x] Build system setup
+  - [x] Development environment configuration
+  - [x] Basic documentation
+
+- [x] Procedural map generation (cellular automata)
+- [x] Randomized player spawn
+- [x] Stairs placement (up/down) with farthest-point logic
+- [x] Graphical support for stairs
 
 ## In Progress
 
-- [ ] Expanding entity types
-- [ ] Improving game mechanics
-- [ ] Enhancing documentation
-- [ ] Adding more test coverage
+- [ ] Multi-level transition logic (descend/ascend between levels)
+- [ ] Amulet/final level logic
+- [ ] Level state persistence (for backtracking)
 
 ## Future Plans
 

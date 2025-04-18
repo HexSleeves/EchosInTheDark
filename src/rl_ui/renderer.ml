@@ -1,5 +1,9 @@
 open Raylib
 
+let src = Logs.Src.create "renderer" ~doc:"Renderer"
+
+module Log = (val Logs.src_log src : Logs.LOG)
+
 let default_font_size = 16
 let tile_width = default_font_size
 let tile_height = default_font_size
@@ -23,9 +27,13 @@ let create ?(title = "Rougelike Tutorial 2025")
     ?(font_path = "resources/JetBrainsMono-Regular")
     ?(font_size = default_font_size) () =
   let open Raylib in
+  set_config_flags [ ConfigFlags.Window_resizable; ConfigFlags.Vsync_hint ];
+
   (* This is needed to get the monitor dimensions. *)
   (* Creates a window of the monitor size. *)
-  init_window 0 0 title;
+  (* init_window 0 0 title; *)
+  init_window 1280 720 title;
+  set_window_min_size 1280 720;
 
   (* Get monitor dimensions *)
   let current_monitor = get_current_monitor () in
@@ -42,14 +50,15 @@ let create ?(title = "Rougelike Tutorial 2025")
   let num_tiles_w = int_of_float (target_w /. float_of_int tile_width) in
   let window_w = num_tiles_w * tile_width in
 
-  (Logs.info @@ fun m -> m "Num tiles: %d %d" num_tiles_w num_tiles_h);
-  (Logs.info @@ fun m -> m "Window size: %d %d" window_w window_h);
+  Log.info (fun m -> m "Num tiles: [%d %d]" num_tiles_w num_tiles_h);
+  Log.info (fun m -> m "Window size: [%d %d]" window_w window_h);
 
   set_target_fps 60;
 
   (* Set window size and min size *)
-  set_window_size window_w window_h;
-  set_window_min_size window_w window_h;
+  (* set_window_size window_w window_h; *)
+
+  (* set_window_min_size window_w window_h; *)
 
   (* Center window on monitor *)
   set_window_position
@@ -62,6 +71,6 @@ let create ?(title = "Rougelike Tutorial 2025")
 
 (** [cleanup font_config] unloads the font and closes the Raylib window. *)
 let cleanup (fc : font_config) =
-  (Logs.info @@ fun m -> m "Cleaning up font config");
+  Log.info (fun m -> m "Cleaning up font config");
   Raylib.unload_font fc.font;
   Raylib.close_window ()

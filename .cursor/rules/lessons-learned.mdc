@@ -5,6 +5,17 @@ alwaysApply: false
 ---
 ---
 description: Stores important patterns, preferences, and project intelligence, living document that grows smarter as progress happens
-globs: 
+globs:
 alwaysApply: true
 ---
+
+## Build Verification
+
+- Always run `dune build` to confirm new modules and changes compile without errors and satisfy the build system.
+
+## Map Generation & Stairs
+
+- Use BFS to place stairs as far apart as possible, with randomness for replayability.
+- Always update graphical support when adding new tile types (e.g., stairs).
+- Store stairs positions in map data for easy multi-level transitions.
+- Player spawn logic should be flexible for both first and subsequent levels.

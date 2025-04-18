@@ -1,7 +1,3 @@
-open Ppx_yojson_conv_lib.Yojson_conv
-
-type faction = int [@@deriving yojson, show]
-
 (* Simple backend interface to avoid circular dependencies *)
 type backend =
   < get_player_id : int

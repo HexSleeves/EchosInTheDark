@@ -1,9 +1,15 @@
 ---
 description: Document major failure points in this project and they were solved.  To be filled by AI.
-globs: 
+globs:
 alwaysApply: false
 ---
 ---
-description: Document major failure points in this project and they were solved.  To be filled by AI. 
-globs: 
+description: Document major failure points in this project and they were solved.  To be filled by AI.
+globs:
 ---
+
+## Recent Fixes & Patterns
+
+- Added stairs (up/down) to map and rendering logic; ensure all new tile types are handled in both logic and UI to avoid missing glyphs or errors.
+- BFS-based farthest-point stair placement avoids trivial/boring layouts.
+- Multi-level groundwork: always store stairs positions for correct player placement on transitions.

@@ -1,9 +1,8 @@
 open Base
-open Types
-module P = Pos
+module T = Types
 
 module LocKey = struct
-  type t = P.loc
+  type t = T.loc
 
   let compare (x1, y1) (x2, y2) =
     let c = Int.compare x1 x2 in
@@ -25,18 +24,18 @@ end
 let blocked_positions : (LocKey.t, int) Hashtbl.t =
   Hashtbl.create (module LocKey)
 
-class move_action (dir : P.direction) (entity : Entity.entity) =
+class move_action (dir : T.direction) (entity : Entity.entity) =
   object
-    method execute (backend : Common.backend) : (int, exn) Result.t =
+    method execute (backend : Action.backend) : (int, exn) Result.t =
       try
         let entity_id = entity.id in
         let x, y = entity.pos in
         let dx, dy =
           match dir with
-          | P.North -> (0, -1)
-          | P.South -> (0, 1)
-          | P.East -> (1, 0)
-          | P.West -> (-1, 0)
+          | T.North -> (0, -1)
+          | T.South -> (0, 1)
+          | T.East -> (1, 0)
+          | T.West -> (-1, 0)
         in
         let new_x = x + dx in
         let new_y = y + dy in
@@ -69,10 +68,10 @@ class move_action (dir : P.direction) (entity : Entity.entity) =
     method to_string : string =
       let direction_str =
         match dir with
-        | P.North -> "north"
-        | P.South -> "south"
-        | P.East -> "east"
-        | P.West -> "west"
+        | T.North -> "north"
+        | T.South -> "south"
+        | T.East -> "east"
+        | T.West -> "west"
       in
       Printf.sprintf "Move(%s, entity=%d, name=%s)" direction_str entity.id
         entity.name

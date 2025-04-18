@@ -32,7 +32,8 @@ let current_time t = t.current_time
 let print_queue t =
   let queue_str =
     Pairing_heap.to_list t.turn_queue
-    |> List.map ~f:(fun (time, actor) -> sprintf "(%d,%d)" time actor)
+    |> List.map ~f:(fun (time, actor) ->
+           sprintf "(time: %d, actor: %d)" time actor)
     |> String.concat ~sep:"; "
   in
   Logs.info (fun m ->

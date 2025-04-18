@@ -10,6 +10,9 @@ type t = {
   width : int;
   height : int;
   map : Tile.t array;
+  player_start : int * int;
+  stairs_up : (int * int) option;
+  stairs_down : (int * int) option;
 }
 [@@deriving yojson]
 
@@ -20,26 +23,3 @@ let get_width v = v.width
 (* Tile *)
 let get_tile v x y = v.map.(Rl_utils.Utils.calc_offset v.width x y)
 let set_tile v x y tile = v.map.(Rl_utils.Utils.calc_offset v.width x y) <- tile
-
-let default_map () =
-  {
-    seed = 0;
-    width = map_width_default;
-    height = map_height_default;
-    map = Array.create ~len:(map_width_default * map_height_default) Tile.Floor;
-  }
-
-let generate ~seed ~w ~h =
-  let map = Array.create ~len:(w * h) Tile.Floor in
-
-  for x = 0 to w - 1 do
-    map.(Rl_utils.Utils.calc_offset w x 0) <- Tile.Wall;
-    map.(Rl_utils.Utils.calc_offset w x (h - 1)) <- Tile.Wall
-  done;
-
-  for y = 0 to h - 1 do
-    map.(Rl_utils.Utils.calc_offset w 0 y) <- Tile.Wall;
-    map.(Rl_utils.Utils.calc_offset w (w - 1) y) <- Tile.Wall
-  done;
-
-  { map; seed; width = w; height = h }

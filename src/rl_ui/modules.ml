@@ -1,16 +1,14 @@
+open Base
 open Modules_d
-open Rl_core
-
-(* Main modules of game. They don't carry much state between them *)
 module R = Renderer
 module B = Rl_core.Backend
 module E = Rl_core.Entity
-module P = Rl_core.Types.Pos
 module T = Rl_core.Types
 module A = Rl_core.Actor
 module AM = Rl_core.Actor_manager
 module Actions = Rl_core.Actions
 module Turn_queue = Rl_core.Turn_queue
+module SP = Rl_core.Spawner
 
 (* Helper to convert optional screen update to State.t option *)
 let option_to_screen (s : State.t) (update : 'a option)
@@ -36,9 +34,27 @@ let handle_tick (s : State.t) =
           {
             s with
             screen = Playing;
-            backend =
-              B.update s.backend ~w:mapgen.width ~h:mapgen.height
-                ~seed:mapgen.seed;
+            game_state =
+              (let backend =
+                 B.make ~debug:true ~w:mapgen.width ~h:mapgen.height
+                   ~seed:mapgen.seed
+               in
+
+               let open Rl_core.State in
+               let multi_level =
+                 let total_levels = 3 in
+                 (* TODO: get from config *)
+                 let maps = Base.Hashtbl.create (module Int) in
+                 Base.Hashtbl.set maps ~key:1 ~data:backend.map;
+                 MultiLevelState.
+                   {
+                     maps;
+                     total_levels;
+                     current_level = 1;
+                     player_has_amulet = false;
+                   }
+               in
+               { backend; multi_level });
           }
       | Some `Back -> { s with screen = MainMenu Mainmenu.init }
       | None -> { s with screen = MapGen mapgen })
@@ -53,47 +69,62 @@ let render (s : State.t) : State.t option =
       option_to_screen s (Mainmenu.render m) (fun x -> Modules_d.MainMenu x)
   | Playing -> option_to_screen s (Play.render s) (fun _ -> Modules_d.Playing)
 
+(* Create initial game state *)
+let create_initial_state font_config =
+  let create_state ?backend screen =
+    let seed = Rl_utils.Rng.seed_int in
+    let backend =
+      match backend with
+      | Some b -> b
+      | None -> B.make ~debug:true ~w:80 ~h:50 ~seed
+    in
+    let open Rl_core.State in
+    let multi_level =
+      let total_levels = 3 in
+      (* TODO: get from config *)
+      let maps = Base.Hashtbl.create (module Int) in
+      Base.Hashtbl.set maps ~key:1 ~data:backend.map;
+      MultiLevelState.
+        { current_level = 1; total_levels; maps; player_has_amulet = false }
+    in
+    let game_state = { backend; multi_level } in
+    { game_state; font_config; State.screen; quitting = false }
+  in
+  let state = create_state Playing in
+
+  let backend = state.game_state.backend in
+  let em = backend.Rl_core.Backend.entities in
+  let tq = backend.Rl_core.Backend.turn_queue in
+  let am = backend.Rl_core.Backend.actor_manager in
+  let player_id = backend.Rl_core.Backend.player.entity_id in
+
+  (* Add to turn queue *)
+  Turn_queue.schedule_turn tq player_id 0;
+
+  (* Add to actor manager *)
+  let player_actor = A.create ~speed:100 ~next_turn_time:0 in
+  AM.add am player_id player_actor;
+
+  (* Spawn player *)
+  let px, py = backend.Rl_core.Backend.map.player_start in
+  SP.spawn_player em ~pos:(px, py) ~direction:T.North ~actor_id:player_id;
+
+  Logs.info (fun m -> m "Initialization done.");
+  {
+    state with
+    game_state =
+      { state.game_state with backend = { backend with actor_manager = am } };
+  }
+
 (* Initialize logging *)
 let setup_logging () =
   Logs.set_level (Some Debug);
   Logs.info (fun m -> m "Loading resources...")
 
-(* Create initial game state *)
-let create_initial_state font_config =
-  let create_state ?backend screen =
-    let backend =
-      match backend with
-      | Some b -> b
-      | None ->
-          let b = B.make_default ~debug:true in
-          B.update b ~w:60 ~h:39 ~seed:0
-    in
-    { backend; font_config; State.screen; quitting = false }
-  in
-  let state = create_state Playing in
-
-  let backend = state.backend in
-  let em = backend.entities in
-  let tq = backend.turn_queue in
-  let am = backend.actor_manager in
-  let player_id = backend.player.entity_id in
-
-  (* Add to turn queue *)
-  Turn_queue.schedule_turn tq 0 100;
-
-  (* Add to actor manager *)
-  let player_actor = Actor.create ~speed:100 ~next_turn_time:100 in
-  Actor_manager.add am player_id player_actor;
-
-  (* Spawn player *)
-  Spawner.spawn_player em ~pos:(1, 1) ~direction:P.North ~actor_id:player_id;
-
-  Logs.info (fun m -> m "Initialization done.");
-  { state with backend = { backend with actor_manager = am } }
-
 (* Run the game *)
 let run () : unit =
   setup_logging ();
+
   let init_fn font_config =
     let state = create_initial_state font_config in
     (state, Mainloop.{ handle_tick; render })

@@ -7,6 +7,8 @@ let[@warning "-11"] tile_glyph_and_color (tile : T.t) : string * Color.t =
   match tile with
   | T.Wall -> ("#", Color.gray)
   | T.Floor -> (".", Color.lightgray)
+  | T.Stairs_up -> ("<", Color.gold)
+  | T.Stairs_down -> (">", Color.orange)
   | _ ->
       Printf.printf "Warning: Unhandled tile type encountered\n";
       ("?", Color.red)
