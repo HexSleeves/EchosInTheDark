@@ -12,7 +12,6 @@ open Base
 module R = Renderer
 module B = Rl_core.Backend
 module T = Rl_core.Types
-module M = Rl_core.Mode
 module A = Rl_core.Actor
 module AM = Rl_core.Actor_manager
 module Actions = Rl_core.Actions
@@ -70,7 +69,7 @@ let render (state : State.t) : State.t option =
   let entity_positions =
     Base.List.fold entities
       ~init:(Set.empty (module PosSet))
-      ~f:(fun acc e -> Set.add acc e.pos)
+      ~f:(fun acc e -> Set.add acc (e.pos.x, e.pos.y))
   in
 
   (* Render map tiles, skipping those with an entity *)
@@ -80,7 +79,7 @@ let render (state : State.t) : State.t option =
       let y = i / backend.map.width in
       if not (Set.mem entity_positions (x, y)) then
         let glyph, color = Grafx.tile_glyph_and_color t in
-        Grafx.render_cell glyph color fc (x, y))
+        Grafx.render_cell glyph color fc (T.Loc.make x y))
     backend.map.map;
 
   (* Render all entities as before *)

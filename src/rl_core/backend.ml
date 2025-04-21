@@ -2,7 +2,6 @@ module Actor = Actor
 module Tilemap = Map.Tilemap
 module Tile = Map.Tile
 open Base
-open Mode
 open Types
 open Entity
 
@@ -85,17 +84,16 @@ let get_player_actor (backend : t) : Actor.t =
       Actor_manager.get_unsafe backend.actor_manager actor_id
   | _ -> failwith "Player actor not found"
 
-let get_actor (backend : t) (entity_id : entity_id) : Actor.t =
-  let entity = EntityManager.find_unsafe backend.entities entity_id in
-  match entity.data with
-  | PlayerData { actor_id; _ } | CreatureData { actor_id; _ } ->
-      Actor_manager.get_unsafe backend.actor_manager actor_id
-  | _ -> failwith "Actor not found"
+let direction_to_point (dir : Types.direction) : Types.loc =
+  match dir with
+  | Types.North -> Loc.make 0 (-1)
+  | Types.South -> Loc.make 0 1
+  | Types.East -> Loc.make 1 0
+  | Types.West -> Loc.make (-1) 0
 
-let move_entity (backend : t) (entity_id : entity_id) (x : int) (y : int) : unit
-    =
+let move_entity (backend : t) (entity_id : entity_id) (loc : loc) : unit =
   EntityManager.update backend.entities entity_id (fun ent ->
-      { ent with pos = (x, y) })
+      { ent with pos = loc })
 
 let handle_action (backend : t) (entity_id : Types.entity_id)
     (action : Action.action_type) : (int, exn) Result.t =
@@ -105,27 +103,15 @@ let handle_action (backend : t) (entity_id : Types.entity_id)
       match get_entity backend entity_id with
       | None -> Error (Failure "Entity not found")
       | Some entity ->
-          let x, y = entity.pos in
-          let dx, dy =
-            match dir with
-            | Types.North -> (0, -1)
-            | Types.South -> (0, 1)
-            | Types.East -> (1, 0)
-            | Types.West -> (-1, 0)
-          in
-          let new_x = x + dx in
-          let new_y = y + dy in
-          let within_bounds =
-            new_x >= 0
-            && new_x < Tilemap.get_width backend.map
-            && new_y >= 0
-            && new_y < Tilemap.get_height backend.map
-          in
+          let delta = direction_to_point dir in
+          let new_pos = Types.Loc.(entity.pos + delta) in
+          let within_bounds = Tilemap.in_bounds backend.map new_pos in
           let walkable =
-            Tile.is_walkable (Tilemap.get_tile backend.map new_x new_y)
+            Tile.is_walkable (Tilemap.get_tile backend.map new_pos)
           in
+
           if within_bounds && walkable then (
-            move_entity backend entity_id new_x new_y;
+            move_entity backend entity_id new_pos;
             Ok 100)
           else Error (Failure "Cannot move here"))
   | Wait -> Ok 100
@@ -133,18 +119,17 @@ let handle_action (backend : t) (entity_id : Types.entity_id)
       match get_entity backend entity_id with
       | None -> Error (Failure "Entity not found")
       | Some entity ->
-          let x, y = entity.pos in
-          let tile = Tilemap.get_tile backend.map x y in
+          let tile = Tilemap.get_tile backend.map entity.pos in
           if Tile.equal tile Tile.Stairs_up then Ok 100
           else Error (Failure "Not on stairs up"))
   | StairsDown -> (
       match get_entity backend entity_id with
       | None -> Error (Failure "Entity not found")
       | Some entity ->
-          let x, y = entity.pos in
-          let tile = Tilemap.get_tile backend.map x y in
+          let tile = Tilemap.get_tile backend.map entity.pos in
           if Tile.equal tile Tile.Stairs_down then Ok 100
           else Error (Failure "Not on stairs down"))
   | Interact _ -> Error (Failure "Interact not implemented yet")
   | Pickup _ -> Error (Failure "Pickup not implemented yet")
   | Drop _ -> Error (Failure "Drop not implemented yet")
+  | Attack entity_id -> Error (Failure "Attack not implemented yet")

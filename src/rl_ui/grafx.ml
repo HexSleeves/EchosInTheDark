@@ -14,12 +14,12 @@ let[@warning "-11"] tile_glyph_and_color (tile : T.t) : string * Color.t =
       ("?", Color.red)
 
 (* Map grid (tile) position to screen position using FontConfig *)
-let grid_to_screen (x, y) =
+let grid_to_screen (loc : Rl_core.Types.Loc.t) =
   Raylib.Vector2.create
-    (float_of_int x *. float_of_int R.tile_width)
-    (float_of_int y *. float_of_int R.tile_height)
+    (float_of_int loc.x *. float_of_int R.tile_width)
+    (float_of_int loc.y *. float_of_int R.tile_height)
 
-let render_cell glyph color (fc : R.font_config) (x, y) =
+let render_cell glyph color (fc : R.font_config) (loc : Rl_core.Types.Loc.t) =
   let font_size = float_of_int fc.font_size in
   let glyph_size = measure_text_ex fc.font glyph font_size 0. in
 
@@ -30,7 +30,7 @@ let render_cell glyph color (fc : R.font_config) (x, y) =
   in
 
   let spacing = 0. in
-  let screen_pos = grid_to_screen (x, y) in
+  let screen_pos = grid_to_screen loc in
   let centered_pos = Vector2.add screen_pos offset in
 
   (* Font, Text, Position, Font-size, Spacing, Color *)

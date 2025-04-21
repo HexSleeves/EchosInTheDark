@@ -10,7 +10,7 @@ let find_random_floor grid ~width ~height ~rng =
     let x = 1 + Random.State.int rng (width - 2) in
     let y = 1 + Random.State.int rng (height - 2) in
     let idx = x + (y * width) in
-    if Tile.is_floor grid.(idx) then (x, y) else pick ()
+    if Tile.is_floor grid.(idx) then Types.Loc.make x y else pick ()
   in
   pick ()
 
@@ -19,15 +19,17 @@ let neighbors (x, y) width height =
     ~f:(fun (nx, ny) -> nx >= 0 && ny >= 0 && nx < width && ny < height)
     [ (x - 1, y); (x + 1, y); (x, y - 1); (x, y + 1) ]
 
-let bfs_farthest grid ~width ~height ~start =
+let bfs_farthest grid ~width ~height ~(start : Types.Loc.t) =
   let open Queue in
   let visited = Array.make_matrix ~dimx:width ~dimy:height false in
   let dist = Array.make_matrix ~dimx:width ~dimy:height (-1) in
   let q = create () in
-  let sx, sy = start in
+
+  let sx, sy = (start.x, start.y) in
   visited.(sx).(sy) <- true;
   dist.(sx).(sy) <- 0;
   enqueue q (sx, sy);
+
   let farthest = ref [ (sx, sy) ] in
   let max_dist = ref 0 in
   while not (is_empty q) do
@@ -48,7 +50,7 @@ let bfs_farthest grid ~width ~height ~start =
   done;
   (!max_dist, !farthest)
 
-let pick_random lst ~rng ~n =
+let pick_random lst ~rng ~(n : int) =
   let sorted = List.take (List.rev lst) n in
   List.nth_exn sorted (Random.State.int rng (List.length sorted))
 
@@ -67,7 +69,8 @@ let generate ~(config : Config.t) ~(level : int) ~(total_levels : int) :
   let height = config.height in
 
   let player_start =
-    if level = 1 then find_random_floor grid ~width ~height ~rng else (0, 0)
+    if level = 1 then find_random_floor grid ~width ~height ~rng
+    else Types.Loc.make 0 0
     (* Will be set to stairs_up for non-first levels *)
   in
 
@@ -77,15 +80,18 @@ let generate ~(config : Config.t) ~(level : int) ~(total_levels : int) :
   let _, farthest = bfs_farthest grid ~width ~height ~start:player_start in
 
   let stairs_down =
-    if level = total_levels then None else Some (pick_random farthest ~rng ~n:3)
+    if level = total_levels then None
+    else
+      let x, y = pick_random farthest ~rng ~n:3 in
+      Some (Types.Loc.make x y)
   in
 
   (* Place stairs tiles in the grid *)
   (match stairs_up with
-  | Some (x, y) -> grid.((y * width) + x) <- Tile.Stairs_up
+  | Some loc -> grid.((loc.y * width) + loc.x) <- Tile.Stairs_up
   | None -> ());
   (match stairs_down with
-  | Some (x, y) -> grid.((y * width) + x) <- Tile.Stairs_down
+  | Some loc -> grid.((loc.y * width) + loc.x) <- Tile.Stairs_down
   | None -> ());
 
   (* Construct Tilemap record *)

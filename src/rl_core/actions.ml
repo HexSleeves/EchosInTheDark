@@ -1,4 +1,4 @@
-open Base
+(* open Base
 module T = Types
 
 module LocKey = struct
@@ -22,4 +22,4 @@ end
 
 (* List of entity IDs blocking specific positions *)
 let blocked_positions : (LocKey.t, int) Hashtbl.t =
-  Hashtbl.create (module LocKey)
+  Hashtbl.create (module LocKey) *)

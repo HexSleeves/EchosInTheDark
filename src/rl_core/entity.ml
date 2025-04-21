@@ -7,10 +7,10 @@ type entity_kind = Player | Creature | Item | Other of string
 
 (* Data specific to each entity kind *)
 type entity_data =
-  | PlayerData of { health : int; faction : faction; actor_id : int }
+  | PlayerData of { health : int; actor_id : int }
   | CreatureData of {
       species : string;
-      faction : faction;
+      (* faction : faction; *)
       health : int;
       actor_id : int;
     }

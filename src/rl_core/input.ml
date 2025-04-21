@@ -31,3 +31,5 @@ let of_key (key : Raylib.Key.t) : action_type option =
 let action_from_keys () : action_type option =
   let open Raylib in
   get_key_pressed () |> of_key
+
+

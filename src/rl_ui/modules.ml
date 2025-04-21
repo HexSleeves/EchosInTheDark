@@ -106,8 +106,8 @@ let create_initial_state font_config =
   AM.add am player_id player_actor;
 
   (* Spawn player *)
-  let px, py = backend.Rl_core.Backend.map.player_start in
-  SP.spawn_player em ~pos:(px, py) ~direction:T.North ~actor_id:player_id;
+  let player_start = backend.Rl_core.Backend.map.player_start in
+  SP.spawn_player em ~pos:player_start ~direction:T.North ~actor_id:player_id;
 
   Logs.info (fun m -> m "Initialization done.");
   {

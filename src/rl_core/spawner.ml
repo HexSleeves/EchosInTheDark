@@ -10,12 +10,12 @@ let spawn_player (em : EntityManager.t) ~pos ~direction ~actor_id =
     name = "Player";
     kind = Player;
     description = Some "This is you!";
-    data = PlayerData { faction = 0; health = 30; actor_id };
+    data = PlayerData { health = 30; actor_id };
   }
   |> EntityManager.add em
 
-let spawn_creature (em : EntityManager.t) ~pos ~direction ~species ~faction
-    ~health ~glyph ~name ~actor_id ?(description = None) () =
+let spawn_creature (em : EntityManager.t) ~pos ~direction ~species ~health
+    ~glyph ~name ~actor_id ?(description = None) () =
   {
     pos;
     direction;
@@ -23,7 +23,7 @@ let spawn_creature (em : EntityManager.t) ~pos ~direction ~species ~faction
     name;
     description;
     kind = Creature;
-    data = CreatureData { species; faction; health; actor_id };
+    data = CreatureData { species; health; actor_id };
   }
   |> EntityManager.add_entity em
 

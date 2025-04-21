@@ -1,5 +1,6 @@
 open Ppx_yojson_conv_lib.Yojson_conv
 open Base
+open Types
 
 let map_width_default = 80
 let map_height_default = 50
@@ -10,9 +11,9 @@ type t = {
   width : int;
   height : int;
   map : Tile.t array;
-  player_start : int * int;
-  stairs_up : (int * int) option;
-  stairs_down : (int * int) option;
+  player_start : Loc.t;
+  stairs_up : Loc.t option;
+  stairs_down : Loc.t option;
 }
 [@@deriving yojson]
 
@@ -21,5 +22,11 @@ let get_height v = v.height
 let get_width v = v.width
 
 (* Tile *)
-let get_tile v x y = v.map.(Rl_utils.Utils.calc_offset v.width x y)
-let set_tile v x y tile = v.map.(Rl_utils.Utils.calc_offset v.width x y) <- tile
+let get_tile v (loc : Loc.t) =
+  v.map.(Rl_utils.Utils.calc_offset v.width loc.x loc.y)
+
+let set_tile v (loc : Loc.t) tile =
+  v.map.(Rl_utils.Utils.calc_offset v.width loc.x loc.y) <- tile
+
+let in_bounds v (loc : Loc.t) =
+  loc.x >= 0 && loc.x < v.width && loc.y >= 0 && loc.y < v.height

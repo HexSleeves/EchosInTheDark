@@ -5,9 +5,18 @@ module CtrlMode = struct
   (* [@@deriving yojson] *)
 end
 
+module Loc = struct
+  type t = { x : int; y : int } [@@deriving yojson, show]
+
+  let make x y = { x; y }
+  let add a b = { x = a.x + b.x; y = a.y + b.y }
+  let ( + ) = add
+end
+
 type entity_id = int [@@deriving yojson, show]
-type faction = int [@@deriving yojson, show]
-type loc = int * int [@@deriving yojson, show]
+
+(* type faction = int [@@deriving yojson, show] *)
+type loc = Loc.t [@@deriving yojson, show]
 type direction = North | East | South | West [@@deriving yojson, show]
 
 type stats = {

@@ -1,4 +1,19 @@
-(* Enum type for all possible actions an actor can take *)
+(*
+  Enum type for all possible actions an actor can take.
+
+  Action semantics:
+  | Variant         | Description                                      | Parameters         |
+  |-----------------|--------------------------------------------------|--------------------|
+  | Move            | Move the actor in a direction if possible         | direction          |
+  | Interact        | Interact with an entity (door, lever, etc.)       | entity_id          |
+  | Pickup          | Pick up an item from the ground                   | entity_id          |
+  | Drop            | Drop an item from inventory                       | entity_id          |
+  | Attack          | Attack another entity (combat)                    | entity_id          |
+  | StairsUp        | Use stairs to go up a level                       | -                  |
+  | StairsDown      | Use stairs to go down a level                     | -                  |
+  | Wait            | Do nothing for a turn                             | -                  |
+*)
+
 type action_type =
   | Move of Types.direction
   | Interact of Types.entity_id
@@ -7,3 +22,4 @@ type action_type =
   | StairsUp
   | StairsDown
   | Wait
+  | Attack of Types.entity_id
