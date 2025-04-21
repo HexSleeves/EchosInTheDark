@@ -18,7 +18,7 @@ type t = {
   actor_manager : Actor_manager.t;
   turn_queue : Turn_queue.t;
   player : Types.player;
-  multilevel : Multilevel_state.t;
+  multilevel : State.t;
 }
 
 let make ~debug ~w ~h ~seed =
@@ -34,7 +34,7 @@ let make ~debug ~w ~h ~seed =
   let open Mapgen in
   let config = Config.default ~seed in
   let map = Generator.generate ~config ~level:1 in
-  let multilevel = Multilevel_state.create ~config in
+  let multilevel = State.create ~config in
   {
     debug;
     seed;
@@ -103,22 +103,22 @@ let move_entity (backend : t) (entity_id : Types.entity_id) (loc : Types.Loc.t)
 let transition_to_next_level backend multi_level ~config =
   (* Save current level state *)
   let multi_level =
-    Multilevel_state.save_level_state multi_level
-      multi_level.Multilevel_state.current_level ~entities:backend.entities
-      ~actor_manager:backend.actor_manager ~turn_queue:backend.turn_queue
+    State.save_level_state multi_level multi_level.State.current_level
+      ~entities:backend.entities ~actor_manager:backend.actor_manager
+      ~turn_queue:backend.turn_queue
   in
 
   (* Go to next level *)
-  let multi_level = Multilevel_state.go_to_next_level multi_level ~config in
+  let multi_level = State.go_to_next_level multi_level ~config in
 
   (* Get new map *)
-  let new_map = Multilevel_state.get_current_map multi_level in
+  let new_map = State.get_current_map multi_level in
 
   (* Either load existing level state or initialize new level *)
   let multi_level =
-    Multilevel_state.load_level_state multi_level
-      multi_level.Multilevel_state.current_level ~entities:backend.entities
-      ~actor_manager:backend.actor_manager ~turn_queue:backend.turn_queue
+    State.load_level_state multi_level multi_level.State.current_level
+      ~entities:backend.entities ~actor_manager:backend.actor_manager
+      ~turn_queue:backend.turn_queue
   in
 
   (* Position player at stairs_up in new level *)
@@ -134,22 +134,22 @@ let transition_to_next_level backend multi_level ~config =
 let transition_to_previous_level backend multi_level ~config =
   (* Save current level state *)
   let multi_level =
-    Multilevel_state.save_level_state multi_level
-      multi_level.Multilevel_state.current_level ~entities:backend.entities
-      ~actor_manager:backend.actor_manager ~turn_queue:backend.turn_queue
+    State.save_level_state multi_level multi_level.State.current_level
+      ~entities:backend.entities ~actor_manager:backend.actor_manager
+      ~turn_queue:backend.turn_queue
   in
 
   (* Go to previous level *)
-  let multi_level = Multilevel_state.go_to_previous_level multi_level ~config in
+  let multi_level = State.go_to_previous_level multi_level ~config in
 
   (* Get new map *)
-  let new_map = Multilevel_state.get_current_map multi_level in
+  let new_map = State.get_current_map multi_level in
 
   (* Either load existing level state or initialize new level *)
   let multi_level =
-    Multilevel_state.load_level_state multi_level
-      multi_level.Multilevel_state.current_level ~entities:backend.entities
-      ~actor_manager:backend.actor_manager ~turn_queue:backend.turn_queue
+    State.load_level_state multi_level multi_level.State.current_level
+      ~entities:backend.entities ~actor_manager:backend.actor_manager
+      ~turn_queue:backend.turn_queue
   in
 
   (* Position player at stairs_down in previous level *)

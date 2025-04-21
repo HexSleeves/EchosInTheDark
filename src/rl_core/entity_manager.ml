@@ -1,5 +1,4 @@
 open Base
-open Ppx_yojson_conv_lib.Yojson_conv
 open Types
 
 type t = (int, entity) Hashtbl.t

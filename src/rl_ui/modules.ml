@@ -3,11 +3,10 @@ open Modules_d
 module R = Renderer
 
 (* Core modules *)
-module A = Rl_core.Actor
+module Actor = Rl_core.Actor
 module Actions = Rl_core.Actions
 module AM = Rl_core.Actor_manager
 module B = Rl_core.Backend
-module Multilevel_state = Rl_core.Multilevel_state
 module SP = Rl_core.Spawner
 module T = Rl_core.Types
 module Turn_queue = Rl_core.Turn_queue
@@ -63,7 +62,7 @@ let create_initial_state font_config =
   Turn_queue.schedule_turn tq player_id 0;
 
   (* Add to actor manager *)
-  let player_actor = A.create ~speed:100 ~next_turn_time:0 in
+  let player_actor = Actor.create ~speed:100 ~next_turn_time:0 in
   AM.add am player_id player_actor;
 
   (* Spawn player *)
