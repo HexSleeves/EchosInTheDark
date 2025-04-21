@@ -21,6 +21,7 @@ RL2025 is a turn-based, entity-driven game engine and demo, using OCaml's strong
   - [Technical Architecture](.docs/memory/01_technical_architecture.md)
   - [Development Guidelines](.docs/memory/02_development_guidelines.md)
   - [Project Roadmap](.docs/memory/03_project_roadmap.md)
+- [Project Structure and Module Dependency Overview](docs/project_structure.md): Mermaid charts and explanations of the architecture and module dependencies.
 
 ---
 
