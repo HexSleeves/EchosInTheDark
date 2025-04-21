@@ -9,6 +9,7 @@
     as needed. *)
 
 open Base
+open Ui_log
 module R = Renderer
 module B = Rl_core.Backend
 module T = Rl_core.Types
@@ -119,5 +120,5 @@ let handle_tick (state : State.t) : State.t =
       let new_backend = Turn_system.process_turns backend in
       { state with backend = new_backend }
   | T.CtrlMode.Died _ ->
-      (Logs.info @@ fun m -> m "Player died");
+      (Ui_log.info @@ fun m -> m "Player died");
       state

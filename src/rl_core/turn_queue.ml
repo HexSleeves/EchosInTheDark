@@ -1,5 +1,6 @@
 open Core
 open Types
+open Core_log
 
 (* Min-heap of (time, entity_id) *)
 module TimeEntity = struct
@@ -37,7 +38,7 @@ let print_queue t =
            sprintf "(time: %d, actor: %d)" time actor)
     |> String.concat ~sep:"; "
   in
-  Logs.info (fun m ->
+  Core_log.info (fun m ->
       m "Current time: %d, Turn queue: [%s]" t.current_time queue_str)
 
 let schedule_turn t (entity : entity_id) (next_time : int) =

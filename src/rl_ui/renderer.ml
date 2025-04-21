@@ -1,9 +1,5 @@
 open Raylib
 
-let src = Logs.Src.create "renderer" ~doc:"Renderer"
-
-module Log = (val Logs.src_log src : Logs.LOG)
-
 let default_font_size = 16
 let tile_width = default_font_size
 let tile_height = default_font_size
@@ -14,7 +10,7 @@ type font_config = { font : Font.t; font_size : int }
 (* Initialize font and measure character metrics *)
 let init_font_config ~font_path ~font_size =
   let open Raylib in
-  Logs.info (fun m -> m "Creating font config");
+  Ui_log.info (fun m -> m "Creating font config");
 
   let font = load_font_ex font_path font_size None in
   gen_texture_mipmaps (addr (Font.texture font));
@@ -50,8 +46,8 @@ let create ?(title = "Rougelike Tutorial 2025")
   let num_tiles_w = int_of_float (target_w /. float_of_int tile_width) in
   let window_w = num_tiles_w * tile_width in
 
-  Log.info (fun m -> m "Num tiles: [%d %d]" num_tiles_w num_tiles_h);
-  Log.info (fun m -> m "Window size: [%d %d]" window_w window_h);
+  Ui_log.info (fun m -> m "Num tiles: [%d %d]" num_tiles_w num_tiles_h);
+  Ui_log.info (fun m -> m "Window size: [%d %d]" window_w window_h);
 
   set_target_fps 60;
 
@@ -71,6 +67,6 @@ let create ?(title = "Rougelike Tutorial 2025")
 
 (** [cleanup font_config] unloads the font and closes the Raylib window. *)
 let cleanup (fc : font_config) =
-  Log.info (fun m -> m "Cleaning up font config");
+  Ui_log.info (fun m -> m "Cleaning up font config");
   Raylib.unload_font fc.font;
   Raylib.close_window ()

@@ -4,10 +4,6 @@ module EntityManager = Entity_manager
 module Tile = Map.Tile
 module Tilemap = Map.Tilemap
 
-let src = Logs.Src.create "backend" ~doc:"Backend"
-
-module Log = (val Logs.src_log src : Logs.LOG)
-
 type t = {
   seed : int;
   debug : bool;
@@ -22,8 +18,8 @@ type t = {
 }
 
 let make ~debug ~w ~h ~seed =
-  Logs.info (fun m -> m "Creating backend with seed: %d" seed);
-  Logs.info (fun m -> m "Width: %d, Height: %d" w h);
+  Core_log.info (fun m -> m "Creating backend with seed: %d" seed);
+  Core_log.info (fun m -> m "Width: %d, Height: %d" w h);
 
   let random = Random.State.make [| seed |] in
 

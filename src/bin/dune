@@ -1,5 +1,5 @@
 (executable
  (name rl2025)
  (public_name rl2025)
- (modules rl2025)
- (libraries rl_lib clap))
+ (modules rl2025 logger)
+ (libraries rl_ui))
