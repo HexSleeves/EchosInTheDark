@@ -2,8 +2,6 @@ open Base
 open Ppx_yojson_conv_lib.Yojson_conv
 open Types
 
-type entity_id = int [@@deriving yojson, show, compare, sexp_of]
-
 type entity_kind = Player | Creature | Item | Other of string
 [@@deriving yojson]
 

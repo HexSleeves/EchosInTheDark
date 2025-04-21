@@ -1,10 +1,10 @@
 module Actor = Actor
 module Tilemap = Map.Tilemap
 module Tile = Map.Tile
-module E = Entity
 open Base
 open Mode
 open Types
+open Entity
 
 let src = Logs.Src.create "backend" ~doc:"Backend"
 
@@ -14,12 +14,12 @@ type t = {
   seed : int;
   debug : bool;
   map : Tilemap.t;
-  mode : Mode.CtrlMode.t;
+  mode : CtrlMode.t;
   random : Random.State.t;
-  entities : E.EntityManager.t;
+  entities : EntityManager.t;
   actor_manager : Actor_manager.t;
   turn_queue : Turn_queue.t;
-  player : E.player;
+  player : player;
 }
 
 let make ~debug ~w ~h ~seed =
@@ -28,7 +28,7 @@ let make ~debug ~w ~h ~seed =
 
   let random = Random.State.make [| seed |] in
 
-  let entities = E.EntityManager.create () in
+  let entities = EntityManager.create () in
   let actor_manager = Actor_manager.create () in
   let turn_queue = Turn_queue.create () in
 
@@ -49,14 +49,14 @@ let make ~debug ~w ~h ~seed =
   }
 
 (* Helper function to get all entities *)
-let get_entities (backend : t) : E.entity list =
-  E.EntityManager.to_list backend.entities
+let get_entities (backend : t) : entity list =
+  EntityManager.to_list backend.entities
 
-let get_entity_manager (backend : t) : E.EntityManager.t = backend.entities
+let get_entity_manager (backend : t) : EntityManager.t = backend.entities
 let get_actor_manager (backend : t) : Actor_manager.t = backend.actor_manager
 
-let get_entity (backend : t) (entity_id : E.entity_id) : E.entity option =
-  E.EntityManager.find backend.entities entity_id
+let get_entity (backend : t) (entity_id : entity_id) : entity option =
+  EntityManager.find backend.entities entity_id
 
 let get_actor (backend : t) (actor_id : Actor_manager.actor_id) : Actor.t option
     =
@@ -71,39 +71,80 @@ let remove_actor (backend : t) (actor_id : Actor_manager.actor_id) : t =
   Actor_manager.remove backend.actor_manager actor_id;
   backend
 
-let get_entity_at_pos (entities : E.EntityManager.t) (pos : loc) :
-    E.entity option =
-  E.EntityManager.find_by_pos entities pos
+let get_entity_at_pos (entities : EntityManager.t) (pos : loc) : entity option =
+  EntityManager.find_by_pos entities pos
 
 (* Helper function to get player entity *)
-let get_player (backend : t) : E.entity =
-  E.EntityManager.find_unsafe backend.entities backend.player.entity_id
+let get_player (backend : t) : entity =
+  EntityManager.find_unsafe backend.entities backend.player.entity_id
 
 let get_player_actor (backend : t) : Actor.t =
   let player = get_player backend in
   match player.data with
-  | E.PlayerData { actor_id; _ } ->
+  | PlayerData { actor_id; _ } ->
       Actor_manager.get_unsafe backend.actor_manager actor_id
   | _ -> failwith "Player actor not found"
 
-let get_actor (backend : t) (entity_id : E.entity_id) : Actor.t =
-  let entity = E.EntityManager.find_unsafe backend.entities entity_id in
+let get_actor (backend : t) (entity_id : entity_id) : Actor.t =
+  let entity = EntityManager.find_unsafe backend.entities entity_id in
   match entity.data with
-  | E.PlayerData { actor_id; _ } | E.CreatureData { actor_id; _ } ->
+  | PlayerData { actor_id; _ } | CreatureData { actor_id; _ } ->
       Actor_manager.get_unsafe backend.actor_manager actor_id
   | _ -> failwith "Actor not found"
 
-let move_entity (backend : t) (entity_id : E.entity_id) (x : int) (y : int) :
-    unit =
-  E.EntityManager.update backend.entities entity_id (fun ent ->
+let move_entity (backend : t) (entity_id : entity_id) (x : int) (y : int) : unit
+    =
+  EntityManager.update backend.entities entity_id (fun ent ->
       { ent with pos = (x, y) })
 
-(* Convert to simplified backend interface *)
-let to_common_backend (b : t) =
-  object
-    method get_player_id = b.player.entity_id
-    method get_map_width = Tilemap.get_width b.map
-    method get_map_height = Tilemap.get_height b.map
-    method is_tile_walkable x y = Tile.is_walkable (Tilemap.get_tile b.map x y)
-    method move_entity entity_id x y = move_entity b entity_id x y
-  end
+let handle_action (backend : t) (entity_id : Types.entity_id)
+    (action : Action.action_type) : (int, exn) Result.t =
+  match action with
+  | Move dir -> (
+      (* Example movement logic *)
+      match get_entity backend entity_id with
+      | None -> Error (Failure "Entity not found")
+      | Some entity ->
+          let x, y = entity.pos in
+          let dx, dy =
+            match dir with
+            | Types.North -> (0, -1)
+            | Types.South -> (0, 1)
+            | Types.East -> (1, 0)
+            | Types.West -> (-1, 0)
+          in
+          let new_x = x + dx in
+          let new_y = y + dy in
+          let within_bounds =
+            new_x >= 0
+            && new_x < Tilemap.get_width backend.map
+            && new_y >= 0
+            && new_y < Tilemap.get_height backend.map
+          in
+          let walkable =
+            Tile.is_walkable (Tilemap.get_tile backend.map new_x new_y)
+          in
+          if within_bounds && walkable then (
+            move_entity backend entity_id new_x new_y;
+            Ok 100)
+          else Error (Failure "Cannot move here"))
+  | Wait -> Ok 100
+  | StairsUp -> (
+      match get_entity backend entity_id with
+      | None -> Error (Failure "Entity not found")
+      | Some entity ->
+          let x, y = entity.pos in
+          let tile = Tilemap.get_tile backend.map x y in
+          if Tile.equal tile Tile.Stairs_up then Ok 100
+          else Error (Failure "Not on stairs up"))
+  | StairsDown -> (
+      match get_entity backend entity_id with
+      | None -> Error (Failure "Entity not found")
+      | Some entity ->
+          let x, y = entity.pos in
+          let tile = Tilemap.get_tile backend.map x y in
+          if Tile.equal tile Tile.Stairs_down then Ok 100
+          else Error (Failure "Not on stairs down"))
+  | Interact _ -> Error (Failure "Interact not implemented yet")
+  | Pickup _ -> Error (Failure "Pickup not implemented yet")
+  | Drop _ -> Error (Failure "Drop not implemented yet")

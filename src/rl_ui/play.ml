@@ -98,23 +98,12 @@ let render (state : State.t) : State.t option =
   None
 
 let handle_player_input (state : State.t) : State.t =
-  let open Raylib in
-  let dir_opt =
-    if is_key_pressed Key.W || is_key_pressed Key.Up then Some T.North
-    else if is_key_pressed Key.S || is_key_pressed Key.Down then Some T.South
-    else if is_key_pressed Key.A || is_key_pressed Key.Left then Some T.West
-    else if is_key_pressed Key.D || is_key_pressed Key.Right then Some T.East
-    else None
-  in
-  match dir_opt with
-  | Some dir ->
+  match Rl_core.Input.action_from_keys () with
+  | Some action ->
       let backend = state.game_state.backend in
       let am = backend.actor_manager in
       let entity = B.get_player backend in
-      let action = Actions.make_move_action dir entity in
-
       AM.update am entity.id (fun actor -> A.queue_action actor action);
-
       {
         state with
         game_state =
@@ -123,7 +112,7 @@ let handle_player_input (state : State.t) : State.t =
             backend =
               {
                 state.game_state.backend with
-                mode = M.CtrlMode.Normal;
+                mode = T.CtrlMode.Normal;
                 actor_manager = am;
               };
           };
@@ -134,13 +123,13 @@ let handle_tick (state : State.t) : State.t =
   let backend = state.game_state.backend in
 
   match backend.mode with
-  | M.CtrlMode.Normal ->
+  | T.CtrlMode.Normal ->
       let new_backend = Turn_system.process_turns backend in
       {
         state with
         game_state = { state.game_state with backend = new_backend };
       }
-  | M.CtrlMode.WaitInput -> handle_player_input state
-  | M.CtrlMode.Died _ ->
+  | T.CtrlMode.WaitInput -> handle_player_input state
+  | T.CtrlMode.Died _ ->
       (Logs.info @@ fun m -> m "Player died");
       state

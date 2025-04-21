@@ -1,4 +1,5 @@
 open Base
+open Types
 module B = Backend
 module E = Entity
 
@@ -63,7 +64,7 @@ let process_actor_event (backend : B.t) turn_queue entities entity_id time : B.t
             backend)
           else if should_wait_for_player_input entity actor then (
             Logs.info (fun m -> m "Player is awaiting input");
-            let backend = { backend with B.mode = Mode.CtrlMode.WaitInput } in
+            let backend = { backend with mode = CtrlMode.WaitInput } in
             Turn_queue.schedule_turn turn_queue entity_id time;
             backend)
           else
@@ -76,7 +77,7 @@ let process_actor_event (backend : B.t) turn_queue entities entity_id time : B.t
             | Some action -> (
                 Logs.info (fun m ->
                     m "Action for entity: %d. Executing..." entity_id);
-                match action#execute (Backend.to_common_backend backend) with
+                match Backend.handle_action backend entity_id action with
                 | Ok d_time ->
                     Turn_queue.schedule_turn turn_queue entity_id (time + d_time);
                     backend
@@ -98,7 +99,7 @@ let process_turns (backend : B.t) : B.t =
 
   let rec process_loop (backend : B.t) =
     match backend.mode with
-    | Mode.CtrlMode.WaitInput ->
+    | CtrlMode.WaitInput ->
         Logs.info (fun m -> m "Waiting for player input");
         backend
     | _ -> (

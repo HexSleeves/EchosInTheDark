@@ -53,3 +53,32 @@ Implement the entity system for managing game actors including the player, enemi
 - Keep performance in mind for large numbers of entities
 - Plan for future extensions like entity AI, equipment system, etc.
 - May require updating the serialization system for save/load functionality
+
+## Step-by-Step Plan: Refactor and Clarify Action/Turn Queue System
+
+1. **Document Current Flow**
+   - Map out the current flow: UI → actor action queue → turn system → action execution.
+   - Identify all places where actions are created, queued, and executed for both player and NPCs.
+
+2. **Unify Action Queuing**
+   - Ensure all actors (player and NPCs) use the same action queue mechanism.
+   - Refactor any code paths where actions are handled differently for different actor types.
+
+3. **Decouple Action Creation from Execution**
+   - Refactor actions to be stateless "intent" objects.
+   - Ensure actions do not store or depend on entity state at creation; they should query state at execution.
+
+4. **Centralize Action Processing**
+   - Ensure all action execution goes through a single backend entry point (e.g., `action#execute`).
+   - Remove any redundant or legacy "pending action" state outside the actor's action queue and the turn queue.
+
+5. **Improve NPC/AI Action Queuing**
+   - Implement or refactor logic for NPCs to queue their actions when their turn comes up, using the same mechanism as the player.
+
+6. **Update Documentation**
+   - Document the new architecture and flow in the appropriate memory files (architecture, technical, tasks, etc.).
+   - Add code comments to clarify the responsibilities of each component.
+
+7. **Test and Validate**
+   - Write or update tests to ensure the new system works for both player and NPCs.
+   - Validate that there is no redundant state and that the system is robust and maintainable.

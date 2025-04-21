@@ -1,5 +1,3 @@
-open Rl_core
-
 (* All state *)
 type t = {
   quitting : bool;

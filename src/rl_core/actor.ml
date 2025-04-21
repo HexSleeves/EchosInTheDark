@@ -6,7 +6,7 @@ type t = {
   speed : int;
   alive : bool;
   mutable next_turn_time : int;
-  actions : Action.game_action ref Deque.t;
+  actions : Action.action_type Deque.t;
 }
 
 let yojson_of_t (t : t) : Yojson.Safe.t =
@@ -44,21 +44,19 @@ let create ~next_turn_time ~speed =
   { speed; alive = true; next_turn_time; actions = Deque.create () }
 
 (* Queue an action and return self for chaining *)
-let queue_action t (action : #Action.game_action) =
-  Deque.enqueue_back t.actions (ref (action :> Action.game_action));
+let queue_action t (action : Action.action_type) =
+  Deque.enqueue_back t.actions action;
   t
 
 (* Add an action (no chaining) *)
-let add_action t (action : #Action.game_action) =
-  Deque.enqueue_back t.actions (ref (action :> Action.game_action))
+let add_action t (action : Action.action_type) =
+  Deque.enqueue_back t.actions action
 
 (* Pop the next action *)
-let next_action t : Action.game_action option =
-  Option.map ~f:( ! ) (Deque.dequeue_front t.actions)
+let next_action t : Action.action_type option = Deque.dequeue_front t.actions
 
 (* Peek at the next action *)
-let peek_next_action t : Action.game_action option =
-  Option.map ~f:( ! ) (Deque.peek_front t.actions)
+let peek_next_action t : Action.action_type option = Deque.peek_front t.actions
 
 (* Is alive? *)
 let is_alive t = t.alive

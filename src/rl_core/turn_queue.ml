@@ -1,8 +1,9 @@
 open Core
+open Types
 
 (* Min-heap of (time, entity_id) *)
 module TimeEntity = struct
-  type t = int * Entity.entity_id
+  type t = int * Types.entity_id
 
   (* Manual comparison: Primarily by time *)
   let compare (time1, _actor1) (time2, _actor2) = Int.compare time1 time2
@@ -39,10 +40,10 @@ let print_queue t =
   Logs.info (fun m ->
       m "Current time: %d, Turn queue: [%s]" t.current_time queue_str)
 
-let schedule_turn t (entity : Entity.entity_id) (next_time : int) =
+let schedule_turn t (entity : entity_id) (next_time : int) =
   Pairing_heap.add t.turn_queue (next_time, entity)
 
-let remove_actor t (entity : Entity.entity_id) =
+let remove_actor t (entity : entity_id) =
   let token =
     Pairing_heap.find_elt t.turn_queue ~f:(fun (_, e) -> e = entity)
   in
@@ -50,7 +51,7 @@ let remove_actor t (entity : Entity.entity_id) =
   | None -> failwith "Actor not found in turn queue"
   | Some token -> Pairing_heap.remove t.turn_queue token
 
-let get_next_actor t : (Entity.entity_id * int) option =
+let get_next_actor t : (entity_id * int) option =
   if Pairing_heap.is_empty t.turn_queue then None
   else
     let time, entity_id = Pairing_heap.pop_exn t.turn_queue in
@@ -58,11 +59,11 @@ let get_next_actor t : (Entity.entity_id * int) option =
     (* t.turn_queue <- heap; *)
     Some (entity_id, time)
 
-let peek_next t : (Entity.entity_id * int) option =
+let peek_next t : (entity_id * int) option =
   Pairing_heap.top t.turn_queue
   |> Option.map ~f:(fun (time, entity) -> (entity, time))
 
-let is_scheduled t (entity : Entity.entity_id) : bool =
+let is_scheduled t (entity : entity_id) : bool =
   Pairing_heap.to_list t.turn_queue |> List.exists ~f:(fun (_, e) -> e = entity)
 
 let time_until t (time : int) : int =

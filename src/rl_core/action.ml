@@ -1,13 +1,9 @@
-(* Simple backend interface to avoid circular dependencies *)
-type backend =
-  < get_player_id : int
-  ; get_map_width : int
-  ; get_map_height : int
-  ; is_tile_walkable : int -> int -> bool
-  ; move_entity : int -> int -> int -> unit >
-
-(* Game action interface *)
-class type game_action = object
-  method execute : backend -> (int, exn) Base.Result.t
-  method to_string : string
-end
+(* Enum type for all possible actions an actor can take *)
+type action_type =
+  | Move of Types.direction
+  | Interact of Types.entity_id
+  | Pickup of Types.entity_id
+  | Drop of Types.entity_id
+  | StairsUp
+  | StairsDown
+  | Wait

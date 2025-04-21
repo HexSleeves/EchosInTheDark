@@ -1,5 +1,11 @@
 open Ppx_yojson_conv_lib.Yojson_conv
 
+module CtrlMode = struct
+  type t = Normal | WaitInput | Died of float
+  (* [@@deriving yojson] *)
+end
+
+type entity_id = int [@@deriving yojson, show]
 type faction = int [@@deriving yojson, show]
 type loc = int * int [@@deriving yojson, show]
 type direction = North | East | South | West [@@deriving yojson, show]
