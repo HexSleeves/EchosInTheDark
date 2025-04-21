@@ -56,11 +56,11 @@ let pick_random lst ~rng ~(n : int) =
 
 (** Generate a map for a specific [level] within [total_levels] using [config].
 *)
-let generate ~(config : Config.t) ~(level : int) ~(total_levels : int) :
-    Tilemap.t =
+let generate ~(config : Config.t) ~(level : int) : Tilemap.t =
   (* Vary seed per level for unique layouts *)
   let seed = config.seed + level in
   let rng = Random.State.make [| seed |] in
+  let total_levels = config.max_levels in
 
   (* Run cellular automata to get raw grid *)
   let grid = CA.run ~width:config.width ~height:config.height ~rng in

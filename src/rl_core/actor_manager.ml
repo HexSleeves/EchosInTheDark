@@ -33,3 +33,12 @@ let create_rat_actor = Actor.create ~speed:110
 
 (* Create a goblin actor *)
 let create_goblin_actor = Actor.create ~speed:150
+
+let copy (t : t) : t =
+  let new_actors = Hashtbl.create 16 in
+  Hashtbl.iter (fun key data -> Hashtbl.add new_actors key data) t;
+  new_actors
+
+let restore (t : t) (src : t) : unit =
+  Hashtbl.clear t;
+  Hashtbl.iter (fun key data -> Hashtbl.add t key data) src

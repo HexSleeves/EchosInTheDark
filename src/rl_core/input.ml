@@ -5,17 +5,6 @@
 
 open Action
 
-(** Key actions exposed to the UI loop. *)
-(* type key_action =
-  | Move of Types.direction
-  | Interact
-  | Pickup
-  | Drop
-  | Use
-  | Equip
-  | StairsUp
-  | StairsDown *)
-
 (** Map a raw Raylib key into one of our UI key_actions. *)
 let of_key (key : Raylib.Key.t) : action_type option =
   let open Raylib in
@@ -31,5 +20,3 @@ let of_key (key : Raylib.Key.t) : action_type option =
 let action_from_keys () : action_type option =
   let open Raylib in
   get_key_pressed () |> of_key
-
-

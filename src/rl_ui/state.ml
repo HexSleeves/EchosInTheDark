@@ -2,6 +2,6 @@
 type t = {
   quitting : bool;
   screen : Modules_d.screen;
+  backend : Rl_core.Backend.t;
   font_config : Renderer.font_config;
-  game_state : Rl_core.State.game_state;
 }

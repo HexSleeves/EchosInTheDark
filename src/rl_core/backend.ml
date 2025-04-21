@@ -1,9 +1,8 @@
+module Actions = Actions
 module Actor = Actor
-module Tilemap = Map.Tilemap
+module EntityManager = Entity_manager
 module Tile = Map.Tile
-open Base
-open Types
-open Entity
+module Tilemap = Map.Tilemap
 
 let src = Logs.Src.create "backend" ~doc:"Backend"
 
@@ -13,12 +12,13 @@ type t = {
   seed : int;
   debug : bool;
   map : Tilemap.t;
-  mode : CtrlMode.t;
+  mode : Types.CtrlMode.t;
   random : Random.State.t;
   entities : EntityManager.t;
   actor_manager : Actor_manager.t;
   turn_queue : Turn_queue.t;
-  player : player;
+  player : Types.player;
+  multilevel : Multilevel_state.t;
 }
 
 let make ~debug ~w ~h ~seed =
@@ -33,8 +33,8 @@ let make ~debug ~w ~h ~seed =
 
   let open Mapgen in
   let config = Config.default ~seed in
-  let map = Generator.generate ~config ~level:1 ~total_levels:5 in
-
+  let map = Generator.generate ~config ~level:1 in
+  let multilevel = Multilevel_state.create ~config in
   {
     debug;
     seed;
@@ -43,18 +43,20 @@ let make ~debug ~w ~h ~seed =
     entities;
     actor_manager;
     turn_queue;
-    mode = CtrlMode.Normal;
+    multilevel;
+    mode = Types.CtrlMode.Normal;
     player = { entity_id = 0 };
   }
 
 (* Helper function to get all entities *)
-let get_entities (backend : t) : entity list =
+let get_entities (backend : t) : Types.entity list =
   EntityManager.to_list backend.entities
 
 let get_entity_manager (backend : t) : EntityManager.t = backend.entities
 let get_actor_manager (backend : t) : Actor_manager.t = backend.actor_manager
 
-let get_entity (backend : t) (entity_id : entity_id) : entity option =
+let get_entity (backend : t) (entity_id : Types.entity_id) : Types.entity option
+    =
   EntityManager.find backend.entities entity_id
 
 let get_actor (backend : t) (actor_id : Actor_manager.actor_id) : Actor.t option
@@ -70,11 +72,12 @@ let remove_actor (backend : t) (actor_id : Actor_manager.actor_id) : t =
   Actor_manager.remove backend.actor_manager actor_id;
   backend
 
-let get_entity_at_pos (entities : EntityManager.t) (pos : loc) : entity option =
+let get_entity_at_pos (entities : EntityManager.t) (pos : Types.Loc.t) :
+    Types.entity option =
   EntityManager.find_by_pos entities pos
 
 (* Helper function to get player entity *)
-let get_player (backend : t) : entity =
+let get_player (backend : t) : Types.entity =
   EntityManager.find_unsafe backend.entities backend.player.entity_id
 
 let get_player_actor (backend : t) : Actor.t =
@@ -84,52 +87,127 @@ let get_player_actor (backend : t) : Actor.t =
       Actor_manager.get_unsafe backend.actor_manager actor_id
   | _ -> failwith "Player actor not found"
 
-let direction_to_point (dir : Types.direction) : Types.loc =
+let direction_to_point (dir : Types.direction) : Types.Loc.t =
+  let open Types in
   match dir with
-  | Types.North -> Loc.make 0 (-1)
-  | Types.South -> Loc.make 0 1
-  | Types.East -> Loc.make 1 0
-  | Types.West -> Loc.make (-1) 0
+  | North -> Loc.make 0 (-1)
+  | South -> Loc.make 0 1
+  | East -> Loc.make 1 0
+  | West -> Loc.make (-1) 0
 
-let move_entity (backend : t) (entity_id : entity_id) (loc : loc) : unit =
+let move_entity (backend : t) (entity_id : Types.entity_id) (loc : Types.Loc.t)
+    : unit =
   EntityManager.update backend.entities entity_id (fun ent ->
       { ent with pos = loc })
 
+let transition_to_next_level backend multi_level ~config =
+  (* Save current level state *)
+  let multi_level =
+    Multilevel_state.save_level_state multi_level
+      multi_level.Multilevel_state.current_level ~entities:backend.entities
+      ~actor_manager:backend.actor_manager ~turn_queue:backend.turn_queue
+  in
+
+  (* Go to next level *)
+  let multi_level = Multilevel_state.go_to_next_level multi_level ~config in
+
+  (* Get new map *)
+  let new_map = Multilevel_state.get_current_map multi_level in
+
+  (* Either load existing level state or initialize new level *)
+  let multi_level =
+    Multilevel_state.load_level_state multi_level
+      multi_level.Multilevel_state.current_level ~entities:backend.entities
+      ~actor_manager:backend.actor_manager ~turn_queue:backend.turn_queue
+  in
+
+  (* Position player at stairs_up in new level *)
+  let player = get_player backend in
+  match new_map.Tilemap.stairs_up with
+  | Some stairs_pos ->
+      move_entity backend player.id stairs_pos;
+      ({ backend with map = new_map }, multi_level)
+  | None ->
+      (* Shouldn't happen since we always have stairs up except on level 1 *)
+      ({ backend with map = new_map }, multi_level)
+
+let transition_to_previous_level backend multi_level ~config =
+  (* Save current level state *)
+  let multi_level =
+    Multilevel_state.save_level_state multi_level
+      multi_level.Multilevel_state.current_level ~entities:backend.entities
+      ~actor_manager:backend.actor_manager ~turn_queue:backend.turn_queue
+  in
+
+  (* Go to previous level *)
+  let multi_level = Multilevel_state.go_to_previous_level multi_level ~config in
+
+  (* Get new map *)
+  let new_map = Multilevel_state.get_current_map multi_level in
+
+  (* Either load existing level state or initialize new level *)
+  let multi_level =
+    Multilevel_state.load_level_state multi_level
+      multi_level.Multilevel_state.current_level ~entities:backend.entities
+      ~actor_manager:backend.actor_manager ~turn_queue:backend.turn_queue
+  in
+
+  (* Position player at stairs_down in previous level *)
+  let player = get_player backend in
+  match new_map.Tilemap.stairs_down with
+  | Some stairs_pos ->
+      move_entity backend player.id stairs_pos;
+      ({ backend with map = new_map }, multi_level)
+  | None ->
+      (* Shouldn't happen since we always have stairs down except on last level *)
+      ({ backend with map = new_map }, multi_level)
+
+let can_use_stairs_down backend entity_id =
+  match get_entity backend entity_id with
+  | None -> false
+  | Some entity ->
+      let tile = Tilemap.get_tile backend.map entity.pos in
+      Map.Tile.equal tile Map.Tile.Stairs_down
+
+let can_use_stairs_up backend entity_id =
+  match get_entity backend entity_id with
+  | None -> false
+  | Some entity ->
+      let tile = Tilemap.get_tile backend.map entity.pos in
+      Map.Tile.equal tile Map.Tile.Stairs_up
+
 let handle_action (backend : t) (entity_id : Types.entity_id)
     (action : Action.action_type) : (int, exn) Result.t =
-  match action with
-  | Move dir -> (
-      (* Example movement logic *)
-      match get_entity backend entity_id with
-      | None -> Error (Failure "Entity not found")
-      | Some entity ->
-          let delta = direction_to_point dir in
-          let new_pos = Types.Loc.(entity.pos + delta) in
-          let within_bounds = Tilemap.in_bounds backend.map new_pos in
-          let walkable =
-            Tile.is_walkable (Tilemap.get_tile backend.map new_pos)
-          in
-
-          if within_bounds && walkable then (
-            move_entity backend entity_id new_pos;
-            Ok 100)
-          else Error (Failure "Cannot move here"))
-  | Wait -> Ok 100
-  | StairsUp -> (
-      match get_entity backend entity_id with
-      | None -> Error (Failure "Entity not found")
-      | Some entity ->
-          let tile = Tilemap.get_tile backend.map entity.pos in
-          if Tile.equal tile Tile.Stairs_up then Ok 100
-          else Error (Failure "Not on stairs up"))
-  | StairsDown -> (
-      match get_entity backend entity_id with
-      | None -> Error (Failure "Entity not found")
-      | Some entity ->
-          let tile = Tilemap.get_tile backend.map entity.pos in
-          if Tile.equal tile Tile.Stairs_down then Ok 100
-          else Error (Failure "Not on stairs down"))
-  | Interact _ -> Error (Failure "Interact not implemented yet")
-  | Pickup _ -> Error (Failure "Pickup not implemented yet")
-  | Drop _ -> Error (Failure "Drop not implemented yet")
-  | Attack entity_id -> Error (Failure "Attack not implemented yet")
+  let ctx =
+    {
+      Actions.get_entity = (fun id -> get_entity backend id);
+      get_tile_at = (fun pos -> Tilemap.get_tile backend.map pos);
+      in_bounds = (fun pos -> Tilemap.in_bounds backend.map pos);
+      get_entity_at_pos = (fun pos -> get_entity_at_pos backend.entities pos);
+    }
+  in
+  match Actions.handle_action ctx entity_id action with
+  | Ok _ as ok ->
+      (match action with
+      | Move dir -> (
+          match get_entity backend entity_id with
+          | Some entity ->
+              let delta = Utils.direction_to_point dir in
+              let new_pos = Types.Loc.(entity.pos + delta) in
+              move_entity backend entity_id new_pos
+          | None -> ())
+      | StairsUp -> (
+          match get_entity backend entity_id with
+          | Some entity ->
+              let new_pos = Types.Loc.(entity.pos + Types.Loc.make 0 (-1)) in
+              move_entity backend entity_id new_pos
+          | None -> ())
+      | StairsDown -> (
+          match get_entity backend entity_id with
+          | Some entity ->
+              let new_pos = Types.Loc.(entity.pos + Types.Loc.make 0 1) in
+              move_entity backend entity_id new_pos
+          | None -> ())
+      | _ -> ());
+      ok
+  | Error _ as err -> err

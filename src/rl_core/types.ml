@@ -6,17 +6,13 @@ module CtrlMode = struct
 end
 
 module Loc = struct
-  type t = { x : int; y : int } [@@deriving yojson, show]
+  type t = { x : int; y : int } [@@deriving yojson, show, eq]
 
   let make x y = { x; y }
   let add a b = { x = a.x + b.x; y = a.y + b.y }
   let ( + ) = add
 end
 
-type entity_id = int [@@deriving yojson, show]
-
-(* type faction = int [@@deriving yojson, show] *)
-type loc = Loc.t [@@deriving yojson, show]
 type direction = North | East | South | West [@@deriving yojson, show]
 
 type stats = {
@@ -41,3 +37,38 @@ type item = {
 [@@deriving yojson]
 
 type inventory = item list [@@deriving yojson]
+
+(* //////////////////////// *)
+(* ENTITY TYPES *)
+
+type entity_id = int [@@deriving yojson, show]
+
+type entity_kind = Player | Creature | Item | Other of string
+[@@deriving yojson]
+
+(* Data specific to each entity kind *)
+type entity_data =
+  | PlayerData of { health : int; actor_id : int }
+  | CreatureData of {
+      species : string;
+      (* faction : faction; *)
+      health : int;
+      actor_id : int;
+    }
+  | ItemData of { item_type : string; quantity : int }
+[@@deriving yojson]
+
+type entity = {
+  id : entity_id;
+  pos : Loc.t;
+  name : string;
+  glyph : string;
+  description : string option;
+  direction : direction;
+  kind : entity_kind;
+  data : entity_data;
+}
+[@@deriving yojson]
+
+(* Player reference type *)
+type player = { entity_id : entity_id } [@@deriving yojson]

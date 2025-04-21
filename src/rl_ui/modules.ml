@@ -1,14 +1,16 @@
 open Base
 open Modules_d
 module R = Renderer
-module B = Rl_core.Backend
-module E = Rl_core.Entity
-module T = Rl_core.Types
+
+(* Core modules *)
 module A = Rl_core.Actor
-module AM = Rl_core.Actor_manager
 module Actions = Rl_core.Actions
-module Turn_queue = Rl_core.Turn_queue
+module AM = Rl_core.Actor_manager
+module B = Rl_core.Backend
+module Multilevel_state = Rl_core.Multilevel_state
 module SP = Rl_core.Spawner
+module T = Rl_core.Types
+module Turn_queue = Rl_core.Turn_queue
 
 (* Helper to convert optional screen update to State.t option *)
 let option_to_screen (s : State.t) (update : 'a option)
@@ -24,47 +26,14 @@ let handle_tick (s : State.t) =
   | MainMenu m -> (
       let new_mainmenu, result = Mainmenu.handle_tick m in
       match result with
-      | Some Play -> { s with screen = MapGen Mapgen.init }
+      | Some Play -> { s with screen = Playing }
       | Some Quit -> { s with quitting = true; screen = MainMenu new_mainmenu }
       | None -> { s with screen = MainMenu new_mainmenu })
-  | MapGen m -> (
-      let mapgen = Mapgen.handle_tick m in
-      match mapgen.action with
-      | Some `Continue ->
-          {
-            s with
-            screen = Playing;
-            game_state =
-              (let backend =
-                 B.make ~debug:true ~w:mapgen.width ~h:mapgen.height
-                   ~seed:mapgen.seed
-               in
-
-               let open Rl_core.State in
-               let multi_level =
-                 let total_levels = 3 in
-                 (* TODO: get from config *)
-                 let maps = Base.Hashtbl.create (module Int) in
-                 Base.Hashtbl.set maps ~key:1 ~data:backend.map;
-                 MultiLevelState.
-                   {
-                     maps;
-                     total_levels;
-                     current_level = 1;
-                     player_has_amulet = false;
-                   }
-               in
-               { backend; multi_level });
-          }
-      | Some `Back -> { s with screen = MainMenu Mainmenu.init }
-      | None -> { s with screen = MapGen mapgen })
   | Playing -> Play.handle_tick s
 
 (* Render current screen and return optional updated state *)
 let render (s : State.t) : State.t option =
   match s.screen with
-  | MapGen m ->
-      option_to_screen s (Mapgen.render m) (fun x -> Modules_d.MapGen x)
   | MainMenu m ->
       option_to_screen s (Mainmenu.render m) (fun x -> Modules_d.MainMenu x)
   | Playing -> option_to_screen s (Play.render s) (fun _ -> Modules_d.Playing)
@@ -72,27 +41,19 @@ let render (s : State.t) : State.t option =
 (* Create initial game state *)
 let create_initial_state font_config =
   let create_state ?backend screen =
-    let seed = Rl_utils.Rng.seed_int in
+    let seed = Rl_utils.Rng.generate_seed () in
+
     let backend =
       match backend with
       | Some b -> b
       | None -> B.make ~debug:true ~w:80 ~h:50 ~seed
     in
-    let open Rl_core.State in
-    let multi_level =
-      let total_levels = 3 in
-      (* TODO: get from config *)
-      let maps = Base.Hashtbl.create (module Int) in
-      Base.Hashtbl.set maps ~key:1 ~data:backend.map;
-      MultiLevelState.
-        { current_level = 1; total_levels; maps; player_has_amulet = false }
-    in
-    let game_state = { backend; multi_level } in
-    { game_state; font_config; State.screen; quitting = false }
+
+    { font_config; State.screen; quitting = false; backend }
   in
   let state = create_state Playing in
 
-  let backend = state.game_state.backend in
+  let backend = state.backend in
   let em = backend.Rl_core.Backend.entities in
   let tq = backend.Rl_core.Backend.turn_queue in
   let am = backend.Rl_core.Backend.actor_manager in
@@ -110,11 +71,7 @@ let create_initial_state font_config =
   SP.spawn_player em ~pos:player_start ~direction:T.North ~actor_id:player_id;
 
   Logs.info (fun m -> m "Initialization done.");
-  {
-    state with
-    game_state =
-      { state.game_state with backend = { backend with actor_manager = am } };
-  }
+  { state with backend = { state.backend with actor_manager = am } }
 
 (* Initialize logging *)
 let setup_logging () =

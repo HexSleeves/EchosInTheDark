@@ -71,3 +71,13 @@ let time_until t (time : int) : int =
 
 let is_before t (time_a : int) (time_b : int) : bool =
   time_until t time_a < time_until t time_b
+
+let copy (t : t) : t =
+  let new_queue = Pairing_heap.create ~min_size:5 ~cmp:TimeEntity.compare () in
+  Pairing_heap.iter t.turn_queue ~f:(fun x -> Pairing_heap.add new_queue x);
+  { current_time = t.current_time; turn_queue = new_queue }
+
+let restore (t : t) (src : t) : unit =
+  t.current_time <- src.current_time;
+  t.turn_queue <- Pairing_heap.create ~min_size:5 ~cmp:TimeEntity.compare ();
+  Pairing_heap.iter src.turn_queue ~f:(fun x -> Pairing_heap.add t.turn_queue x)

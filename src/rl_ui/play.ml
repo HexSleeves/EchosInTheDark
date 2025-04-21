@@ -61,7 +61,7 @@ let render_fps (fc : R.font_config) : unit =
 
 let render (state : State.t) : State.t option =
   let open Raylib in
-  let backend = state.game_state.backend in
+  let backend = state.backend in
   let fc = state.font_config in
 
   (* Collect all entity positions into a set *)
@@ -99,36 +99,25 @@ let render (state : State.t) : State.t option =
 let handle_player_input (state : State.t) : State.t =
   match Rl_core.Input.action_from_keys () with
   | Some action ->
-      let backend = state.game_state.backend in
+      let backend = state.backend in
       let am = backend.actor_manager in
       let entity = B.get_player backend in
       AM.update am entity.id (fun actor -> A.queue_action actor action);
       {
         state with
-        game_state =
-          {
-            state.game_state with
-            backend =
-              {
-                state.game_state.backend with
-                mode = T.CtrlMode.Normal;
-                actor_manager = am;
-              };
-          };
+        backend =
+          { state.backend with mode = T.CtrlMode.Normal; actor_manager = am };
       }
   | None -> state
 
 let handle_tick (state : State.t) : State.t =
-  let backend = state.game_state.backend in
+  let backend = state.backend in
 
   match backend.mode with
+  | T.CtrlMode.WaitInput -> handle_player_input state
   | T.CtrlMode.Normal ->
       let new_backend = Turn_system.process_turns backend in
-      {
-        state with
-        game_state = { state.game_state with backend = new_backend };
-      }
-  | T.CtrlMode.WaitInput -> handle_player_input state
+      { state with backend = new_backend }
   | T.CtrlMode.Died _ ->
       (Logs.info @@ fun m -> m "Player died");
       state

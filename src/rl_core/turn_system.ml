@@ -1,14 +1,14 @@
 open Base
 open Types
 module B = Backend
-module E = Entity
+module EntityManager = Entity_manager
 
 let monster_reschedule_delay = 100
 
 (* Helper: get actor or log error and skip *)
-let get_actor_safe actor_manager entity =
-  match entity.E.data with
-  | E.PlayerData { actor_id; _ } | E.CreatureData { actor_id; _ } -> (
+let get_actor_safe actor_manager (entity : Types.entity) =
+  match entity.data with
+  | Types.PlayerData { actor_id; _ } | Types.CreatureData { actor_id; _ } -> (
       try Some (Actor_manager.get_unsafe actor_manager actor_id)
       with _ ->
         Logs.err (fun m -> m "Actor not found for entity: %d" entity.id);
@@ -18,7 +18,7 @@ let get_actor_safe actor_manager entity =
       None
 
 let get_entity_safe entities entity_id =
-  try Some (Entity.EntityManager.find_unsafe entities entity_id)
+  try Some (EntityManager.find_unsafe entities entity_id)
   with _ ->
     Logs.err (fun m -> m "Entity not found: %d" entity_id);
     None
@@ -38,8 +38,8 @@ let get_next_actor actor_manager turn_queue entities =
 
 (* Helper: should wait for player input? *)
 let should_wait_for_player_input entity actor =
-  match entity.E.kind with
-  | E.Player -> Option.is_none (Actor.peek_next_action actor)
+  match entity.Types.kind with
+  | Types.Player -> Option.is_none (Actor.peek_next_action actor)
   | _ -> false
 
 (* Remove dead actor from queue *)
@@ -85,8 +85,8 @@ let process_actor_event (backend : B.t) turn_queue entities entity_id time : B.t
                     Logs.err (fun m ->
                         m "Failed to perform action: %s" (Exn.to_string e));
                     let delay =
-                      match entity.E.kind with
-                      | E.Player -> 0
+                      match entity.Types.kind with
+                      | Types.Player -> 0
                       | _ -> monster_reschedule_delay
                     in
                     Turn_queue.schedule_turn turn_queue entity_id (time + delay);

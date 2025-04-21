@@ -28,7 +28,7 @@ type t = {
 }
 
 let init : t =
-  let seed = Rl_utils.Rng.seed_int in
+  let seed = Rl_utils.Rng.generate_seed () in
   let width = 80 in
   let height = 50 in
   {

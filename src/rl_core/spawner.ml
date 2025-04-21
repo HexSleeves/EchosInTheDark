@@ -1,7 +1,5 @@
-open Entity
-
 (* Specializations for convenience *)
-let spawn_player (em : EntityManager.t) ~pos ~direction ~actor_id =
+let spawn_player (em : Entity_manager.t) ~pos ~direction ~actor_id =
   {
     pos;
     direction;
@@ -12,9 +10,9 @@ let spawn_player (em : EntityManager.t) ~pos ~direction ~actor_id =
     description = Some "This is you!";
     data = PlayerData { health = 30; actor_id };
   }
-  |> EntityManager.add em
+  |> Entity_manager.add em
 
-let spawn_creature (em : EntityManager.t) ~pos ~direction ~species ~health
+let spawn_creature (em : Entity_manager.t) ~pos ~direction ~species ~health
     ~glyph ~name ~actor_id ?(description = None) () =
   {
     pos;
@@ -25,10 +23,10 @@ let spawn_creature (em : EntityManager.t) ~pos ~direction ~species ~health
     kind = Creature;
     data = CreatureData { species; health; actor_id };
   }
-  |> EntityManager.add_entity em
+  |> Entity_manager.add_entity em
 
-let spawn_item (em : EntityManager.t) ~pos ~direction ~item_type ~quantity ~name
-    ~glyph ?(description = None) () =
+let spawn_item (em : Entity_manager.t) ~pos ~direction ~item_type ~quantity
+    ~name ~glyph ?(description = None) () =
   {
     pos;
     glyph;
@@ -38,4 +36,4 @@ let spawn_item (em : EntityManager.t) ~pos ~direction ~item_type ~quantity ~name
     kind = Item;
     data = ItemData { item_type; quantity };
   }
-  |> EntityManager.add_entity em
+  |> Entity_manager.add_entity em
