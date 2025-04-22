@@ -69,18 +69,13 @@ end
 module Entity = struct
   type entity_id = int [@@deriving yojson, show]
 
-  type entity_kind = Player | Creature | Item | Other of string
+  type entity_kind = Player | Creature | Item | Corpse | Other of string
   [@@deriving yojson, show]
 
   (* Data specific to each entity kind *)
   type entity_data =
     | PlayerData of { stats : Stats.t; actor_id : int }
-    | CreatureData of {
-        species : string;
-        (* faction : faction; *)
-        stats : Stats.t;
-        actor_id : int;
-      }
+    | CreatureData of { species : string; stats : Stats.t; actor_id : int }
     | ItemData of { item : Item.t }
   [@@deriving yojson, show]
 
@@ -92,7 +87,7 @@ module Entity = struct
     description : string option;
     direction : Direction.t;
     kind : entity_kind;
-    data : entity_data;
+    data : entity_data option;
   }
   [@@deriving yojson, show]
 

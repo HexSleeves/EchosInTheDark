@@ -10,7 +10,8 @@ let player_retry_delay = 0
    Logs an error if the actor is not found or the entity is not an actor. *)
 let get_actor_safe actor_manager (entity : Entity.entity) =
   match entity.data with
-  | Entity.PlayerData { actor_id; _ } | Entity.CreatureData { actor_id; _ } -> (
+  | Some (Entity.PlayerData { actor_id; _ })
+  | Some (Entity.CreatureData { actor_id; _ }) -> (
       try Some (Actor_manager.get_unsafe actor_manager actor_id)
       with _ ->
         Core_log.err (fun m -> m "Actor not found for entity: %d" entity.id);
@@ -41,7 +42,7 @@ let remove_dead_actor turn_queue entity_id =
 
 (* Context record for passing necessary data to handle_actor_event *)
 type ctx = {
-  backend : Backend.t;
+  backend : State.t;
   tq : Turn_queue.t;
   actor_id : Actor.actor_id;
   actor : Actor.t;
@@ -53,7 +54,7 @@ type ctx = {
 (* Handles the core logic for an actor taking its turn: dequeuing an action,
    updating the actor manager, and either rescheduling (if no action)
    or executing the action and rescheduling based on the result. *)
-let handle_actor_event (ctx : ctx) : Backend.t =
+let handle_actor_event (ctx : ctx) : State.t =
   let { backend; tq; actor_id; actor; entity_id; entity; time } = ctx in
 
   (* Attempt to get the next action from the actor's internal queue.
@@ -78,7 +79,7 @@ let handle_actor_event (ctx : ctx) : Backend.t =
       (* Execute action *)
       Core_log.info (fun m -> m "Action for entity: %d. Executing..." entity_id);
       let backend_after_action, result =
-        Backend.handle_action backend entity_id action
+        State.handle_action backend entity_id action
       in
       match result with
       | Ok d_time ->
@@ -105,9 +106,9 @@ let handle_actor_event (ctx : ctx) : Backend.t =
 (* Processes a single event from the turn queue for a given entity_id at a specific time.
    Handles fetching the entity and actor, checking liveness, waiting for player input,
    and dispatching to handle_actor_event for action execution. *)
-let process_actor_event (backend : Backend.t) (tq : Turn_queue.t)
+let process_actor_event (backend : State.t) (tq : Turn_queue.t)
     (entities : EntityManager.t) (entity_id : Entity.entity_id) (time : int) :
-    Backend.t =
+    State.t =
   match get_entity_safe entities entity_id with
   | None -> backend
   | Some entity -> (
@@ -116,8 +117,8 @@ let process_actor_event (backend : Backend.t) (tq : Turn_queue.t)
       | Some actor ->
           let actor_id =
             match entity.data with
-            | Entity.PlayerData { actor_id; _ } -> actor_id
-            | Entity.CreatureData { actor_id; _ } -> actor_id
+            | Some (Entity.PlayerData { actor_id; _ }) -> actor_id
+            | Some (Entity.CreatureData { actor_id; _ }) -> actor_id
             | _ -> entity_id (* fallback, but should not happen for actors *)
           in
           (* Remove dead actor from queue *)
@@ -137,8 +138,8 @@ let process_actor_event (backend : Backend.t) (tq : Turn_queue.t)
 (* Main turn processing function.
    Continuously processes actors from the turn queue until the queue is empty
    or the game enters WaitInput mode. *)
-let process_turns (backend : Backend.t) : Backend.t =
-  let rec process_loop (current_backend : Backend.t) : Backend.t =
+let process_turns (backend : State.t) : State.t =
+  let rec process_loop (current_backend : State.t) : State.t =
     match current_backend.mode with
     | CtrlMode.WaitInput ->
         (* If waiting for input, stop processing turns for now. *)

@@ -34,3 +34,8 @@ module PlayScreen = struct
   let render _ s =
     match Play.render s with Some s' -> Some (s', s') | None -> None
 end
+
+module GameOverScreen = struct
+  let handle_tick s = Game_over.handle_tick s
+  let render s = Game_over.render s
+end

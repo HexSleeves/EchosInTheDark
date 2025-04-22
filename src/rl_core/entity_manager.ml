@@ -10,7 +10,7 @@ type partial_entity = {
   description : string option;
   direction : Direction.t;
   kind : Entity.entity_kind;
-  data : Entity.entity_data;
+  data : Entity.entity_data option;
 }
 
 let create () : t = Map.empty (module Int)
@@ -67,30 +67,33 @@ let spawn_player (em : t) ~pos ~direction ~actor_id =
     name = "Player";
     kind = Player;
     description = Some "This is you!";
-    data = PlayerData { stats = Types.Stats.default; actor_id };
+    data = Some (PlayerData { stats = Types.Stats.default; actor_id });
   }
   |> add em
 
 let spawn_creature (em : t) ~pos ~direction ~species ~health ~glyph ~name
     ~actor_id ~description =
-  {
-    pos;
-    direction;
-    glyph;
-    name;
-    description = Some description;
-    kind = Creature;
-    data =
-      CreatureData
-        {
-          species;
-          actor_id;
-          stats =
-            Types.Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5
-              ~speed:100;
-        };
-  }
-  |> add_entity em
+  let entity : partial_entity =
+    {
+      pos;
+      direction;
+      glyph;
+      name;
+      description = Some description;
+      kind = Creature;
+      data =
+        Some
+          (CreatureData
+             {
+               species;
+               actor_id;
+               stats =
+                 Types.Stats.create ~max_hp:health ~hp:health ~attack:10
+                   ~defense:5 ~speed:100;
+             });
+    }
+  in
+  add_entity em entity
 
 let spawn_item (em : t) ~pos ~direction ~item_type ~quantity ~name ~glyph
     ?(description = None) () =
@@ -102,11 +105,31 @@ let spawn_item (em : t) ~pos ~direction ~item_type ~quantity ~name ~glyph
     description;
     kind = Item;
     data =
-      ItemData
-        {
-          item =
-            Types.Item.create ~item_type ~quantity ~name ~description:None ();
-        };
+      Some
+        (ItemData
+           {
+             item =
+               Types.Item.create ~item_type ~quantity ~name ~description:None ();
+           });
   }
   |> add_entity em
 (* --- spawner.ml --- *)
+
+(** [update_entity_stats mgr entity_id f] applies [f] to the stats of the entity
+    with [entity_id], if it is a Player or Creature. Returns the updated entity
+    manager. *)
+let update_entity_stats (mgr : t) (entity_id : Entity.entity_id)
+    (f : Stats.t -> Stats.t) : t =
+  update mgr entity_id (fun entity ->
+      let update_stats data =
+        match data with
+        | Types.Entity.PlayerData { stats; actor_id } ->
+            Some (Types.Entity.PlayerData { stats = f stats; actor_id })
+        | Types.Entity.CreatureData { stats; actor_id; species } ->
+            Some
+              (Types.Entity.CreatureData { stats = f stats; actor_id; species })
+        | _ -> Some data
+      in
+      match entity.data with
+      | Some data -> { entity with data = update_stats data }
+      | None -> entity)
