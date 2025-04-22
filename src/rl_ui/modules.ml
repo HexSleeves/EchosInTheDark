@@ -6,7 +6,7 @@ module R = Renderer
 
 (* Core modules *)
 module T = Rl_core.Types
-module Core_State = Rl_core.State
+module Backend = Rl_core.Backend
 
 type mainloop_iface = {
   render : State.t -> (State.t, screen_update_error) Result.t;
@@ -20,7 +20,7 @@ type init_config = {
   debug : bool;
   seed : int option;
   font_config : Renderer.font_config;
-  backend : Core_State.t option;
+  backend : Backend.t option;
 }
 
 (* Handle tick updates based on current screen using the Screen interface *)
@@ -95,24 +95,23 @@ let create_initial_state (config : init_config) =
     match config.backend with
     | Some b -> b
     | None ->
-        Core_State.make ~debug:config.debug ~w:config.width ~h:config.height
-          ~seed
+        Backend.make ~debug:config.debug ~w:config.width ~h:config.height ~seed
   in
 
-  let current_map = Core_State.get_current_map backend in
+  let current_map = Backend.get_current_map backend in
   let player_start = current_map.player_start in
 
   let backend =
     (* Spawn player using Backend function. This handles entity creation,
      actor manager update, and scheduling the first turn. *)
     let sub_backend =
-      Core_State.spawn_player ~pos:player_start ~direction:T.Direction.North
+      Backend.spawn_player ~pos:player_start ~direction:T.Direction.North
         backend
     in
 
     (* Spawn creature using Backend function. This handles entity/actor creation. *)
     let sub_backend =
-      Core_State.spawn_creature sub_backend
+      Backend.spawn_creature sub_backend
         ~pos:(T.Loc.add player_start (T.Loc.make 1 1))
         ~direction:T.Direction.North ~species:"Rat" ~health:10 ~glyph:"r"
         ~name:"Rat" ~actor_id:1 ~description:"A small, brown rodent."

@@ -13,7 +13,7 @@ open Renderer
 module R = Renderer
 module T = Rl_core.Types
 module I = Rl_core.Input
-module Core_State = Rl_core.State
+module Backend = Rl_core.Backend
 
 module PosSet = struct
   module T = struct
@@ -63,7 +63,7 @@ let render (state : State.t) : State.t option =
   let fc = state.font_config in
 
   (* Collect all entity positions into a set *)
-  let entities = Core_State.get_entities backend in
+  let entities = Backend.get_entities backend in
   let entity_positions =
     Base.List.fold entities
       ~init:(Set.empty (module PosSet))
@@ -71,7 +71,7 @@ let render (state : State.t) : State.t option =
   in
 
   (* Render map tiles, skipping those with an entity *)
-  let current_map = Core_State.get_current_map backend in
+  let current_map = Backend.get_current_map backend in
   Array.iteri
     ~f:(fun i t ->
       let x = i % current_map.width in
@@ -93,10 +93,7 @@ let render (state : State.t) : State.t option =
       in
       render_cell entity.glyph color fc entity.pos);
 
-  (* (match backend.mode with
-  | T.CtrlMode.Died death_time -> Game_over.render fc death_time
-  | _ -> ()); *)
-  if backend.debug then render_fps fc;
+  if Rl_core.State.get_debug backend then render_fps fc;
   None
 
 let handle_mouse (state : State.t) =
@@ -104,14 +101,14 @@ let handle_mouse (state : State.t) =
   if is_mouse_button_pressed MouseButton.Left then
     let mouse_pos = get_mouse_position () in
     let tile_pos = R.screen_to_grid mouse_pos in
-    let player = Core_State.get_player state.backend in
+    let player = Backend.get_player state.backend in
     let actor_id =
       match player.data with
       | Some (T.Entity.PlayerData { actor_id; _ }) -> actor_id
       | _ -> failwith "Player entity does not have a valid actor_id"
     in
 
-    let b = Core_State.move_entity state.backend actor_id tile_pos in
+    let b = Backend.move_entity state.backend actor_id tile_pos in
     { state with backend = b }
   else state
 
@@ -121,23 +118,21 @@ let handle_player_input (state : State.t) : State.t =
   match I.action_from_keys () with
   | Some action ->
       Ui_log.info (fun m -> m "Player action: %s" (T.Action.to_string action));
-      let entity = Core_State.get_player state.backend in
+      let entity = Backend.get_player state.backend in
       let actor_id =
         match entity.data with
         | Some (T.Entity.PlayerData { actor_id; _ }) -> actor_id
         | _ -> failwith "Player entity does not have a valid actor_id"
       in
-      let backend =
-        Core_State.queue_actor_action state.backend actor_id action
-      in
-      { state with backend = { backend with mode = T.CtrlMode.Normal } }
+      let backend = Backend.queue_actor_action state.backend actor_id action in
+      { state with backend = Backend.set_mode backend T.CtrlMode.Normal }
   | None -> state
 
 let handle_tick (state : State.t) : State.t =
   let open Rl_core in
   let backend = state.backend in
 
-  match backend.mode with
+  match Backend.get_mode backend with
   | T.CtrlMode.WaitInput -> handle_player_input state
   | T.CtrlMode.Normal ->
       { state with backend = Turn_system.process_turns backend }
@@ -145,5 +140,5 @@ let handle_tick (state : State.t) : State.t =
       {
         state with
         screen = GameOver;
-        backend = { backend with mode = T.CtrlMode.Normal };
+        backend = Backend.set_mode backend T.CtrlMode.Normal;
       }

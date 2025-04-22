@@ -61,32 +61,25 @@ let handle_actor_event (ctx : ctx) : State.t =
      Also get the actor state *after* dequeuing the action. *)
   let maybe_action, updated_actor = Actor.next_action actor in
   (* Update the actor manager with the state reflecting the dequeued action. *)
-  let actor_manager =
-    Actor_manager.update backend.actor_manager actor_id (fun _ -> updated_actor)
-  in
+  let backend = State.update_actor backend actor_id (fun _ -> updated_actor) in
 
   match maybe_action with
   | None ->
-      (* If the actor has no action queued, it might be waiting or thinking.
-         Currently, reschedule immediately at the same time.
-         WARNING: This could potentially lead to loops if the actor never gets an action.
-         Consider adding a small time cost (e.g., implicit wait) instead. *)
       Core_log.info (fun m ->
           m "No action for entity: %d. Rescheduling turn." entity_id);
       let turn_queue = Turn_queue.schedule_turn tq entity_id time in
-      { backend with turn_queue; actor_manager }
+      State.set_turn_queue backend turn_queue
   | Some action -> (
-      (* Execute action *)
       Core_log.info (fun m -> m "Action for entity: %d. Executing..." entity_id);
       let backend_after_action, result =
-        State.handle_action backend entity_id action
+        Action_handler.handle_action backend entity_id action
       in
       match result with
       | Ok d_time ->
           let turn_queue =
             Turn_queue.schedule_turn tq entity_id (time + d_time)
           in
-          { backend_after_action with actor_manager; turn_queue }
+          State.set_turn_queue backend_after_action turn_queue
       | Error e ->
           Core_log.err (fun m ->
               m "Failed to perform action: %s" (Exn.to_string e));
@@ -95,13 +88,10 @@ let handle_actor_event (ctx : ctx) : State.t =
             | Entity.Player -> player_retry_delay
             | _ -> monster_reschedule_delay
           in
-
           let turn_queue =
             Turn_queue.schedule_turn tq entity_id (time + delay)
           in
-          (* Return the backend state *before* the action (correct),
-             but INCLUDE the updated actor_manager where the action was dequeued. *)
-          { backend with actor_manager; turn_queue })
+          State.set_turn_queue backend turn_queue)
 
 (* Processes a single event from the turn queue for a given entity_id at a specific time.
    Handles fetching the entity and actor, checking liveness, waiting for player input,
@@ -112,24 +102,22 @@ let process_actor_event (backend : State.t) (tq : Turn_queue.t)
   match get_entity_safe entities entity_id with
   | None -> backend
   | Some entity -> (
-      match get_actor_safe backend.actor_manager entity with
+      let actor_id =
+        match entity.data with
+        | Some (Entity.PlayerData { actor_id; _ }) -> actor_id
+        | Some (Entity.CreatureData { actor_id; _ }) -> actor_id
+        | _ -> entity_id
+      in
+      match State.get_actor backend actor_id with
       | None -> backend
       | Some actor ->
-          let actor_id =
-            match entity.data with
-            | Some (Entity.PlayerData { actor_id; _ }) -> actor_id
-            | Some (Entity.CreatureData { actor_id; _ }) -> actor_id
-            | _ -> entity_id (* fallback, but should not happen for actors *)
-          in
           (* Remove dead actor from queue *)
           if not (Actor.is_alive actor) then
-            { backend with turn_queue = remove_dead_actor tq entity_id }
-            (* Next, check if it's the player and needs input. If so, pause processing. *)
+            State.set_turn_queue backend (remove_dead_actor tq entity_id)
           else if should_wait_for_player_input entity actor then (
             Core_log.info (fun m -> m "Player is awaiting input");
-            { backend with mode = CtrlMode.WaitInput })
-          (* Otherwise, the actor is alive and ready to act. Handle the event. *)
-            else
+            State.set_mode backend CtrlMode.WaitInput)
+          else
             let ctx =
               { backend; tq; actor_id; actor; entity_id; entity; time }
             in
@@ -140,24 +128,22 @@ let process_actor_event (backend : State.t) (tq : Turn_queue.t)
    or the game enters WaitInput mode. *)
 let process_turns (backend : State.t) : State.t =
   let rec process_loop (current_backend : State.t) : State.t =
-    match current_backend.mode with
+    match State.get_mode current_backend with
     | CtrlMode.WaitInput ->
-        (* If waiting for input, stop processing turns for now. *)
         Core_log.info (fun m -> m "Waiting for player input");
         current_backend
     | _ -> (
-        (* Get the next actor and the updated turn queue state. *)
         let result, next_tq =
-          Turn_queue.get_next_actor current_backend.turn_queue
+          Turn_queue.get_next_actor (State.get_turn_queue current_backend)
         in
         match result with
-        | None ->
-            (* Turn queue is empty, stop processing. Return backend with the empty queue state. *)
-            { current_backend with turn_queue = next_tq }
+        | None -> State.set_turn_queue current_backend next_tq
         | Some (entity_id, time) ->
             process_loop
               (process_actor_event current_backend next_tq
-                 current_backend.entities entity_id time))
+                 (State.get_entities_manager current_backend)
+                 entity_id time))
   in
-  if backend.debug then Turn_queue.print_queue backend.turn_queue;
+  if State.get_debug backend then
+    Turn_queue.print_queue (State.get_turn_queue backend);
   process_loop backend
