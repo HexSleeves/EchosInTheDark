@@ -16,6 +16,7 @@ module A = Rl_core.Actor
 module AM = Rl_core.Actor_manager
 module Actions = Rl_core.Actions
 module Turn_system = Rl_core.Turn_system
+module Turn_queue = Rl_core.Turn_queue
 
 module PosSet = struct
   module T = struct
@@ -87,10 +88,10 @@ let render (state : State.t) : State.t option =
   List.iter entities ~f:(fun entity ->
       let glyph, color =
         match entity.kind with
-        | Player -> ("@", Color.white)
-        | Creature -> ("c", Color.red)
-        | Item -> ("i", Color.yellow)
-        | Other _ -> ("?", Color.gray)
+        | Player -> (entity.glyph, Color.white)
+        | Creature -> (entity.glyph, Color.red)
+        | Item -> (entity.glyph, Color.yellow)
+        | Other _ -> (entity.glyph, Color.gray)
       in
       Grafx.render_cell glyph color fc entity.pos);
 
@@ -100,10 +101,16 @@ let render (state : State.t) : State.t option =
 let handle_player_input (state : State.t) : State.t =
   match Rl_core.Input.action_from_keys () with
   | Some action ->
+      Ui_log.info (fun m -> m "Player action: %s" (T.Action.to_string action));
       let backend = state.backend in
       let entity = B.get_player backend in
+      let actor_id =
+        match entity.data with
+        | PlayerData { actor_id; _ } -> actor_id
+        | _ -> failwith "Player entity does not have a valid actor_id"
+      in
       let actor_manager =
-        AM.update backend.actor_manager entity.id (fun actor ->
+        AM.update backend.actor_manager actor_id (fun actor ->
             A.queue_action actor action)
       in
       {
@@ -118,8 +125,11 @@ let handle_tick (state : State.t) : State.t =
   match backend.mode with
   | T.CtrlMode.WaitInput -> handle_player_input state
   | T.CtrlMode.Normal ->
-      let new_backend = Turn_system.process_turns backend in
-      { state with backend = new_backend }
+      Ui_log.info (fun m -> m "Ctrlmode: Normal");
+      let backend = Turn_system.process_turns backend in
+      Ui_log.info (fun m -> m "Turns processed");
+      Turn_queue.print_queue backend.turn_queue;
+      { state with backend }
   | T.CtrlMode.Died _ ->
       (Ui_log.info @@ fun m -> m "Player died");
       state

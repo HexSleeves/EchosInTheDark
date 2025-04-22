@@ -71,6 +71,13 @@ let create_initial_state (config : init_config) =
       ~actor_id:player_id
   in
 
+  let entities, _, _ =
+    SP.spawn_creature entities
+      ~pos:(T.Loc.add player_start (T.Loc.make 1 1))
+      ~direction:T.Direction.North ~species:"Rat" ~health:10 ~glyph:"r"
+      ~name:"Rat" ~actor_id:1 ~description:"A small, brown rodent."
+  in
+
   Logs.info (fun m -> m "Initialization done.");
   {
     quitting = false;

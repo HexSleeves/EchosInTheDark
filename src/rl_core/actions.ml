@@ -17,6 +17,7 @@ type action_context = {
 let handle_action (ctx : action_context) (entity_id : Entity.entity_id)
     (action : Action.action_type) : action_result =
   match action with
+  | Wait -> Ok 100
   | Move dir -> (
       match ctx.get_entity entity_id with
       | None -> Error (Failure "Entity not found")
@@ -28,7 +29,6 @@ let handle_action (ctx : action_context) (entity_id : Entity.entity_id)
           let no_entity = Option.is_none (ctx.get_entity_at_pos new_pos) in
           if within_bounds && walkable && no_entity then Ok 100
           else Error (Failure "Cannot move here"))
-  | Wait -> Ok 100
   | StairsUp -> (
       match ctx.get_entity entity_id with
       | None -> Error (Failure "Entity not found")

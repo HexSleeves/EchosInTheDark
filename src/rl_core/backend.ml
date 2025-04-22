@@ -53,16 +53,14 @@ let get_entity (backend : t) (entity_id : Types.Entity.entity_id) :
     Types.Entity.entity option =
   EntityManager.find backend.entities entity_id
 
-let get_actor (backend : t) (actor_id : Actor_manager.actor_id) : Actor.t option
-    =
+let get_actor (backend : t) (actor_id : Actor.actor_id) : Actor.t option =
   Actor_manager.get backend.actor_manager actor_id
 
-let add_actor (backend : t) (actor : Actor.t)
-    (actor_id : Actor_manager.actor_id) : t =
+let add_actor (backend : t) (actor : Actor.t) (actor_id : Actor.actor_id) : t =
   let actor_manager = Actor_manager.add backend.actor_manager actor_id actor in
   { backend with actor_manager }
 
-let remove_actor (backend : t) (actor_id : Actor_manager.actor_id) : t =
+let remove_actor (backend : t) (actor_id : Actor.actor_id) : t =
   let actor_manager = Actor_manager.remove backend.actor_manager actor_id in
   { backend with actor_manager }
 
@@ -181,24 +179,19 @@ let can_use_stairs_up backend entity_id =
       in
       Map.Tile.equal tile Map.Tile.Stairs_up
 
+let build_action_context (backend : t) : Actions.action_context =
+  {
+    get_tile_at =
+      Tilemap.get_tile (Map_manager.get_current_map backend.map_manager);
+    in_bounds =
+      Tilemap.in_bounds (Map_manager.get_current_map backend.map_manager);
+    get_entity = get_entity backend;
+    get_entity_at_pos = get_entity_at_pos backend.entities;
+  }
+
 let handle_action (backend : t) (entity_id : Types.Entity.entity_id)
     (action : Types.Action.action_type) : t * (int, exn) Result.t =
-  let ctx =
-    {
-      Actions.get_entity = (fun id -> get_entity backend id);
-      get_tile_at =
-        (fun pos ->
-          Tilemap.get_tile (Map_manager.get_current_map backend.map_manager) pos);
-      in_bounds =
-        (fun pos ->
-          Tilemap.in_bounds
-            (Map_manager.get_current_map backend.map_manager)
-            pos);
-      get_entity_at_pos = (fun pos -> get_entity_at_pos backend.entities pos);
-    }
-  in
-  Core_log.info (fun m ->
-      m "Handling action: %s" (Types.Action.to_string action));
+  let ctx = build_action_context backend in
   match Actions.handle_action ctx entity_id action with
   | Ok _ as ok ->
       let backend =

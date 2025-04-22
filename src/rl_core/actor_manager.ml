@@ -1,7 +1,5 @@
 open Base
-
-(* Reference the Actor module *)
-type actor_id = int
+open Actor
 
 (* Persistent map for actors *)
 type t = Actor.t Map.M(Int).t

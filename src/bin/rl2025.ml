@@ -40,7 +40,8 @@ let () =
     {
       Rl_ui.Modules.font_config;
       seed = !seed;
-      debug = !debug;
+      debug = true;
+      (* debug = !debug; *)
       width = !width;
       height = !height;
       backend = None;

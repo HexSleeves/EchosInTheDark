@@ -30,25 +30,59 @@ module Direction = struct
 end
 
 (* //////////////////////// *)
+(* STATS AND ITEMS *)
+
+module Stats = struct
+  type t = { max_hp : int; hp : int; attack : int; defense : int; speed : int }
+  [@@deriving yojson, show]
+
+  let default = { max_hp = 30; hp = 30; attack = 10; defense = 5; speed = 100 }
+
+  let create ~max_hp ~hp ~attack ~defense ~speed =
+    { max_hp; hp; attack; defense; speed }
+end
+
+module Item = struct
+  type item_type = Potion | Sword | Scroll | Gold | Key
+  [@@deriving yojson, eq, enum, show]
+
+  type t = {
+    id : int; (* Unique item instance ID *)
+    item_type : item_type; (* What kind of item *)
+    quantity : int; (* Stack count, if stackable *)
+    name : string; (* Display name *)
+    description : string option; (* Optional description *)
+  }
+  [@@deriving yojson, show]
+
+  let create ~item_type ~quantity ~name ?(description = None) () =
+    { id = 0; item_type; quantity; name; description }
+end
+
+module Inventory = struct
+  type t = Item.t list [@@deriving yojson, show]
+end
+
+(* //////////////////////// *)
 (* ENTITY TYPES *)
 
 module Entity = struct
   type entity_id = int [@@deriving yojson, show]
 
   type entity_kind = Player | Creature | Item | Other of string
-  [@@deriving yojson]
+  [@@deriving yojson, show]
 
   (* Data specific to each entity kind *)
   type entity_data =
-    | PlayerData of { health : int; actor_id : int }
+    | PlayerData of { stats : Stats.t; actor_id : int }
     | CreatureData of {
         species : string;
         (* faction : faction; *)
-        health : int;
+        stats : Stats.t;
         actor_id : int;
       }
-    | ItemData of { item_type : string; quantity : int }
-  [@@deriving yojson]
+    | ItemData of { item : Item.t }
+  [@@deriving yojson, show]
 
   type entity = {
     id : entity_id;
@@ -60,10 +94,10 @@ module Entity = struct
     kind : entity_kind;
     data : entity_data;
   }
-  [@@deriving yojson]
+  [@@deriving yojson, show]
 
   (* Player reference type *)
-  type player = { entity_id : entity_id } [@@deriving yojson]
+  type player = { entity_id : entity_id } [@@deriving yojson, show]
 end
 
 module Action = struct
@@ -92,6 +126,7 @@ module Action = struct
     | StairsUp
     | StairsDown
     | Wait
+  [@@deriving yojson, show]
 
   let to_string = function
     | Move dir -> "Move " ^ Direction.to_string dir
@@ -102,34 +137,4 @@ module Action = struct
     | StairsUp -> "StairsUp"
     | StairsDown -> "StairsDown"
     | Wait -> "Wait"
-end
-
-(* //////////////////////// *)
-(* STATS AND ITEMS *)
-
-type stats = {
-  max_hp : int;
-  hp : int;
-  attack : int;
-  defense : int;
-  speed : int;
-}
-[@@deriving yojson]
-
-module Item = struct
-  type item_type = Potion | Sword | Scroll | Gold | Key
-  [@@deriving yojson, eq, enum]
-
-  type item = {
-    id : int; (* Unique item instance ID *)
-    item_type : item_type; (* What kind of item *)
-    quantity : int; (* Stack count, if stackable *)
-    name : string; (* Display name *)
-    description : string option; (* Optional description *)
-  }
-  [@@deriving yojson]
-end
-
-module Inventory = struct
-  type t = Item.item list [@@deriving yojson]
 end

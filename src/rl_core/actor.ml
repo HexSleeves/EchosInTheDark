@@ -1,63 +1,33 @@
-open Core
-open Base
 open Types
+open Ppx_yojson_conv_lib.Yojson_conv
+
+type actor_id = int [@@deriving yojson, show]
 
 (* TurnActor type *)
 type t = {
   speed : int;
   alive : bool;
-  mutable next_turn_time : int;
-  actions : Action.action_type Deque.t;
+  next_turn_time : int;
+  next_action : Action.action_type option;
 }
-
-let yojson_of_t (t : t) : Yojson.Safe.t =
-  `Assoc
-    [
-      ("speed", `Int t.speed);
-      ("alive", `Bool t.alive);
-      ("next_turn_time", `Int t.next_turn_time);
-      (* ("actions", `List (Deque.to_list t.actions)); *)
-    ]
-
-let t_of_yojson (json : Yojson.Safe.t) : t =
-  match json with
-  | `Assoc fields ->
-      let speed =
-        match Stdlib.List.assoc "speed" fields with
-        | `Int n -> n
-        | _ -> failwith "speed"
-      in
-      let alive =
-        match Stdlib.List.assoc "alive" fields with
-        | `Bool b -> b
-        | _ -> failwith "alive"
-      in
-      let next_turn_time =
-        match Stdlib.List.assoc "next_turn_time" fields with
-        | `Int n -> n
-        | _ -> failwith "next_turn_time"
-      in
-      { speed; alive; next_turn_time; actions = Deque.create () }
-  | _ -> failwith "Actor.t_of_yojson: expected object"
+[@@deriving yojson, show]
 
 (* Constructor *)
 let create ~next_turn_time ~speed =
-  { speed; alive = true; next_turn_time; actions = Deque.create () }
+  { speed; alive = true; next_turn_time; next_action = None }
 
-(* Queue an action and return self for chaining *)
+(* Queue an action and return new actor *)
 let queue_action t (action : Action.action_type) =
-  Deque.enqueue_back t.actions action;
-  t
+  { t with next_action = Some action }
 
-(* Add an action (no chaining) *)
-let add_action t (action : Action.action_type) =
-  Deque.enqueue_back t.actions action
-
-(* Pop the next action *)
-let next_action t : Action.action_type option = Deque.dequeue_front t.actions
+(* Pop the next action, return (action option * new actor) *)
+let next_action t : Action.action_type option * t =
+  match t.next_action with
+  | None -> (None, t)
+  | Some a -> (Some a, { t with next_action = None })
 
 (* Peek at the next action *)
-let peek_next_action t : Action.action_type option = Deque.peek_front t.actions
+let peek_next_action t : Action.action_type option = t.next_action
 
 (* Is alive? *)
 let is_alive t = t.alive
