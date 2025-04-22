@@ -1,6 +1,7 @@
 open Base
 open Types
 module EntityManager = Entity_manager
+module Actor = Actor_manager.Actor
 
 let monster_reschedule_delay = 100
 let player_retry_delay = 0

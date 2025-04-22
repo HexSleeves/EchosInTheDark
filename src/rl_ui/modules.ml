@@ -8,6 +8,11 @@ module R = Renderer
 module B = Rl_core.Backend
 module T = Rl_core.Types
 
+type mainloop_iface = {
+  render : State.t -> (State.t, screen_update_error) Result.t;
+  handle_tick : State.t -> State.t;
+}
+
 (* Config for initializing the game state *)
 type init_config = {
   width : int;
@@ -15,7 +20,7 @@ type init_config = {
   debug : bool;
   seed : int option;
   font_config : Renderer.font_config;
-  backend : Rl_core.Backend.t option;
+  backend : B.t option;
 }
 
 (* Handle tick updates based on current screen using the Screen interface *)
@@ -35,6 +40,47 @@ let render (s : State.t) : (State.t, screen_update_error) Result.t =
       | None -> Ok s)
   | Playing -> (
       match PlayScreen.render s s with Some (_, st) -> Ok st | None -> Ok s)
+
+(* --- Begin mainloop.ml logic --- *)
+
+let draw_raylib_scene draw_func =
+  let open Raylib in
+  Stdlib.Fun.protect
+    ~finally:(fun () -> end_drawing ())
+    (fun () ->
+      begin_drawing ();
+      clear_background Color.black;
+      let result = draw_func () in
+      result)
+
+let main init_fn font_config =
+  let (data : State.t), (v : mainloop_iface) = init_fn font_config in
+  let rec update_loop (data : State.t) =
+    match Raylib.window_should_close () || data.quitting with
+    | true -> Ui_log.info (fun m -> m "Window closing...")
+    | false ->
+        let new_data = v.handle_tick data in
+        if new_data.quitting then Ui_log.info (fun m -> m "Quitting...")
+        else
+          let draw_result = draw_raylib_scene (fun () -> v.render new_data) in
+          let updated_data =
+            match draw_result with
+            | Ok st -> st
+            | Error err ->
+                Ui_log.err (fun m ->
+                    m "Render error: %s"
+                      (match err with
+                      | StateUpdateError msg | RenderError msg -> msg));
+                new_data
+          in
+          update_loop updated_data
+  in
+  Stdlib.Fun.protect
+    ~finally:(fun () ->
+      Ui_log.info (fun m -> m "Cleaning up resources...");
+      R.cleanup font_config)
+    (fun () -> update_loop data)
+(* --- End mainloop.ml logic --- *)
 
 (* Create initial game state using init_config *)
 let create_initial_state (config : init_config) =
@@ -79,6 +125,6 @@ let create_initial_state (config : init_config) =
 let run_with_config (config : init_config) : unit =
   let init_fn _ =
     let state = create_initial_state config in
-    (state, Mainloop.{ handle_tick; render })
+    (state, { render; handle_tick })
   in
-  Mainloop.main init_fn config.font_config
+  main init_fn config.font_config

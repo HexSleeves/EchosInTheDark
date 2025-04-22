@@ -9,14 +9,11 @@
     as needed. *)
 
 open Base
+open Renderer
 module R = Renderer
 module B = Rl_core.Backend
 module T = Rl_core.Types
-module A = Rl_core.Actor
-module AM = Rl_core.Actor_manager
-module Actions = Rl_core.Actions
-module Turn_system = Rl_core.Turn_system
-module Turn_queue = Rl_core.Turn_queue
+module Input = Rl_core.Input
 
 module PosSet = struct
   module T = struct
@@ -80,8 +77,8 @@ let render (state : State.t) : State.t option =
       let x = i % current_map.width in
       let y = i / current_map.width in
       if not (Set.mem entity_positions (x, y)) then
-        let glyph, color = Grafx.tile_glyph_and_color t in
-        Grafx.render_cell glyph color fc (T.Loc.make x y))
+        let glyph, color = tile_glyph_and_color t in
+        render_cell glyph color fc (T.Loc.make x y))
     current_map.map;
 
   (* Render all entities as before *)
@@ -93,43 +90,51 @@ let render (state : State.t) : State.t option =
         | Item -> (entity.glyph, Color.yellow)
         | Other _ -> (entity.glyph, Color.gray)
       in
-      Grafx.render_cell glyph color fc entity.pos);
+      render_cell glyph color fc entity.pos);
 
   if backend.debug then render_fps fc;
   None
 
+let handle_mouse (state : State.t) =
+  let open Raylib in
+  if is_mouse_button_pressed MouseButton.Left then
+    let mouse_pos = get_mouse_position () in
+    let tile_pos = R.screen_to_grid mouse_pos in
+    let player = B.get_player state.backend in
+    let actor_id =
+      match player.data with
+      | PlayerData { actor_id; _ } -> actor_id
+      | _ -> failwith "Player entity does not have a valid actor_id"
+    in
+
+    let b = B.move_entity state.backend actor_id tile_pos in
+    { state with backend = b }
+  else state
+
 let handle_player_input (state : State.t) : State.t =
-  match Rl_core.Input.action_from_keys () with
+  let state = handle_mouse state in
+
+  match Input.action_from_keys () with
   | Some action ->
       Ui_log.info (fun m -> m "Player action: %s" (T.Action.to_string action));
-      let backend = state.backend in
-      let entity = B.get_player backend in
+      let entity = B.get_player state.backend in
       let actor_id =
         match entity.data with
         | PlayerData { actor_id; _ } -> actor_id
         | _ -> failwith "Player entity does not have a valid actor_id"
       in
-      let actor_manager =
-        AM.update backend.actor_manager actor_id (fun actor ->
-            A.queue_action actor action)
-      in
-      {
-        state with
-        backend = { state.backend with mode = T.CtrlMode.Normal; actor_manager };
-      }
+      let backend = B.queue_actor_action state.backend actor_id action in
+      { state with backend = { backend with mode = T.CtrlMode.Normal } }
   | None -> state
 
 let handle_tick (state : State.t) : State.t =
+  let open Rl_core in
   let backend = state.backend in
 
   match backend.mode with
   | T.CtrlMode.WaitInput -> handle_player_input state
   | T.CtrlMode.Normal ->
-      Ui_log.info (fun m -> m "Ctrlmode: Normal");
-      let backend = Turn_system.process_turns backend in
-      Ui_log.info (fun m -> m "Turns processed");
-      Turn_queue.print_queue backend.turn_queue;
-      { state with backend }
+      { state with backend = Turn_system.process_turns backend }
   | T.CtrlMode.Died _ ->
       (Ui_log.info @@ fun m -> m "Player died");
       state

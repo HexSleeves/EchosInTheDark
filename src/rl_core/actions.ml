@@ -15,7 +15,7 @@ type action_context = {
 
 (* Handle an action for a given entity *)
 let handle_action (ctx : action_context) (entity_id : Entity.entity_id)
-    (action : Action.action_type) : action_result =
+    (action : Action.t) : action_result =
   match action with
   | Wait -> Ok 100
   | Move dir -> (

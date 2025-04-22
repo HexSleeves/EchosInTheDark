@@ -117,7 +117,7 @@ module Action = struct
   | Wait            | Do nothing for a turn                             | -                  |
 *)
 
-  type action_type =
+  type t =
     | Move of Direction.t
     | Interact of Entity.entity_id
     | Pickup of Entity.entity_id

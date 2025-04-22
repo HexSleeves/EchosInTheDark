@@ -68,13 +68,17 @@ let generate ~(config : Config.t) ~(level : int) : Tilemap.t =
   let width = config.width in
   let height = config.height in
 
-  let player_start =
-    if level = 1 then find_random_floor grid ~width ~height ~rng
-    else Types.Loc.make 0 0
-    (* Will be set to stairs_up for non-first levels *)
-  in
+  Core_log.info (fun m -> m "Generating map for level %d" level);
 
-  let stairs_up = if level = 1 then None else Some player_start in
+  let random_floor = find_random_floor grid ~width ~height ~rng in
+  let stairs_up = if level = 1 then None else Some random_floor in
+  let player_start =
+    if level = 1 then random_floor
+    else
+      match stairs_up with
+      | Some loc -> loc
+      | None -> failwith "No stairs up found"
+  in
 
   (* Find farthest walkable tiles from player_start *)
   let _, farthest = bfs_farthest grid ~width ~height ~start:player_start in

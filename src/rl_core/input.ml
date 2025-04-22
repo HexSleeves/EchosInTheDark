@@ -5,7 +5,7 @@
 
 open Types
 
-let of_key (key : Raylib.Key.t) : Types.Action.action_type option =
+let of_key (key : Raylib.Key.t) : Types.Action.t option =
   let open Raylib in
   match key with
   | Key.W | Key.Up -> Some (Move Direction.North)
@@ -17,6 +17,6 @@ let of_key (key : Raylib.Key.t) : Types.Action.action_type option =
   | Key.Space -> Some Wait
   | _ -> None
 
-let action_from_keys () : Types.Action.action_type option =
+let action_from_keys () : Types.Action.t option =
   let open Raylib in
   get_key_pressed () |> of_key

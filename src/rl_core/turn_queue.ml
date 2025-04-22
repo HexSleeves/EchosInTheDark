@@ -26,8 +26,6 @@ let rec insert_sorted queue (time, entity) =
   | (t, e) :: rest -> (t, e) :: insert_sorted rest (time, entity)
 
 let schedule_turn t (entity : Entity.entity_id) (next_time : int) =
-  Core_log.info (fun m ->
-      m "Scheduling turn for entity: %d at time: %d" entity next_time);
   { t with turn_queue = insert_sorted t.turn_queue (next_time, entity) }
 
 let schedule_now t (entity : Entity.entity_id) =
