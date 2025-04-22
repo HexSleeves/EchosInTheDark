@@ -24,8 +24,7 @@ let draw_raylib_scene draw_func =
       result)
 
 (* Main *)
-let main init_fn =
-  let font_config = R.create ~title:"Rougelike Tutorial 2025" () in
+let main init_fn font_config =
   let (data : State.t), v = init_fn font_config in
 
   let rec update_loop (data : State.t) =

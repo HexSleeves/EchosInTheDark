@@ -15,6 +15,22 @@ end
 
 type direction = North | East | South | West [@@deriving yojson, show]
 
+module Direction = struct
+  type t = direction [@@deriving yojson, show]
+
+  let to_point = function
+    | North -> Loc.make 0 (-1)
+    | East -> Loc.make 1 0
+    | South -> Loc.make 0 1
+    | West -> Loc.make (-1) 0
+
+  let to_string = function
+    | North -> "North"
+    | East -> "East"
+    | South -> "South"
+    | West -> "West"
+end
+
 type stats = {
   max_hp : int;
   hp : int;

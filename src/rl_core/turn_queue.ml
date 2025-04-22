@@ -1,6 +1,5 @@
 open Core
 open Types
-open Core_log
 
 (* Min-heap of (time, entity_id) *)
 module TimeEntity = struct

@@ -9,7 +9,6 @@
     as needed. *)
 
 open Base
-open Ui_log
 module R = Renderer
 module B = Rl_core.Backend
 module T = Rl_core.Types
@@ -74,14 +73,15 @@ let render (state : State.t) : State.t option =
   in
 
   (* Render map tiles, skipping those with an entity *)
+  let current_map = B.get_current_map backend in
   Array.iteri
     ~f:(fun i t ->
-      let x = i % backend.map.width in
-      let y = i / backend.map.width in
+      let x = i % current_map.width in
+      let y = i / current_map.width in
       if not (Set.mem entity_positions (x, y)) then
         let glyph, color = Grafx.tile_glyph_and_color t in
         Grafx.render_cell glyph color fc (T.Loc.make x y))
-    backend.map.map;
+    current_map.map;
 
   (* Render all entities as before *)
   List.iter entities ~f:(fun entity ->

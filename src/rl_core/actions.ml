@@ -34,14 +34,14 @@ let handle_action (ctx : action_context) (entity_id : entity_id)
       | None -> Error (Failure "Entity not found")
       | Some entity ->
           let tile = ctx.get_tile_at entity.pos in
-          if Map.Tile.equal tile Map.Tile.Stairs_up then Ok 0
+          if Map.Tile.equal tile Map.Tile.Stairs_up then Ok 100
           else Error (Failure "Not on stairs up"))
   | StairsDown -> (
       match ctx.get_entity entity_id with
       | None -> Error (Failure "Entity not found")
       | Some entity ->
           let tile = ctx.get_tile_at entity.pos in
-          if Map.Tile.equal tile Map.Tile.Stairs_down then Ok 0
+          if Map.Tile.equal tile Map.Tile.Stairs_down then Ok 100
           else Error (Failure "Not on stairs down"))
   | Interact _ -> Error (Failure "Interact not implemented yet")
   | Pickup _ -> Error (Failure "Pickup not implemented yet")

@@ -23,3 +23,13 @@ type action_type =
   | StairsDown
   | Wait
   | Attack of Types.entity_id
+
+let to_string = function
+  | Move dir -> "Move " ^ Types.Direction.to_string dir
+  | Interact id -> "Interact " ^ string_of_int id
+  | Pickup id -> "Pickup " ^ string_of_int id
+  | Drop id -> "Drop " ^ string_of_int id
+  | StairsUp -> "StairsUp"
+  | StairsDown -> "StairsDown"
+  | Wait -> "Wait"
+  | Attack id -> "Attack " ^ string_of_int id

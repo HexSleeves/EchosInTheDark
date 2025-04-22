@@ -1,7 +1,7 @@
 open Base
 open Types
 
-type t = (int, entity) Hashtbl.t
+type t = entity Map.M(Int).t
 
 type partial_entity = {
   pos : Loc.t;
@@ -13,10 +13,10 @@ type partial_entity = {
   data : entity_data;
 }
 
-let create () : t = Hashtbl.create (module Int)
-let add (mgr : t) (ent : entity) = Hashtbl.set mgr ~key:ent.id ~data:ent
-let remove (mgr : t) (id : int) = Hashtbl.remove mgr id
-let find (mgr : t) (id : int) : entity option = Hashtbl.find mgr id
+let create () : t = Map.empty (module Int)
+let add (mgr : t) (ent : entity) : t = Map.set mgr ~key:ent.id ~data:ent
+let remove (mgr : t) (id : int) : t = Map.remove mgr id
+let find (mgr : t) (id : int) : entity option = Map.find mgr id
 
 let find_unsafe (mgr : t) (id : int) : entity =
   match find mgr id with
@@ -24,22 +24,22 @@ let find_unsafe (mgr : t) (id : int) : entity =
   | None -> failwith (Printf.sprintf "Entity not found: %d" id)
 
 let find_by_pos (mgr : t) (pos : Loc.t) : entity option =
-  Hashtbl.fold mgr ~init:None ~f:(fun ~key:_ ~data acc ->
+  Map.fold mgr ~init:None ~f:(fun ~key:_ ~data acc ->
       match acc with
       | Some _ -> acc
       | None -> if Loc.equal pos data.pos then Some data else None)
 
-let update (mgr : t) (id : int) (f : entity -> entity) =
-  match Hashtbl.find mgr id with
-  | Some ent -> Hashtbl.set mgr ~key:id ~data:(f ent)
-  | None -> ()
+let update (mgr : t) (id : int) (f : entity -> entity) : t =
+  match Map.find mgr id with
+  | Some ent -> Map.set mgr ~key:id ~data:(f ent)
+  | None -> mgr
 
-let to_list (mgr : t) : entity list =
-  Hashtbl.fold mgr ~init:[] ~f:(fun ~key:_ ~data acc -> data :: acc)
-  |> List.rev (* Reverse to maintain insertion order *)
+let to_list (mgr : t) : entity list = Map.data mgr
 
-let add_entity (mgr : t) (p : partial_entity) =
-  let id = Hashtbl.length mgr in
+let add_entity (mgr : t) (p : partial_entity) : t * int * entity =
+  let id =
+    match Map.max_elt mgr with Some (max_id, _) -> max_id + 1 | None -> 0
+  in
   let entity =
     {
       id;
@@ -52,15 +52,7 @@ let add_entity (mgr : t) (p : partial_entity) =
       data = p.data;
     }
   in
-  Hashtbl.set mgr ~key:id ~data:entity;
-  (id, entity)
+  (Map.set mgr ~key:id ~data:entity, id, entity)
 
-let copy (t : t) : t =
-  let new_entities = Base.Hashtbl.create (module Base.Int) in
-  Base.Hashtbl.iteri t ~f:(fun ~key ~data ->
-      Base.Hashtbl.set new_entities ~key ~data);
-  new_entities
-
-let restore (t : t) (src : t) : unit =
-  Base.Hashtbl.clear t;
-  Base.Hashtbl.iteri src ~f:(fun ~key ~data -> Base.Hashtbl.set t ~key ~data)
+let copy (t : t) : t = t (* Map is persistent, so this is just identity *)
+let restore (_t : t) (src : t) : t = src (* Just return the source *)

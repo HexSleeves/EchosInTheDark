@@ -77,7 +77,10 @@ let process_actor_event (backend : B.t) turn_queue entities entity_id time : B.t
             | Some action -> (
                 Core_log.info (fun m ->
                     m "Action for entity: %d. Executing..." entity_id);
-                match Backend.handle_action backend entity_id action with
+                let backend, result =
+                  Backend.handle_action backend entity_id action
+                in
+                match result with
                 | Ok d_time ->
                     Turn_queue.schedule_turn turn_queue entity_id (time + d_time);
                     backend

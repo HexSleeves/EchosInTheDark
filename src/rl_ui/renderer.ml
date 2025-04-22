@@ -52,9 +52,8 @@ let create ?(title = "Rougelike Tutorial 2025")
   set_target_fps 60;
 
   (* Set window size and min size *)
-  (* set_window_size window_w window_h; *)
-
-  (* set_window_min_size window_w window_h; *)
+  set_window_size window_w window_h;
+  set_window_min_size window_w window_h;
 
   (* Center window on monitor *)
   set_window_position

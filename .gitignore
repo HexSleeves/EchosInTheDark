@@ -1,6 +1,7 @@
 _esy
 esy_lock
 node_modules
+build.log
 
 *.annot
 *.cmo

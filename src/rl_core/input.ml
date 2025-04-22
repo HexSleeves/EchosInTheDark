@@ -15,6 +15,7 @@ let of_key (key : Raylib.Key.t) : action_type option =
   | Key.D | Key.Right -> Some (Move Types.East)
   | Key.Comma -> Some StairsUp
   | Key.Period -> Some StairsDown
+  | Key.Space -> Some Wait
   | _ -> None
 
 let action_from_keys () : action_type option =
