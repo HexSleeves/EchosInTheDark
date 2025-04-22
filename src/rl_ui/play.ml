@@ -101,13 +101,14 @@ let handle_player_input (state : State.t) : State.t =
   match Rl_core.Input.action_from_keys () with
   | Some action ->
       let backend = state.backend in
-      let am = backend.actor_manager in
       let entity = B.get_player backend in
-      AM.update am entity.id (fun actor -> A.queue_action actor action);
+      let actor_manager =
+        AM.update backend.actor_manager entity.id (fun actor ->
+            A.queue_action actor action)
+      in
       {
         state with
-        backend =
-          { state.backend with mode = T.CtrlMode.Normal; actor_manager = am };
+        backend = { state.backend with mode = T.CtrlMode.Normal; actor_manager };
       }
   | None -> state
 

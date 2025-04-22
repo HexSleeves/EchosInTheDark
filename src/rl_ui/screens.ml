@@ -1,3 +1,11 @@
+(* Screen interface for all UI/game screens *)
+module type Screen = sig
+  type t
+
+  val handle_tick : t -> State.t -> State.t * t
+  val render : t -> State.t -> (t * State.t) option
+end
+
 module MainMenuScreen = struct
   open State
 

@@ -8,8 +8,6 @@ let versionString = "Version 1.0"
 let copyrightString = "(C) 2025 Yendor"
 let menu_items = [ "Play"; "Quit" ]
 let menu_length = List.length menu_items
-let init = { selected = 0 }
-let handle_mouse () = ()
 
 let handle_keyboard () =
   if is_key_pressed Key.Q then Some `Quit

@@ -6,9 +6,9 @@ module EntityManager = Entity_manager
 let monster_reschedule_delay = 100
 
 (* Helper: get actor or log error and skip *)
-let get_actor_safe actor_manager (entity : Types.entity) =
+let get_actor_safe actor_manager (entity : Entity.entity) =
   match entity.data with
-  | Types.PlayerData { actor_id; _ } | Types.CreatureData { actor_id; _ } -> (
+  | Entity.PlayerData { actor_id; _ } | Entity.CreatureData { actor_id; _ } -> (
       try Some (Actor_manager.get_unsafe actor_manager actor_id)
       with _ ->
         Core_log.err (fun m -> m "Actor not found for entity: %d" entity.id);
@@ -24,7 +24,8 @@ let get_entity_safe entities entity_id =
     None
 
 let get_next_actor actor_manager turn_queue entities =
-  match Turn_queue.get_next_actor turn_queue with
+  let result, _turn_queue = Turn_queue.get_next_actor turn_queue in
+  match result with
   | None -> None
   | Some (entity_id, time) -> (
       Core_log.info (fun m -> m "Processing turn for entity: %d" entity_id);
@@ -38,8 +39,8 @@ let get_next_actor actor_manager turn_queue entities =
 
 (* Helper: should wait for player input? *)
 let should_wait_for_player_input entity actor =
-  match entity.Types.kind with
-  | Types.Player -> Option.is_none (Actor.peek_next_action actor)
+  match entity.Entity.kind with
+  | Entity.Player -> Option.is_none (Actor.peek_next_action actor)
   | _ -> false
 
 (* Remove dead actor from queue *)
@@ -48,8 +49,7 @@ let remove_dead_actor turn_queue entity_id =
   Turn_queue.remove_actor turn_queue entity_id
 
 (* Add helper to process a single actor's turn *)
-let process_actor_event (backend : B.t) turn_queue entities entity_id time : B.t
-    =
+let process_actor_event (backend : B.t) entities entity_id time : B.t =
   Core_log.info (fun m -> m "Processing turn for entity: %d" entity_id);
   match get_entity_safe entities entity_id with
   | None -> backend
@@ -60,20 +60,24 @@ let process_actor_event (backend : B.t) turn_queue entities entity_id time : B.t
           if not (Actor.is_alive actor) then (
             Core_log.info (fun m ->
                 m "Actor %d is dead. Removing from queue." entity_id);
-            remove_dead_actor turn_queue entity_id;
-            backend)
+            let turn_queue = remove_dead_actor backend.turn_queue entity_id in
+            { backend with turn_queue })
           else if should_wait_for_player_input entity actor then (
             Core_log.info (fun m -> m "Player is awaiting input");
             let backend = { backend with mode = CtrlMode.WaitInput } in
-            Turn_queue.schedule_turn turn_queue entity_id time;
-            backend)
+            let turn_queue =
+              Turn_queue.schedule_turn backend.turn_queue entity_id time
+            in
+            { backend with turn_queue })
           else
             match Actor.next_action actor with
             | None ->
                 Core_log.info (fun m ->
                     m "No action for entity: %d. Rescheduling turn." entity_id);
-                Turn_queue.schedule_turn turn_queue entity_id time;
-                backend
+                let turn_queue =
+                  Turn_queue.schedule_turn backend.turn_queue entity_id time
+                in
+                { backend with turn_queue }
             | Some action -> (
                 Core_log.info (fun m ->
                     m "Action for entity: %d. Executing..." entity_id);
@@ -82,36 +86,42 @@ let process_actor_event (backend : B.t) turn_queue entities entity_id time : B.t
                 in
                 match result with
                 | Ok d_time ->
-                    Turn_queue.schedule_turn turn_queue entity_id (time + d_time);
-                    backend
+                    let turn_queue =
+                      Turn_queue.schedule_turn backend.turn_queue entity_id
+                        (time + d_time)
+                    in
+                    { backend with turn_queue }
                 | Error e ->
                     Core_log.err (fun m ->
                         m "Failed to perform action: %s" (Exn.to_string e));
                     let delay =
-                      match entity.Types.kind with
-                      | Types.Player -> 0
+                      match entity.Entity.kind with
+                      | Entity.Player -> 0
                       | _ -> monster_reschedule_delay
                     in
-                    Turn_queue.schedule_turn turn_queue entity_id (time + delay);
-                    backend)))
+                    let turn_queue =
+                      Turn_queue.schedule_turn backend.turn_queue entity_id
+                        (time + delay)
+                    in
+                    { backend with turn_queue })))
 
 let process_turns (backend : B.t) : B.t =
-  let turn_queue = backend.turn_queue in
-  let entities = backend.entities in
-  if backend.debug then Turn_queue.print_queue turn_queue;
-
   let rec process_loop (backend : B.t) =
     match backend.mode with
     | CtrlMode.WaitInput ->
         Core_log.info (fun m -> m "Waiting for player input");
         backend
     | _ -> (
-        match Turn_queue.get_next_actor turn_queue with
+        let result, turn_queue = Turn_queue.get_next_actor backend.turn_queue in
+        match result with
         | None -> backend
         | Some (entity_id, time) ->
             let backend =
-              process_actor_event backend turn_queue entities entity_id time
+              process_actor_event backend backend.entities entity_id time
             in
-            process_loop backend)
+            process_loop { backend with turn_queue })
   in
+
+  if backend.debug then Turn_queue.print_queue backend.turn_queue;
+
   process_loop backend

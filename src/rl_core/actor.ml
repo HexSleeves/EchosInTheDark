@@ -1,5 +1,6 @@
 open Core
 open Base
+open Types
 
 (* TurnActor type *)
 type t = {

@@ -67,10 +67,14 @@ let load_level_state t level ~entities ~actor_manager ~turn_queue =
   match Base.Hashtbl.find t.entities_by_level level with
   | Some saved_entities ->
       let entities = Entity_manager.restore entities saved_entities in
-      Actor_manager.restore actor_manager
-        (Base.Hashtbl.find_exn t.actor_manager_by_level level);
-      Turn_queue.restore turn_queue
-        (Base.Hashtbl.find_exn t.turn_queue_by_level level);
+      let actor_manager =
+        Actor_manager.restore actor_manager
+          (Base.Hashtbl.find_exn t.actor_manager_by_level level)
+      in
+      let turn_queue =
+        Turn_queue.restore turn_queue
+          (Base.Hashtbl.find_exn t.turn_queue_by_level level)
+      in
       (t, entities, actor_manager, turn_queue)
   | None ->
       (* New level, nothing to restore *)

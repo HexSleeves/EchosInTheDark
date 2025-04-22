@@ -1,27 +1,30 @@
+open Base
+
 (* Reference the Actor module *)
 type actor_id = int
-type t = (actor_id, Actor.t) Hashtbl.t
 
-let create () : t = (Hashtbl.create 16 : (actor_id, Actor.t) Hashtbl.t)
+(* Persistent map for actors *)
+type t = Actor.t Map.M(Int).t
 
-let add (manager : t) (actor_id : actor_id) (actor : Actor.t) : unit =
-  Hashtbl.replace manager actor_id actor
+let create () : t = Map.empty (module Int)
 
-let remove (manager : t) (actor_id : actor_id) : unit =
-  Hashtbl.remove manager actor_id
+let add (manager : t) (actor_id : actor_id) (actor : Actor.t) : t =
+  Map.set manager ~key:actor_id ~data:actor
+
+let remove (manager : t) (actor_id : actor_id) : t = Map.remove manager actor_id
 
 let get (manager : t) (actor_id : actor_id) : Actor.t option =
-  try Some (Hashtbl.find manager actor_id) with Not_found -> None
+  Map.find manager actor_id
 
 let get_unsafe (manager : t) (actor_id : actor_id) : Actor.t =
   match get manager actor_id with
   | Some actor -> actor
   | None -> failwith "Actor not found"
 
-let update (manager : t) (actor_id : actor_id) (f : Actor.t -> Actor.t) : unit =
-  match get manager actor_id with
-  | Some actor -> Hashtbl.replace manager actor_id (f actor)
-  | None -> ()
+let update (manager : t) (actor_id : actor_id) (f : Actor.t -> Actor.t) : t =
+  match Map.find manager actor_id with
+  | Some actor -> Map.set manager ~key:actor_id ~data:(f actor)
+  | None -> manager
 
 (* Actors *)
 
@@ -33,12 +36,5 @@ let create_rat_actor = Actor.create ~speed:110
 
 (* Create a goblin actor *)
 let create_goblin_actor = Actor.create ~speed:150
-
-let copy (t : t) : t =
-  let new_actors = Hashtbl.create 16 in
-  Hashtbl.iter (fun key data -> Hashtbl.add new_actors key data) t;
-  new_actors
-
-let restore (t : t) (src : t) : unit =
-  Hashtbl.clear t;
-  Hashtbl.iter (fun key data -> Hashtbl.add t key data) src
+let copy (t : t) : t = t (* Map is persistent, so this is just identity *)
+let restore (_t : t) (src : t) : t = src (* Just return the source *)

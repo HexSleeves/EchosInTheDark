@@ -15,31 +15,13 @@ module Turn_queue = Rl_core.Turn_queue
 
 (* Config for initializing the game state *)
 type init_config = {
-  font_config : Renderer.font_config;
-  seed : int option;
-  debug : bool;
   width : int;
   height : int;
+  debug : bool;
+  seed : int option;
+  font_config : Renderer.font_config;
   backend : Rl_core.Backend.t option;
 }
-
-(* Screen interface for all UI/game screens *)
-module type Screen = sig
-  type t
-
-  val handle_tick : t -> State.t -> State.t * t
-  val render : t -> State.t -> (t * State.t) option
-end
-
-(* Convert an optional update into a Result, logging failures *)
-let option_to_screen (s : State.t) (update : 'a option)
-    (scrn_constructor : 'a -> screen) : (State.t, screen_update_error) Result.t
-    =
-  match update with
-  | Some new_screen_state -> (
-      try Ok { s with screen = scrn_constructor new_screen_state }
-      with exn -> Error (StateUpdateError (Exn.to_string exn)))
-  | None -> Ok s
 
 (* Handle tick updates based on current screen using the Screen interface *)
 let handle_tick (s : State.t) =
@@ -76,16 +58,17 @@ let create_initial_state (config : init_config) =
   let current_map = B.get_current_map backend in
 
   (* Add to turn queue *)
-  Turn_queue.schedule_turn tq player_id 0;
+  let turn_queue = Turn_queue.schedule_turn tq player_id 0 in
 
   (* Add to actor manager *)
   let player_actor = Actor.create ~speed:100 ~next_turn_time:0 in
-  AM.add am player_id player_actor;
+  let am = AM.add am player_id player_actor in
 
   (* Spawn player *)
   let player_start = current_map.player_start in
   let entities =
-    SP.spawn_player em ~pos:player_start ~direction:T.North ~actor_id:player_id
+    SP.spawn_player em ~pos:player_start ~direction:T.Direction.North
+      ~actor_id:player_id
   in
 
   Logs.info (fun m -> m "Initialization done.");
@@ -93,7 +76,7 @@ let create_initial_state (config : init_config) =
     quitting = false;
     screen = Playing;
     font_config = config.font_config;
-    backend = { backend with actor_manager = am; entities };
+    backend = { backend with actor_manager = am; entities; turn_queue };
   }
 
 let run_with_config (config : init_config) : unit =
