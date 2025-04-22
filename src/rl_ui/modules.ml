@@ -5,13 +5,8 @@ open Screens
 module R = Renderer
 
 (* Core modules *)
-module Actor = Rl_core.Actor
-module Actions = Rl_core.Actions
-module AM = Rl_core.Actor_manager
 module B = Rl_core.Backend
-module SP = Rl_core.Spawner
 module T = Rl_core.Types
-module Turn_queue = Rl_core.Turn_queue
 
 (* Config for initializing the game state *)
 type init_config = {
@@ -51,31 +46,25 @@ let create_initial_state (config : init_config) =
     | Some b -> b
     | None -> B.make ~debug:config.debug ~w:config.width ~h:config.height ~seed
   in
-  let em = backend.Rl_core.Backend.entities in
-  let tq = backend.Rl_core.Backend.turn_queue in
-  let am = backend.Rl_core.Backend.actor_manager in
-  let player_id = backend.Rl_core.Backend.player.entity_id in
+
   let current_map = B.get_current_map backend in
-
-  (* Add to turn queue *)
-  let turn_queue = Turn_queue.schedule_turn tq player_id 0 in
-
-  (* Add to actor manager *)
-  let player_actor = Actor.create ~speed:100 ~next_turn_time:0 in
-  let am = AM.add am player_id player_actor in
-
-  (* Spawn player *)
   let player_start = current_map.player_start in
-  let entities =
-    SP.spawn_player em ~pos:player_start ~direction:T.Direction.North
-      ~actor_id:player_id
-  in
 
-  let entities, _, _ =
-    SP.spawn_creature entities
-      ~pos:(T.Loc.add player_start (T.Loc.make 1 1))
-      ~direction:T.Direction.North ~species:"Rat" ~health:10 ~glyph:"r"
-      ~name:"Rat" ~actor_id:1 ~description:"A small, brown rodent."
+  let backend =
+    (* Spawn player using Backend function. This handles entity creation,
+     actor manager update, and scheduling the first turn. *)
+    let sub_backend =
+      B.spawn_player ~pos:player_start ~direction:T.Direction.North backend
+    in
+
+    (* Spawn creature using Backend function. This handles entity/actor creation. *)
+    let sub_backend =
+      B.spawn_creature sub_backend
+        ~pos:(T.Loc.add player_start (T.Loc.make 1 1))
+        ~direction:T.Direction.North ~species:"Rat" ~health:10 ~glyph:"r"
+        ~name:"Rat" ~actor_id:1 ~description:"A small, brown rodent."
+    in
+    sub_backend
   in
 
   Logs.info (fun m -> m "Initialization done.");
@@ -83,7 +72,8 @@ let create_initial_state (config : init_config) =
     quitting = false;
     screen = Playing;
     font_config = config.font_config;
-    backend = { backend with actor_manager = am; entities; turn_queue };
+    backend;
+    (* Use the updated backend returned by the spawn functions *)
   }
 
 let run_with_config (config : init_config) : unit =

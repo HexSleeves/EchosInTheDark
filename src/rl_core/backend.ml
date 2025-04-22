@@ -79,14 +79,6 @@ let get_player_actor (backend : t) : Actor.t =
       Actor_manager.get_unsafe backend.actor_manager actor_id
   | _ -> failwith "Player actor not found"
 
-let direction_to_point (dir : Types.Direction.t) : Types.Loc.t =
-  let open Types in
-  match dir with
-  | North -> Loc.make 0 (-1)
-  | South -> Loc.make 0 1
-  | East -> Loc.make 1 0
-  | West -> Loc.make (-1) 0
-
 let move_entity (backend : t) (entity_id : Types.Entity.entity_id)
     (loc : Types.Loc.t) : t =
   let new_entities =
@@ -94,6 +86,43 @@ let move_entity (backend : t) (entity_id : Types.Entity.entity_id)
         { ent with pos = loc })
   in
   { backend with entities = new_entities }
+
+(* Spawn player: handles entity creation, actor management, and turn scheduling *)
+let spawn_player (backend : t) ~pos ~direction : t =
+  let player_id = backend.player.entity_id in
+  (* 1. Spawn entity *)
+  let entities =
+    Spawner.spawn_player backend.entities ~pos ~direction ~actor_id:player_id
+  in
+  (* 2. Create actor *)
+  let player_actor = Actor.create ~speed:100 ~next_turn_time:0 in
+  let actor_manager =
+    Actor_manager.add backend.actor_manager player_id player_actor
+  in
+  (* 3. Schedule turn *)
+  let turn_queue = Turn_queue.schedule_turn backend.turn_queue player_id 0 in
+  (* 4. Return updated backend state *)
+  { backend with entities; actor_manager; turn_queue }
+
+(* Spawn creature: handles entity creation and actor management *)
+let spawn_creature (backend : t) ~pos ~direction ~species ~health ~glyph ~name
+    ~actor_id ~description : t =
+  (* 1. Spawn entity and get its ID and associated actor_id *)
+  (* Spawner returns (EntityManager.t * actor_id * Types.Entity.entity) *)
+  let entities, creature_actor_id, _new_entity =
+    Spawner.spawn_creature backend.entities ~pos ~direction ~species ~health
+      ~glyph ~name ~actor_id ~description
+  in
+  (* 2. Create a default actor for the creature *)
+  (* TODO: Configure speed/next_turn based on creature type? *)
+  let creature_actor = Actor.create ~speed:100 ~next_turn_time:0 in
+  (* Use the creature_actor_id returned by the spawner *)
+  let actor_manager =
+    Actor_manager.add backend.actor_manager creature_actor_id creature_actor
+  in
+  (* 3. Don't schedule turn immediately, let Turn_system handle it *)
+  let turn_queue = backend.turn_queue in
+  { backend with entities; actor_manager; turn_queue }
 
 let transition_to_next_level (backend : t) =
   (* Save current level state *)
