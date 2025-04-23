@@ -7,6 +7,12 @@ open Types
 
 type action_result = (int, exn) Result.t
 
+let get_entity_stats (entity : Entity.t) =
+  match entity with
+  | Entity.Player (_, { stats }) | Entity.Creature (_, { stats; _ }) ->
+      Some stats
+  | _ -> None
+
 (* Calculate damage based on attacker and defender stats *)
 let calculate_damage ~attacker_stats ~defender_stats =
   let base_damage =
@@ -16,50 +22,72 @@ let calculate_damage ~attacker_stats ~defender_stats =
   (* Ensure at least 1 damage *)
   damage
 
-(* Get stats from an entity if it has them *)
-let get_entity_stats (entity : Entity.entity) =
-  match entity.data with
-  | Some (Entity.PlayerData { stats; _ }) -> Some stats
-  | Some (Entity.CreatureData { stats; _ }) -> Some stats
-  | _ -> None
-
-let is_entity_dead (backend : State.t) (entity_id : Types.Entity.entity_id) :
-    bool =
-  match State.get_entity backend entity_id with
+let is_entity_dead (backend : State.t) (id : Types.Entity.id) : bool =
+  match State.get_entity backend id with
   | Some entity -> (
       match get_entity_stats entity with
       | Some stats -> stats.hp <= 0
       | None -> false)
   | None -> false
 
-let can_use_stairs_down state entity_id =
-  match State.get_entity state entity_id with
+let can_use_stairs_down state id =
+  match State.get_entity state id with
   | None -> false
   | Some entity ->
-      let tile =
-        Map.Tilemap.get_tile (State.get_current_map state) entity.pos
-      in
+      let base = Entity.get_base entity in
+      let tile = Map.Tilemap.get_tile (State.get_current_map state) base.pos in
       Map.Tile.equal tile Map.Tile.Stairs_down
 
-let can_use_stairs_up state entity_id =
-  match State.get_entity state entity_id with
+let can_use_stairs_up state id =
+  match State.get_entity state id with
   | None -> false
   | Some entity ->
-      let tile =
-        Map.Tilemap.get_tile (State.get_current_map state) entity.pos
-      in
+      let base = Entity.get_base entity in
+      let tile = Map.Tilemap.get_tile (State.get_current_map state) base.pos in
       Map.Tile.equal tile Map.Tile.Stairs_up
 
-let rec handle_action (state : State.t) (entity_id : Entity.entity_id)
-    (action : Action.t) : State.t * action_result =
+(* ////////////////////////////// *)
+(* ENTITY MANAGEMENT *)
+(* ////////////////////////////// *)
+
+let update_entity_stats (state : State.t) (id : Types.Entity.id)
+    (f : Types.Stats.t -> Types.Stats.t) : State.t =
+  let entities =
+    Entity_manager.update_entity_stats (State.get_entities_manager state) id f
+  in
+  State.set_entities_manager state entities
+
+let handle_entity_death (state : State.t) (id : Types.Entity.id) : State.t =
+  let state =
+    match State.get_entity state id with
+    | Some entity -> (
+        (* Remove from entity manager *)
+        let state = State.remove_entity state id in
+
+        (* Remove from actor manager and turn queue if actor *)
+        match entity with
+        | Types.Entity.Player _ | Types.Entity.Creature _ ->
+            let state = State.remove_actor state (Entity.get_base entity).id in
+            let turn_queue =
+              Turn_queue.remove_actor (State.get_turn_queue state) id
+            in
+            State.set_turn_queue state turn_queue
+        | _ -> state)
+    | None -> state
+  in
+  state
+
+let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
+    State.t * action_result =
   match action with
   | Action.Wait -> (state, Ok 100)
   | Action.Move dir -> (
-      match State.get_entity state entity_id with
+      match State.get_entity state id with
       | None -> (state, Error (Failure "Entity not found"))
       | Some entity -> (
+          let base = Entity.get_base entity in
           let delta = Direction.to_point dir in
-          let new_pos = Loc.(entity.pos + delta) in
+          let new_pos = Loc.(base.pos + delta) in
           let in_bounds =
             Map.Tilemap.in_bounds (State.get_current_map state) new_pos
           in
@@ -69,54 +97,54 @@ let rec handle_action (state : State.t) (entity_id : Entity.entity_id)
           in
           match State.get_entity_at_pos state new_pos with
           | Some target_entity -> (
+              let target_base = Entity.get_base target_entity in
               match get_entity_stats target_entity with
-              | Some _ ->
-                  handle_action state entity_id (Action.Attack target_entity.id)
+              | Some _ -> handle_action state id (Action.Attack target_base.id)
               | None ->
                   (state, Error (Failure "Blocked by non-attackable entity")))
           | None ->
               if in_bounds && walkable then
-                let state = State.move_entity state entity_id new_pos in
+                let state = State.move_entity state id new_pos in
                 (state, Ok 100)
               else (state, Error (Failure "Cannot move here: terrain blocked")))
       )
   | Action.StairsUp -> (
-      match State.get_entity state entity_id with
+      match State.get_entity state id with
       | None -> (state, Error (Failure "Entity not found"))
       | Some entity ->
+          let base = Entity.get_base entity in
           let tile =
-            Map.Tilemap.get_tile (State.get_current_map state) entity.pos
+            Map.Tilemap.get_tile (State.get_current_map state) base.pos
           in
           if Map.Tile.equal tile Map.Tile.Stairs_up then
             let state, _ = State.transition_to_previous_level state in
             (state, Ok 0)
           else (state, Error (Failure "Not on stairs up")))
   | Action.StairsDown -> (
-      match State.get_entity state entity_id with
+      match State.get_entity state id with
       | None -> (state, Error (Failure "Entity not found"))
       | Some entity ->
+          let base = Entity.get_base entity in
           let tile =
-            Map.Tilemap.get_tile (State.get_current_map state) entity.pos
+            Map.Tilemap.get_tile (State.get_current_map state) base.pos
           in
           if Map.Tile.equal tile Map.Tile.Stairs_down then
             let state, _ = State.transition_to_next_level state in
             (state, Ok 0)
           else (state, Error (Failure "Not on stairs down")))
   | Action.Attack target_id -> (
-      match
-        (State.get_entity state entity_id, State.get_entity state target_id)
-      with
+      match (State.get_entity state id, State.get_entity state target_id) with
       | Some attacker, Some defender -> (
           match (get_entity_stats attacker, get_entity_stats defender) with
           | Some attacker_stats, Some defender_stats ->
               let damage = calculate_damage ~attacker_stats ~defender_stats in
               let state =
-                State.update_entity_stats state target_id (fun stats ->
+                update_entity_stats state target_id (fun stats ->
                     { stats with hp = stats.hp - damage })
               in
               let state =
                 if is_entity_dead state target_id then
-                  State.handle_entity_death state target_id
+                  handle_entity_death state target_id
                 else state
               in
               (state, Ok 100)

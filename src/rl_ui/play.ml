@@ -67,7 +67,9 @@ let render (state : State.t) : State.t option =
   let entity_positions =
     Base.List.fold entities
       ~init:(Set.empty (module PosSet))
-      ~f:(fun acc e -> Set.add acc (e.pos.x, e.pos.y))
+      ~f:(fun acc e ->
+        let e = T.Entity.get_base e in
+        Set.add acc (e.pos.x, e.pos.y))
   in
 
   (* Render map tiles, skipping those with an entity *)
@@ -84,14 +86,14 @@ let render (state : State.t) : State.t option =
   (* Render all entities as before *)
   List.iter entities ~f:(fun entity ->
       let color =
-        match entity.kind with
-        | T.Entity.Player -> Color.white
-        | T.Entity.Creature -> Color.red
-        | T.Entity.Item -> Color.yellow
-        | T.Entity.Corpse -> Color.gray
-        | T.Entity.Other _ -> Color.gray
+        match entity with
+        | T.Entity.Player _ -> Color.white
+        | T.Entity.Creature _ -> Color.red
+        | T.Entity.Item _ -> Color.yellow
+        | T.Entity.Corpse _ -> Color.gray
       in
-      render_cell entity.glyph color fc entity.pos);
+      let e = T.Entity.get_base entity in
+      render_cell e.glyph color fc e.pos);
 
   if Rl_core.State.get_debug backend then render_fps fc;
   None
@@ -101,14 +103,8 @@ let handle_mouse (state : State.t) =
   if is_mouse_button_pressed MouseButton.Left then
     let mouse_pos = get_mouse_position () in
     let tile_pos = R.screen_to_grid mouse_pos in
-    let player = Backend.get_player state.backend in
-    let actor_id =
-      match player.data with
-      | Some (T.Entity.PlayerData { actor_id; _ }) -> actor_id
-      | _ -> failwith "Player entity does not have a valid actor_id"
-    in
-
-    let b = Backend.move_entity state.backend actor_id tile_pos in
+    let player_id = Backend.get_player_id state.backend in
+    let b = Backend.move_entity state.backend player_id tile_pos in
     { state with backend = b }
   else state
 
@@ -118,13 +114,11 @@ let handle_player_input (state : State.t) : State.t =
   match I.action_from_keys () with
   | Some action ->
       Ui_log.info (fun m -> m "Player action: %s" (T.Action.to_string action));
-      let entity = Backend.get_player state.backend in
-      let actor_id =
-        match entity.data with
-        | Some (T.Entity.PlayerData { actor_id; _ }) -> actor_id
-        | _ -> failwith "Player entity does not have a valid actor_id"
+      let entity = Backend.get_player_entity state.backend in
+      let backend =
+        Backend.queue_actor_action state.backend (T.Entity.get_base entity).id
+          action
       in
-      let backend = Backend.queue_actor_action state.backend actor_id action in
       { state with backend = Backend.set_mode backend T.CtrlMode.Normal }
   | None -> state
 

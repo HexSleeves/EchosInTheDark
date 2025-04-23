@@ -114,7 +114,7 @@ let create_initial_state (config : init_config) =
       Backend.spawn_creature sub_backend
         ~pos:(T.Loc.add player_start (T.Loc.make 1 1))
         ~direction:T.Direction.North ~species:"Rat" ~health:10 ~glyph:"r"
-        ~name:"Rat" ~actor_id:1 ~description:"A small, brown rodent."
+        ~name:"Rat" ~description:"A small, brown rodent."
     in
     sub_backend
   in

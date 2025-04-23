@@ -191,11 +191,11 @@ let transition_to_previous_level backend multi_level ~config =
   (* Position player at stairs_down in previous level *)
 
 (* Update the action handler to integrate with game_state *)
-let handle_action (game_state : game_state) (entity_id : Types.entity_id)
+let handle_action (game_state : game_state) (id : Types.id)
     (action : Action.action_type) : (game_state, exn) Result.t =
   match action with
   | StairsDown ->
-      (match can_use_stairs_down game_state entity_id with
+      (match can_use_stairs_down game_state id with
       | true ->
           let backend, multi_level =
             transition_to_next_level game_state.backend game_state.multi_level ~config
@@ -205,7 +205,7 @@ let handle_action (game_state : game_state) (entity_id : Types.entity_id)
           Error (Failure "Cannot use stairs down"))
 
   | StairsUp ->
-      (match can_use_stairs_up game_state entity_id with
+      (match can_use_stairs_up game_state id with
       | true ->
           let backend, multi_level =
             transition_to_previous_level game_state.backend game_state.multi_level ~config
@@ -216,7 +216,7 @@ let handle_action (game_state : game_state) (entity_id : Types.entity_id)
 
   | _ ->
       (* Handle other actions using existing logic *)
-      match Actions.handle_action ctx entity_id action with
+      match Actions.handle_action ctx id action with
       | Ok cost -> (* Process action normally *) Ok game_state
       | Error e -> Error e
 ```

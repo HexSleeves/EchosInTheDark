@@ -25,9 +25,7 @@ let create ?(title = "Rougelike Tutorial 2025")
   let open Raylib in
   set_config_flags [ ConfigFlags.Window_resizable; ConfigFlags.Vsync_hint ];
 
-  (* This is needed to get the monitor dimensions. *)
   (* Creates a window of the monitor size. *)
-  (* init_window 0 0 title; *)
   init_window 1280 720 title;
   set_window_min_size 1280 720;
 
@@ -46,14 +44,15 @@ let create ?(title = "Rougelike Tutorial 2025")
   let num_tiles_w = int_of_float (target_w /. float_of_int tile_width) in
   let window_w = num_tiles_w * tile_width in
 
+  Ui_log.info (fun m -> m "Target size: [%f %f]" target_w target_h);
   Ui_log.info (fun m -> m "Num tiles: [%d %d]" num_tiles_w num_tiles_h);
   Ui_log.info (fun m -> m "Window size: [%d %d]" window_w window_h);
 
   set_target_fps 60;
 
   (* Set window size and min size *)
-  set_window_size window_w window_h;
-  set_window_min_size window_w window_h;
+  (* set_window_size window_w window_h; *)
+  (* set_window_min_size window_w window_h; *)
 
   (* Center window on monitor *)
   set_window_position

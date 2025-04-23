@@ -1,135 +1,117 @@
 open Base
 open Types
 
-type t = Entity.entity Map.M(Int).t
-
-type partial_entity = {
-  pos : Loc.t;
-  name : string;
-  glyph : string;
-  description : string option;
-  direction : Direction.t;
-  kind : Entity.entity_kind;
-  data : Entity.entity_data option;
-}
+type t = Entity.t Map.M(Int).t
 
 let create () : t = Map.empty (module Int)
-let add (mgr : t) (ent : Entity.entity) : t = Map.set mgr ~key:ent.id ~data:ent
-let remove (mgr : t) (id : int) : t = Map.remove mgr id
-let find (mgr : t) (id : int) : Entity.entity option = Map.find mgr id
 
-let find_unsafe (mgr : t) (id : int) : Entity.entity =
+let add (mgr : t) (ent : Entity.t) : t =
+  let id =
+    match ent with
+    | Entity.Player (base, _)
+    | Entity.Creature (base, _)
+    | Entity.Item (base, _)
+    | Entity.Corpse base ->
+        base.id
+  in
+  Map.set mgr ~key:id ~data:ent
+
+let remove (mgr : t) (id : int) : t = Map.remove mgr id
+let find (mgr : t) (id : int) : Entity.t option = Map.find mgr id
+
+let find_unsafe (mgr : t) (id : int) : Entity.t =
   match find mgr id with
   | Some ent -> ent
   | None -> failwith (Printf.sprintf "Entity not found: %d" id)
 
-let find_by_pos (mgr : t) (pos : Loc.t) : Entity.entity option =
+let find_by_pos (mgr : t) (pos : Loc.t) : Entity.t option =
   Map.fold mgr ~init:None ~f:(fun ~key:_ ~data acc ->
       match acc with
       | Some _ -> acc
-      | None -> if Loc.equal pos data.pos then Some data else None)
+      | None ->
+          let base =
+            match data with
+            | Entity.Player (base, _)
+            | Entity.Creature (base, _)
+            | Entity.Item (base, _)
+            | Entity.Corpse base ->
+                base
+          in
+          if Loc.equal pos base.pos then Some data else None)
 
-let update (mgr : t) (id : int) (f : Entity.entity -> Entity.entity) : t =
+let update (mgr : t) (id : int) (f : Entity.t -> Entity.t) : t =
   match Map.find mgr id with
   | Some ent -> Map.set mgr ~key:id ~data:(f ent)
   | None -> mgr
 
-let to_list (mgr : t) : Entity.entity list = Map.data mgr
+let to_list (mgr : t) : Entity.t list = Map.data mgr
 
-let add_entity (mgr : t) (p : partial_entity) : t * int * Entity.entity =
-  let id : Entity.entity_id =
-    match Map.max_elt mgr with Some (max_id, _) -> max_id + 1 | None -> 0
+let next_id (mgr : t) : int =
+  match Map.max_elt mgr with Some (max_id, _) -> max_id + 1 | None -> 0
+
+let add_entity (mgr : t) (ent : Entity.t) : t * int * Entity.t =
+  let id = next_id mgr in
+  let ent =
+    match ent with
+    | Entity.Player (base, data) -> Entity.Player ({ base with id }, data)
+    | Entity.Creature (base, data) -> Entity.Creature ({ base with id }, data)
+    | Entity.Item (base, data) -> Entity.Item ({ base with id }, data)
+    | Entity.Corpse base -> Entity.Corpse { base with id }
   in
-  let entity : Entity.entity =
+  (Map.set mgr ~key:id ~data:ent, id, ent)
+
+let copy (t : t) : t = t
+let restore (_t : t) (src : t) : t = src
+
+let spawn_player (em : t) ~pos ~direction =
+  let id = next_id em in
+  let base =
     {
-      id;
-      name = p.name;
-      glyph = p.glyph;
-      description = p.description;
-      kind = p.kind;
-      pos = p.pos;
-      direction = p.direction;
-      data = p.data;
+      Entity.id;
+      pos;
+      name = "Player";
+      glyph = "@";
+      description = Some "This is you!";
+      direction;
     }
   in
-  (Map.set mgr ~key:id ~data:entity, id, entity)
-
-let copy (t : t) : t = t (* Map is persistent, so this is just identity *)
-let restore (_t : t) (src : t) : t = src (* Just return the source *)
-
-(* --- spawner.ml --- *)
-let spawn_player (em : t) ~pos ~direction ~actor_id =
-  {
-    pos;
-    direction;
-    id = 0;
-    glyph = "@";
-    name = "Player";
-    kind = Player;
-    description = Some "This is you!";
-    data = Some (PlayerData { stats = Types.Stats.default; actor_id });
-  }
-  |> add em
+  let player_data : Entity.player_data = { stats = Types.Stats.default } in
+  let ent = Entity.Player (base, player_data) in
+  add em ent
 
 let spawn_creature (em : t) ~pos ~direction ~species ~health ~glyph ~name
-    ~actor_id ~description =
-  let entity : partial_entity =
+    ~description =
+  let id = next_id em in
+  let base =
+    { Entity.id; pos; name; glyph; description = Some description; direction }
+  in
+  let creature_data : Entity.creature_data =
     {
-      pos;
-      direction;
-      glyph;
-      name;
-      description = Some description;
-      kind = Creature;
-      data =
-        Some
-          (CreatureData
-             {
-               species;
-               actor_id;
-               stats =
-                 Types.Stats.create ~max_hp:health ~hp:health ~attack:10
-                   ~defense:5 ~speed:100;
-             });
+      species;
+      stats =
+        Types.Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5
+          ~speed:100;
     }
   in
-  add_entity em entity
+  let ent = Entity.Creature (base, creature_data) in
+  add_entity em ent
 
 let spawn_item (em : t) ~pos ~direction ~item_type ~quantity ~name ~glyph
     ?(description = None) () =
-  {
-    pos;
-    glyph;
-    name;
-    direction;
-    description;
-    kind = Item;
-    data =
-      Some
-        (ItemData
-           {
-             item =
-               Types.Item.create ~item_type ~quantity ~name ~description:None ();
-           });
-  }
-  |> add_entity em
-(* --- spawner.ml --- *)
+  let id = next_id em in
+  let base = { Entity.id; pos; name; glyph; description; direction } in
+  let item =
+    Types.Item.create ~item_type ~quantity ~name ~description:None ()
+  in
+  let ent = Entity.Item (base, { Entity.item }) in
+  add_entity em ent
 
-(** [update_entity_stats mgr entity_id f] applies [f] to the stats of the entity
-    with [entity_id], if it is a Player or Creature. Returns the updated entity
-    manager. *)
-let update_entity_stats (mgr : t) (entity_id : Entity.entity_id)
-    (f : Stats.t -> Stats.t) : t =
-  update mgr entity_id (fun entity ->
-      let update_stats data =
-        match data with
-        | Types.Entity.PlayerData { stats; actor_id } ->
-            Some (Types.Entity.PlayerData { stats = f stats; actor_id })
-        | Types.Entity.CreatureData { stats; actor_id; species } ->
-            Some
-              (Types.Entity.CreatureData { stats = f stats; actor_id; species })
-        | _ -> Some data
-      in
-      match entity.data with
-      | Some data -> { entity with data = update_stats data }
-      | None -> entity)
+let update_entity_stats (mgr : t) (id : Entity.id) (f : Stats.t -> Stats.t) : t
+    =
+  update mgr id (fun entity ->
+      match entity with
+      | Entity.Player (base, data) ->
+          Entity.Player (base, { stats = f data.stats })
+      | Entity.Creature (base, data) ->
+          Entity.Creature (base, { data with stats = f data.stats })
+      | _ -> entity)

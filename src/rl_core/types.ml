@@ -67,32 +67,37 @@ end
 (* ENTITY TYPES *)
 
 module Entity = struct
-  type entity_id = int [@@deriving yojson, show]
+  type id = int [@@deriving yojson, show]
 
-  type entity_kind = Player | Creature | Item | Corpse | Other of string
-  [@@deriving yojson, show]
-
-  (* Data specific to each entity kind *)
-  type entity_data =
-    | PlayerData of { stats : Stats.t; actor_id : int }
-    | CreatureData of { species : string; stats : Stats.t; actor_id : int }
-    | ItemData of { item : Item.t }
-  [@@deriving yojson, show]
-
-  type entity = {
-    id : entity_id;
+  type base_entity = {
+    id : id;
     pos : Loc.t;
     name : string;
     glyph : string;
     description : string option;
     direction : Direction.t;
-    kind : entity_kind;
-    data : entity_data option;
   }
   [@@deriving yojson, show]
 
-  (* Player reference type *)
-  type player = { entity_id : entity_id } [@@deriving yojson, show]
+  type player_data = { stats : Stats.t } [@@deriving yojson, show]
+
+  type creature_data = { species : string; stats : Stats.t }
+  [@@deriving yojson, show]
+
+  type item_data = { item : Item.t } [@@deriving yojson, show]
+
+  type t =
+    | Player of base_entity * player_data
+    | Creature of base_entity * creature_data
+    | Item of base_entity * item_data
+    | Corpse of base_entity
+  [@@deriving yojson, show]
+
+  let get_base = function
+    | Player (base, _) -> base
+    | Creature (base, _) -> base
+    | Item (base, _) -> base
+    | Corpse base -> base
 end
 
 module Action = struct
@@ -103,10 +108,10 @@ module Action = struct
   | Variant         | Description                                      | Parameters         |
   |-----------------|--------------------------------------------------|--------------------|
   | Move            | Move the actor in a direction if possible         | direction          |
-  | Interact        | Interact with an entity (door, lever, etc.)       | entity_id          |
-  | Pickup          | Pick up an item from the ground                   | entity_id          |
-  | Drop            | Drop an item from inventory                       | entity_id          |
-  | Attack          | Attack another entity (combat)                    | entity_id          |
+  | Interact        | Interact with an entity (door, lever, etc.)       | id          |
+  | Pickup          | Pick up an item from the ground                   | id          |
+  | Drop            | Drop an item from inventory                       | id          |
+  | Attack          | Attack another entity (combat)                    | id          |
   | StairsUp        | Use stairs to go up a level                       | -                  |
   | StairsDown      | Use stairs to go down a level                     | -                  |
   | Wait            | Do nothing for a turn                             | -                  |
@@ -114,10 +119,10 @@ module Action = struct
 
   type t =
     | Move of Direction.t
-    | Interact of Entity.entity_id
-    | Pickup of Entity.entity_id
-    | Drop of Entity.entity_id
-    | Attack of Entity.entity_id
+    | Interact of Entity.id
+    | Pickup of Entity.id
+    | Drop of Entity.id
+    | Attack of Entity.id
     | StairsUp
     | StairsDown
     | Wait

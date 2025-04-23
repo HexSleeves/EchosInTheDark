@@ -2,16 +2,17 @@ module Actor = Actor_manager.Actor
 module EntityManager = Entity_manager
 module Tile = Map.Tile
 module Tilemap = Map.Tilemap
+module Entity = Types.Entity
 
 type t = {
   seed : int;
   debug : bool;
+  player_id : Entity.id;
   mode : Types.CtrlMode.t;
   random : Random.State.t;
   entities : EntityManager.t;
   actor_manager : Actor_manager.t;
   turn_queue : Turn_queue.t;
-  player : Types.Entity.player;
   map_manager : Map_manager.t;
 }
 
@@ -37,7 +38,7 @@ let make ~debug ~w ~h ~seed =
     turn_queue;
     map_manager;
     mode = Types.CtrlMode.Normal;
-    player = { entity_id = 0 };
+    player_id = 0;
   }
 
 let get_debug (state : t) : bool = state.debug
@@ -69,27 +70,39 @@ let set_map_manager (state : t) (map_manager : Map_manager.t) : t =
   { state with map_manager }
 
 (* Entity *)
-let get_player (state : t) : Types.Entity.entity =
-  EntityManager.find_unsafe (get_entities_manager state) state.player.entity_id
+let get_player_id (state : t) : Types.Entity.id = state.player_id
 
-let get_entity (state : t) (entity_id : Types.Entity.entity_id) :
-    Types.Entity.entity option =
-  EntityManager.find (get_entities_manager state) entity_id
+let get_player_entity (state : t) : Types.Entity.t =
+  EntityManager.find_unsafe (get_entities_manager state) state.player_id
 
-let get_entity_at_pos (state : t) (pos : Types.Loc.t) :
-    Types.Entity.entity option =
+let get_entity (state : t) (id : Types.Entity.id) : Types.Entity.t option =
+  EntityManager.find (get_entities_manager state) id
+
+let get_base_entity (state : t) (id : Types.Entity.id) :
+    Types.Entity.base_entity =
+  EntityManager.find_unsafe (get_entities_manager state) id |> Entity.get_base
+
+let get_entity_at_pos (state : t) (pos : Types.Loc.t) : Types.Entity.t option =
   EntityManager.find_by_pos (get_entities_manager state) pos
 
-let get_entities (state : t) : Types.Entity.entity list =
+let get_entities (state : t) : Types.Entity.t list =
   EntityManager.to_list (get_entities_manager state)
 
-let move_entity (state : t) (entity_id : Types.Entity.entity_id)
-    (loc : Types.Loc.t) : t =
+let move_entity (state : t) (id : Types.Entity.id) (loc : Types.Loc.t) : t =
+  let open Types.Entity in
   let new_entities =
-    EntityManager.update (get_entities_manager state) entity_id (fun ent ->
-        { ent with pos = loc })
+    EntityManager.update (get_entities_manager state) id (fun ent ->
+        match ent with
+        | Player (base, data) -> Player ({ base with pos = loc }, data)
+        | Creature (base, data) -> Creature ({ base with pos = loc }, data)
+        | Item (base, data) -> Item ({ base with pos = loc }, data)
+        | Corpse base -> Corpse { base with pos = loc })
   in
   set_entities_manager state new_entities
+
+let remove_entity (state : t) (id : Types.Entity.id) : t =
+  let entities = EntityManager.remove (get_entities_manager state) id in
+  set_entities_manager state entities
 
 (* Actor manager *)
 let get_actor (state : t) (actor_id : Actor.actor_id) : Actor.t option =
@@ -147,14 +160,12 @@ let transition_to_next_level (state : t) =
   in
 
   (* Position player at stairs_up in new level *)
-  let player = get_player state in
+  let player = get_player_entity state in
   match new_map.Tilemap.stairs_up with
   | Some stairs_pos ->
-      let state = move_entity state player.id stairs_pos in
+      let state = move_entity state (Entity.get_base player).id stairs_pos in
       ({ state with map_manager }, map_manager)
-  | None ->
-      (* Shouldn't happen since we always have stairs up except on level 1 *)
-      ({ state with map_manager }, map_manager)
+  | None -> ({ state with map_manager }, map_manager)
 
 let transition_to_previous_level state =
   (* Save current level state *)
@@ -181,70 +192,32 @@ let transition_to_previous_level state =
   in
 
   (* Position player at stairs_down in previous level *)
-  let player = get_player state in
+  let player = get_player_entity state in
   match new_map.Tilemap.stairs_down with
   | Some stairs_pos ->
-      let state = move_entity state player.id stairs_pos in
+      let state = move_entity state (Entity.get_base player).id stairs_pos in
       ({ state with map_manager }, map_manager)
-  | None ->
-      (* Shouldn't happen since we always have stairs down except on last level *)
-      ({ state with map_manager }, map_manager)
+  | None -> ({ state with map_manager }, map_manager)
 
 (* ////////////////////////////// *)
 (* ACTION HANDLING *)
 (* ////////////////////////////// *)
 
-let spawn_player_entity (state : t) ~pos ~direction ~actor_id : t =
+let spawn_player_entity (state : t) ~pos ~direction : t =
   let entities =
-    EntityManager.spawn_player
-      (get_entities_manager state)
-      ~pos ~direction ~actor_id
+    EntityManager.spawn_player (get_entities_manager state) ~pos ~direction
   in
   set_entities_manager state entities
 
 let spawn_creature_entity (state : t) ~pos ~direction ~species ~health ~glyph
-    ~name ~actor_id ~description : t * int =
+    ~name ~description : t * int =
   let entities, creature_actor_id, _new_entity =
     EntityManager.spawn_creature
       (get_entities_manager state)
-      ~pos ~direction ~species ~health ~glyph ~name ~actor_id ~description
+      ~pos ~direction ~species ~health ~glyph ~name ~description
   in
   (set_entities_manager state entities, creature_actor_id)
 
-let schedule_turn_now (state : t) (entity_id : Types.Entity.entity_id) : t =
-  let turn_queue = Turn_queue.schedule_now (get_turn_queue state) entity_id in
+let schedule_turn_now (state : t) (id : Types.Entity.id) : t =
+  let turn_queue = Turn_queue.schedule_now (get_turn_queue state) id in
   set_turn_queue state turn_queue
-
-(* ////////////////////////////// *)
-(* ENTITY MANAGEMENT *)
-(* ////////////////////////////// *)
-
-let update_entity_stats (state : t) (entity_id : Types.Entity.entity_id)
-    (f : Types.Stats.t -> Types.Stats.t) : t =
-  let entities =
-    EntityManager.update_entity_stats (get_entities_manager state) entity_id f
-  in
-  set_entities_manager state entities
-
-let handle_entity_death (state : t) (entity_id : Types.Entity.entity_id) : t =
-  let state =
-    match get_entity state entity_id with
-    | Some entity -> (
-        (* Remove from entity manager *)
-        let entities =
-          EntityManager.remove (get_entities_manager state) entity_id
-        in
-        let state = set_entities_manager state entities in
-        (* Remove from actor manager and turn queue if actor *)
-        match entity.data with
-        | Some (Types.Entity.PlayerData { actor_id; _ })
-        | Some (Types.Entity.CreatureData { actor_id; _ }) ->
-            let state = remove_actor state actor_id in
-            let turn_queue =
-              Turn_queue.remove_actor (get_turn_queue state) entity_id
-            in
-            set_turn_queue state turn_queue
-        | _ -> state)
-    | None -> state
-  in
-  state

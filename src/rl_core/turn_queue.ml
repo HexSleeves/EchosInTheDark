@@ -1,10 +1,10 @@
 open Core
 open Types
 
-(* Persistent min-heap of (time, entity_id) using a sorted list *)
+(* Persistent min-heap of (time, id) using a sorted list *)
 type t = {
   current_time : int;
-  turn_queue : (int * Entity.entity_id) list; (* Sorted by time ascending *)
+  turn_queue : (int * Entity.id) list; (* Sorted by time ascending *)
 }
 
 let create () = { current_time = 0; turn_queue = [] }
@@ -25,30 +25,30 @@ let rec insert_sorted queue (time, entity) =
   | (t, _) :: _ when time < t -> (time, entity) :: queue
   | (t, e) :: rest -> (t, e) :: insert_sorted rest (time, entity)
 
-let schedule_turn t (entity : Entity.entity_id) (next_time : int) =
+let schedule_turn t (entity : Entity.id) (next_time : int) =
   { t with turn_queue = insert_sorted t.turn_queue (next_time, entity) }
 
-let schedule_now t (entity : Entity.entity_id) =
+let schedule_now t (entity : Entity.id) =
   schedule_turn t entity (current_time t)
 
-let remove_actor t (entity : Entity.entity_id) =
+let remove_actor t (entity : Entity.id) =
   {
     t with
     turn_queue = List.filter t.turn_queue ~f:(fun (_, e) -> e <> entity);
   }
 
-let get_next_actor t : (Entity.entity_id * int) option * t =
+let get_next_actor t : (Entity.id * int) option * t =
   match t.turn_queue with
   | [] -> (None, t)
-  | (time, entity_id) :: rest ->
-      (Some (entity_id, time), { current_time = time; turn_queue = rest })
+  | (time, id) :: rest ->
+      (Some (id, time), { current_time = time; turn_queue = rest })
 
-let peek_next t : (Entity.entity_id * int) option =
+let peek_next t : (Entity.id * int) option =
   match t.turn_queue with
   | [] -> None
   | (time, entity) :: _ -> Some (entity, time)
 
-let is_scheduled t (entity : Entity.entity_id) : bool =
+let is_scheduled t (entity : Entity.id) : bool =
   List.exists t.turn_queue ~f:(fun (_, e) -> e = entity)
 
 let time_until t (time : int) : int =

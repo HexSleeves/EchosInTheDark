@@ -1,7 +1,7 @@
 open Base
 
 (* Render the game over screen *)
-let render (state : State.t) : unit =
+let render (_state : State.t) : unit =
   let open Raylib in
   (* Create a semi-transparent overlay *)
   let screen_width = get_screen_width () in
