@@ -1,3 +1,4 @@
+open Base
 open Ppx_yojson_conv_lib.Yojson_conv
 
 module CtrlMode = struct
@@ -130,10 +131,10 @@ module Action = struct
 
   let to_string = function
     | Move dir -> "Move " ^ Direction.to_string dir
-    | Interact id -> "Interact " ^ string_of_int id
-    | Pickup id -> "Pickup " ^ string_of_int id
-    | Drop id -> "Drop " ^ string_of_int id
-    | Attack id -> "Attack " ^ string_of_int id
+    | Interact id -> "Interact " ^ Int.to_string id
+    | Pickup id -> "Pickup " ^ Int.to_string id
+    | Drop id -> "Drop " ^ Int.to_string id
+    | Attack id -> "Attack " ^ Int.to_string id
     | StairsUp -> "StairsUp"
     | StairsDown -> "StairsDown"
     | Wait -> "Wait"
