@@ -1,9 +1,18 @@
 open Raylib
 open Base
 
-let default_font_size = 16
-let tile_width = default_font_size
-let tile_height = default_font_size
+module Ui_constants = struct
+  let default_font_size = 20
+  let default_font_path = "resources/fonts/FiraMono-Regular.ttf"
+
+  (* Dimensions for UI elements *)
+  let log_height = 60
+  let stats_bar_width_min = 200
+  let stats_bar_width_frac = 0.2
+end
+
+let tile_width = Ui_constants.default_font_size
+let tile_height = Ui_constants.default_font_size
 
 (* Font configuration for grid rendering *)
 type font_config = { font : Font.t; font_size : int }
@@ -11,8 +20,6 @@ type font_config = { font : Font.t; font_size : int }
 (* Initialize font and measure character metrics *)
 let init_font_config ~font_path ~font_size =
   let open Raylib in
-  Ui_log.info (fun m -> m "Creating font config");
-
   let font = load_font_ex font_path font_size None in
   gen_texture_mipmaps (addr (Font.texture font));
   set_texture_filter (Font.texture font) TextureFilter.Point;
@@ -21,8 +28,8 @@ let init_font_config ~font_path ~font_size =
 
 (* Init *)
 let create ?(title = "Rougelike Tutorial 2025")
-    ?(font_path = "resources/JetBrainsMono-Regular")
-    ?(font_size = default_font_size) () =
+    ?(font_path = Ui_constants.default_font_path)
+    ?(font_size = Ui_constants.default_font_size) () =
   let open Raylib in
   set_config_flags [ ConfigFlags.Window_resizable; ConfigFlags.Vsync_hint ];
 
@@ -60,9 +67,7 @@ let create ?(title = "Rougelike Tutorial 2025")
     ((monitor_w / 2) - (window_w / 2))
     ((monitor_h / 2) - (window_h / 2));
 
-  let font_config = init_font_config ~font_path ~font_size in
-
-  font_config
+  init_font_config ~font_path ~font_size
 
 (** [cleanup font_config] unloads the font and closes the Raylib window. *)
 let cleanup (fc : font_config) =
@@ -74,15 +79,23 @@ let cleanup (fc : font_config) =
 module T = Rl_core.Map.Tile
 
 (* Get glyph and color for a tile *)
-let[@warning "-11"] tile_glyph_and_color (tile : T.t) : string * Color.t =
-  match tile with
-  | T.Wall -> ("#", Color.gray)
-  | T.Floor -> (".", Color.lightgray)
-  | T.Stairs_up -> ("<", Color.gold)
-  | T.Stairs_down -> (">", Color.orange)
-  | _ ->
-      Stdlib.Format.eprintf "Warning: Unhandled tile type encountered@.";
-      ("?", Color.red)
+let[@warning "-11"] tile_glyph_and_color (tile : T.t) : char * Color.t =
+  let glyph = Rl_core.Map.Tile.tile_to_glyph tile in
+  let color =
+    match tile with
+    | T.Wall -> Color.gray
+    | T.Floor -> Color.lightgray
+    | T.Stairs_up -> Color.gold
+    | T.Stairs_down -> Color.orange
+    | T.Trap -> Color.red
+    | T.Secret_door -> Color.purple
+    | T.River -> Color.blue
+    | T.Chasm -> Color.darkgray
+    | _ ->
+        Stdlib.Format.eprintf "Warning: Unhandled tile type encountered@.";
+        Color.red
+  in
+  (glyph, color)
 
 (* Map grid (tile) position to screen position using FontConfig *)
 let grid_to_screen (loc : Rl_core.Types.Loc.t) =
@@ -176,18 +189,21 @@ let render_map_tiles ~tiles ~width ~skip_positions ~font_config ~origin =
           let base = grid_to_screen loc in
           Raylib.Vector2.add base origin
         in
+
         let font_size = Float.of_int font_config.font_size in
         let glyph_size =
-          Raylib.measure_text_ex font_config.font glyph font_size 0.
+          Raylib.measure_text_ex font_config.font (String.make 1 glyph)
+            font_size 0.
         in
+
         let offset =
           Raylib.Vector2.create
             ((Float.of_int tile_width -. Raylib.Vector2.x glyph_size) /. 2.)
             ((Float.of_int tile_height -. Raylib.Vector2.y glyph_size) /. 2.)
         in
         let centered_pos = Raylib.Vector2.add screen_pos offset in
-        Raylib.draw_text_ex font_config.font glyph centered_pos font_size 0.
-          color)
+        Raylib.draw_text_ex font_config.font (String.make 1 glyph) centered_pos
+          font_size 0. color)
 
 (* Utility: Render all entities *)
 let render_entities ~entities ~font_config ~origin =
@@ -244,12 +260,11 @@ let draw_message_log ~messages ~rect =
   let y = Int.of_float (Rectangle.y rect) + padding in
   let line_height = 20 in
   draw_rectangle_rec rect Color.black;
-  let n = List.length messages in
+  draw_rectangle_lines
+    (Int.of_float (Rectangle.x rect))
+    (Int.of_float (Rectangle.y rect))
+    (Int.of_float (Rectangle.width rect))
+    (Int.of_float (Rectangle.height rect))
+    Color.white;
   List.iteri messages ~f:(fun i msg ->
       draw_text msg x (y + (i * line_height)) 18 Color.lightgray)
-
-module Ui_constants = struct
-  let log_height = 60
-  let stats_bar_width_min = 200
-  let stats_bar_width_frac = 0.2
-end

@@ -7,7 +7,7 @@ type font_config = { font : Font.t; font_size : int }
 val create :
   ?title:string -> ?font_path:string -> ?font_size:int -> unit -> font_config
 
-val tile_glyph_and_color : Rl_core.Map.Tile.t -> string * Color.t
+val tile_glyph_and_color : Rl_core.Map.Tile.t -> char * Color.t
 val grid_to_screen : Rl_core.Types.Loc.t -> Vector2.t
 val screen_to_grid : Vector2.t -> Rl_core.Types.Loc.t
 

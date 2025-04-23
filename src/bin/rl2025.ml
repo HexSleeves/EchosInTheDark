@@ -50,9 +50,8 @@ let () =
   let map_h = screen_h - log_h in
 
   (* 3. Compute font size and map size *)
-  let font_size = font_config.font_size in
-  let map_width_tiles = map_w / font_size in
-  let map_height_tiles = map_h / font_size in
+  let map_width_tiles = map_w / font_config.font_size in
+  let map_height_tiles = map_h / font_config.font_size in
 
   let config =
     {

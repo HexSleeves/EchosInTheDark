@@ -54,20 +54,114 @@ let pick_random lst ~rng ~(n : int) =
   let sorted = List.take (List.rev lst) n in
   List.nth_exn sorted (Random.State.int rng (List.length sorted))
 
+(* Algorithm type for map generation *)
+type algorithm =
+  | CA
+  | Rooms
+  | Blend of algorithm list
+  | Prefab of string (* filename *)
+
+let is_special_tile = function
+  | Tile.Stairs_up | Tile.Stairs_down -> true
+  | _ -> false
+
+let blend_grids (base : Tile.t array) (overlay : Tile.t array) : Tile.t array =
+  Array.mapi base ~f:(fun i t ->
+      let o = overlay.(i) in
+      if is_special_tile t then t else if Tile.equal o Tile.Wall then t else o)
+
+let rec run_algorithm (algo : algorithm) ~width ~height ~rng =
+  match algo with
+  | Prefab filename -> Prefab.load_prefab filename ~width ~height
+  | CA -> CA.run ~width ~height ~rng
+  | Rooms -> Rooms.rooms_generator ~width ~height ~rng
+  | Blend algos -> (
+      match algos with
+      | [] -> CA.run ~width ~height ~rng
+      | first :: rest ->
+          let base = run_algorithm first ~width ~height ~rng in
+          List.fold_left rest ~init:base ~f:(fun acc a ->
+              let overlay = run_algorithm a ~width ~height ~rng in
+              blend_grids acc overlay))
+
 (** Generate a map for a specific [level] within [total_levels] using [config].
 *)
 let generate ~(config : Config.t) ~(level : int) : Tilemap.t =
-  (* Vary seed per level for unique layouts *)
   let seed = config.seed + level in
   let rng = Random.State.make [| seed |] in
   let total_levels = config.max_levels in
-
-  (* Run cellular automata to get raw grid *)
-  let grid = CA.run ~width:config.width ~height:config.height ~rng in
-
   let width = config.width in
   let height = config.height in
 
+  (* Select algorithm per level *)
+  let algorithm =
+    if level = 1 then Prefab "resources/prefabs/level1.txt"
+    else Blend [ CA; Rooms ]
+  in
+  let grid = run_algorithm algorithm ~width ~height ~rng in
+
+  (* --- Add environmental features: rivers and chasms --- *)
+  let carve_path ~tile ~length ~rng grid ~width ~height =
+    let x = 1 + Random.State.int rng (width - 2) in
+    let y = 1 + Random.State.int rng (height - 2) in
+    let rec walk n x y =
+      if n = 0 then ()
+      else
+        let idx = x + (y * width) in
+        if Tile.is_floor grid.(idx) then grid.(idx) <- tile;
+        let dirs = [ (1, 0); (-1, 0); (0, 1); (0, -1) ] in
+        let dx, dy = List.nth_exn dirs (Random.State.int rng 4) in
+        let nx = Int.max 1 (Int.min (x + dx) (width - 2)) in
+        let ny = Int.max 1 (Int.min (y + dy) (height - 2)) in
+        walk (n - 1) nx ny
+    in
+    walk length x y
+  in
+  (* Chance to generate a river *)
+  let river_roll = Random.State.float rng 1.0 in
+  if Float.compare river_roll 0.5 < 0 then
+    carve_path ~tile:Tile.River ~length:(width + height) ~rng grid ~width
+      ~height;
+
+  (* Chance to generate a chasm *)
+  let chasm_roll = Random.State.float rng 1.0 in
+  if Float.compare chasm_roll 0.3 < 0 then
+    carve_path ~tile:Tile.Chasm
+      ~length:((width / 2) + (height / 2))
+      ~rng grid ~width ~height;
+
+  (* --- Add traps --- *)
+  let trap_count = width * height / 100 in
+  let placed = ref 0 in
+  while !placed < trap_count do
+    let x = 1 + Random.State.int rng (width - 2) in
+    let y = 1 + Random.State.int rng (height - 2) in
+    let idx = x + (y * width) in
+    if Tile.is_floor grid.(idx) then (
+      grid.(idx) <- Tile.Trap;
+      Int.incr placed)
+  done;
+
+  (* --- Add secret doors --- *)
+  let secret_door_count = (width + height) / 20 in
+  let placed = ref 0 in
+  while !placed < secret_door_count do
+    let x = 1 + Random.State.int rng (width - 2) in
+    let y = 1 + Random.State.int rng (height - 2) in
+    let idx = x + (y * width) in
+    if Tile.equal grid.(idx) Tile.Wall then
+      let neighbors = [ (x - 1, y); (x + 1, y); (x, y - 1); (x, y + 1) ] in
+      let floor_neighbors =
+        List.filter neighbors ~f:(fun (nx, ny) ->
+            nx >= 0 && nx < width && ny >= 0 && ny < height
+            && Tile.is_floor grid.(nx + (ny * width)))
+      in
+      if List.length floor_neighbors >= 2 then (
+        grid.(idx) <- Tile.Secret_door;
+        Int.incr placed)
+  done;
+
+  (* --- End environmental features --- *)
   Core_log.info (fun m -> m "Generating map for level %d" level);
 
   let random_floor = find_random_floor grid ~width ~height ~rng in

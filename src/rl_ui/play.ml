@@ -54,27 +54,14 @@ let render (state : State.t) : State.t option =
   let entities = Backend.get_entities backend in
   let entity_positions = R.occupied_positions entities in
   let current_map = Backend.get_current_map backend in
-
-  (* Compute font size to fit map in map_rect *)
-  let map_width_tiles = current_map.width in
-  let map_height_tiles = Array.length current_map.map / current_map.width in
-  let tile_w = Float.of_int map_w /. Float.of_int map_width_tiles in
-  let tile_h = Float.of_int map_h /. Float.of_int map_height_tiles in
-  let font_size = Int.of_float (Float.min tile_w tile_h) in
-  let map_font_config =
-    Renderer.init_font_config ~font_path:"resources/JetBrainsMono-Regular"
-      ~font_size
-  in
   let map_origin =
     Raylib.Vector2.create
       (Float.of_int (Int.of_float (Raylib.Rectangle.x map_rect)))
       (Float.of_int (Int.of_float (Raylib.Rectangle.y map_rect)))
   in
-
   R.render_map_tiles ~tiles:current_map.map ~width:current_map.width
-    ~skip_positions:entity_positions ~font_config:map_font_config
-    ~origin:map_origin;
-  R.render_entities ~entities ~font_config:map_font_config ~origin:map_origin;
+    ~skip_positions:entity_positions ~font_config:fc ~origin:map_origin;
+  R.render_entities ~entities ~font_config:fc ~origin:map_origin;
 
   (* Render stats bar *)
   let player = Backend.get_player_entity backend in
