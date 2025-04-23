@@ -13,7 +13,6 @@ module R = Renderer
 module T = Rl_core.Types
 module I = Rl_core.Input
 module Backend = Rl_core.Backend
-module Ui_constants = R.Ui_constants
 
 module PosSet = struct
   module T = struct
@@ -26,16 +25,15 @@ end
 
 let render (state : State.t) : State.t option =
   let backend = state.backend in
-  let fc = state.font_config in
+  let ctx = state.render_ctx in
 
   let screen_w = Raylib.get_screen_width () in
   let screen_h = Raylib.get_screen_height () in
   let stats_bar_w =
-    max Ui_constants.stats_bar_width_min
-      (Int.of_float
-         (Float.of_int screen_w *. Ui_constants.stats_bar_width_frac))
+    max Constants.stats_bar_width_min
+      (Int.of_float (Float.of_int screen_w *. Constants.stats_bar_width_frac))
   in
-  let log_h = Ui_constants.log_height in
+  let log_h = Constants.log_height in
   let map_w = screen_w - stats_bar_w in
   let map_h = screen_h - log_h in
 
@@ -52,16 +50,27 @@ let render (state : State.t) : State.t option =
   in
 
   let entities = Backend.get_entities backend in
-  let entity_positions = R.occupied_positions entities in
+  let entity_positions = Render_utils.occupied_positions entities in
   let current_map = Backend.get_current_map backend in
   let map_origin =
     Raylib.Vector2.create
       (Float.of_int (Int.of_float (Raylib.Rectangle.x map_rect)))
       (Float.of_int (Int.of_float (Raylib.Rectangle.y map_rect)))
   in
+
+  (* Debug: Print tile at player position in UI and backend *)
+  let player = Backend.get_player_entity backend in
+  let player_base = Rl_core.Types.Entity.get_base player in
+  let px, py = (player_base.pos.x, player_base.pos.y) in
+  let player_tile_index = Rl_utils.Utils.xy_to_index px py current_map.width in
+  let tile_ui = current_map.map.(player_tile_index) in
+  Ui_log.info (fun m ->
+      m "[DEBUG][ui] Player at (%d,%d) sees tile: %s" px py
+        (fst (Render_utils.tile_glyph_and_color tile_ui)));
+
   R.render_map_tiles ~tiles:current_map.map ~width:current_map.width
-    ~skip_positions:entity_positions ~font_config:fc ~origin:map_origin;
-  R.render_entities ~entities ~font_config:fc ~origin:map_origin;
+    ~skip_positions:entity_positions ~origin:map_origin ~ctx;
+  R.render_entities ~entities ~origin:map_origin ~ctx;
 
   (* Render stats bar *)
   let player = Backend.get_player_entity backend in
@@ -73,14 +82,14 @@ let render (state : State.t) : State.t option =
   in
   R.draw_message_log ~messages ~rect:log_rect;
 
-  if Rl_core.State.get_debug backend then R.draw_fps_overlay fc;
+  if Rl_core.State.get_debug backend then R.render_fps_overlay ctx.font_config;
   None
 
 let handle_mouse (state : State.t) =
   let open Raylib in
   if is_mouse_button_pressed MouseButton.Left then
     let mouse_pos = get_mouse_position () in
-    let tile_pos = R.screen_to_grid mouse_pos in
+    let tile_pos = Render_utils.screen_to_grid mouse_pos in
     let player_id = Backend.get_player_id state.backend in
     let b = Backend.move_entity state.backend player_id tile_pos in
     { state with backend = b }

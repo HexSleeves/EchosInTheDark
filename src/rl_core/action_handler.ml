@@ -95,6 +95,13 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
             Map.Tile.is_walkable
               (Map.Tilemap.get_tile (State.get_current_map state) new_pos)
           in
+          Core_log.info (fun m -> m "New pos: %s" (Loc.show new_pos));
+          Core_log.info (fun m ->
+              m "Tile: %s"
+                (Map.Tile.show
+                   (Map.Tilemap.get_tile (State.get_current_map state) new_pos)));
+          Core_log.info (fun m -> m "Walkable: %b" walkable);
+          Core_log.info (fun m -> m "In bounds: %b" in_bounds);
           match State.get_entity_at_pos state new_pos with
           | Some target_entity -> (
               let target_base = Entity.get_base target_entity in

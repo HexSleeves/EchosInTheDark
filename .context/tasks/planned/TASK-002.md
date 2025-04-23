@@ -12,22 +12,27 @@ tags: [renderer, config]
 ---
 
 ## Description
+
 Define a render_mode type (Ascii | Tiles) and add mutable state to track the current rendering mode, defaulting to Tiles.
 
 ## Objectives
+
 - Add type and state for render mode.
 - Ensure default is Tiles.
 
 ## Steps
+
 1. Define the type in renderer.ml.
 2. Add a mutable ref for the current mode.
 
 ## Progress
 
 ## Dependencies
+
 - TASK-001
 
 ## Notes
 
 ## Next Steps
+
 - Use this state in rendering logic.

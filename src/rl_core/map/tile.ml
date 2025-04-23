@@ -7,16 +7,14 @@ type t =
   | Chasm
   | Trap
   | Secret_door
+  | Tree
+  | Door
   | Unknown
 [@@deriving eq, yojson, enum, show]
 
 let is_wall = function Wall -> true | _ -> false
 let is_floor = function Floor -> true | _ -> false
-
-let is_walkable = function
-  | Wall | Chasm | Trap | Secret_door | River | Stairs_up | Stairs_down -> false
-  | _ -> true
-
+let is_walkable = function Wall | Tree | Door -> false | _ -> true
 let is_trap = function Trap -> true | _ -> false
 let is_secret_door = function Secret_door -> true | _ -> false
 
@@ -30,4 +28,6 @@ let tile_to_glyph tile =
   | Stairs_up -> '<'
   | Stairs_down -> '>'
   | Secret_door -> '+'
+  | Tree -> 'T'
+  | Door -> '+'
   | Unknown -> '?'

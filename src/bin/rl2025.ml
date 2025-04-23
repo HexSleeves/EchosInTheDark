@@ -1,5 +1,7 @@
 (* Copyright (c) 2025 Jacob LeCoq (Yendor). All rights reserved. *)
 
+module Constants = Rl_ui.Constants
+
 let () =
   (* CLI argument refs *)
   let debug = ref false in
@@ -32,30 +34,29 @@ let () =
   Logger.setup_logger level;
 
   (* 1. Create window and font config *)
-  let font_config = Rl_ui.Renderer.create () in
+  let render_ctx = Rl_ui.Renderer.create_render_context () in
 
   (* 2. Compute map area (must match your play.ml layout) *)
   let screen_w = Raylib.get_screen_width () in
   let screen_h = Raylib.get_screen_height () in
 
   let stats_bar_w =
-    max Rl_ui.Renderer.Ui_constants.stats_bar_width_min
+    max Constants.stats_bar_width_min
       (screen_w |> float_of_int
-      |> ( *. ) Rl_ui.Renderer.Ui_constants.stats_bar_width_frac
+      |> ( *. ) Constants.stats_bar_width_frac
       |> int_of_float)
   in
-  let log_h = Rl_ui.Renderer.Ui_constants.log_height in
+  let log_h = Constants.log_height in
 
   let map_w = screen_w - stats_bar_w in
   let map_h = screen_h - log_h in
 
   (* 3. Compute font size and map size *)
-  let map_width_tiles = map_w / font_config.font_size in
-  let map_height_tiles = map_h / font_config.font_size in
+  let map_width_tiles = map_w / render_ctx.font_config.font_size in
+  let map_height_tiles = map_h / render_ctx.font_config.font_size in
 
-  let config =
+  let config : Rl_ui.Modules.init_config =
     {
-      Rl_ui.Modules.font_config;
       seed = !seed;
       debug = !debug;
       width = map_width_tiles;
@@ -65,4 +66,4 @@ let () =
   in
 
   Logs.info (fun m -> m "Starting main");
-  Rl_ui.Modules.run_with_config config
+  Rl_ui.Modules.run_with_config render_ctx config

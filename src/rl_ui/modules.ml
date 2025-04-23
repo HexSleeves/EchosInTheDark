@@ -19,7 +19,6 @@ type init_config = {
   height : int;
   debug : bool;
   seed : int option;
-  font_config : Renderer.font_config;
   backend : Backend.t option;
 }
 
@@ -87,10 +86,12 @@ let main init_fn font_config =
 (* --- End mainloop.ml logic --- *)
 
 (* Create initial game state using init_config *)
-let create_initial_state (config : init_config) =
+let create_initial_state (render_ctx : R.render_context) (config : init_config)
+    =
   let seed =
     Option.value config.seed ~default:(Rl_utils.Rng.generate_seed ())
   in
+
   let backend =
     match config.backend with
     | Some b -> b
@@ -120,17 +121,12 @@ let create_initial_state (config : init_config) =
   in
 
   Logs.info (fun m -> m "Initialization done.");
-  {
-    quitting = false;
-    screen = Playing;
-    font_config = config.font_config;
-    backend;
-    (* Use the updated backend returned by the spawn functions *)
-  }
+  { backend; render_ctx; quitting = false; screen = Playing }
 
-let run_with_config (config : init_config) : unit =
+let run_with_config (render_ctx : R.render_context) (config : init_config) :
+    unit =
   let init_fn _ =
-    let state = create_initial_state config in
+    let state = create_initial_state render_ctx config in
     (state, { render; handle_tick })
   in
-  main init_fn config.font_config
+  main init_fn render_ctx.font_config

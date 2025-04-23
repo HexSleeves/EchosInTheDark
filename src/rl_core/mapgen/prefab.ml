@@ -24,8 +24,9 @@ let load_prefab filename ~width ~height =
                 | '>' -> Tile.Stairs_down
                 | '<' -> Tile.Stairs_up
                 | '~' -> Tile.River
-                | 'T' -> Tile.Trap
                 | 'S' -> Tile.Secret_door
                 | 'C' -> Tile.Chasm
+                | 'D' -> Tile.Door
+                | 'T' -> Tile.Tree
                 | _ -> Tile.Unknown)));
   grid

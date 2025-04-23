@@ -12,13 +12,16 @@ tags: [assets, tileset]
 ---
 
 ## Description
+
 Add the classic_roguelike_preview.png tileset to the resources directory and document the 8x8 tile mapping for game elements.
 
 ## Objectives
+
 - Place the tileset in the correct directory.
 - Map each game tile type to a (row, col) in the tileset.
 
 ## Steps
+
 1. Copy the PNG to `resources/`.
 2. Create a mapping table (in code or documentation) for tile types.
 
@@ -29,4 +32,5 @@ Add the classic_roguelike_preview.png tileset to the resources directory and doc
 ## Notes
 
 ## Next Steps
+
 - Use this mapping in the renderer logic.
