@@ -13,6 +13,7 @@ module R = Renderer
 module T = Rl_core.Types
 module I = Rl_core.Input
 module Backend = Rl_core.Backend
+module Ui_constants = R.Ui_constants
 
 module PosSet = struct
   module T = struct
@@ -27,13 +28,63 @@ let render (state : State.t) : State.t option =
   let backend = state.backend in
   let fc = state.font_config in
 
+  let screen_w = Raylib.get_screen_width () in
+  let screen_h = Raylib.get_screen_height () in
+  let stats_bar_w =
+    max Ui_constants.stats_bar_width_min
+      (Int.of_float
+         (Float.of_int screen_w *. Ui_constants.stats_bar_width_frac))
+  in
+  let log_h = Ui_constants.log_height in
+  let map_w = screen_w - stats_bar_w in
+  let map_h = screen_h - log_h in
+
+  let map_rect =
+    Raylib.Rectangle.create 0. 0. (Float.of_int map_w) (Float.of_int map_h)
+  in
+  let stats_rect =
+    Raylib.Rectangle.create (Float.of_int map_w) 0. (Float.of_int stats_bar_w)
+      (Float.of_int screen_h)
+  in
+  let log_rect =
+    Raylib.Rectangle.create 0. (Float.of_int map_h) (Float.of_int map_w)
+      (Float.of_int log_h)
+  in
+
   let entities = Backend.get_entities backend in
   let entity_positions = R.occupied_positions entities in
   let current_map = Backend.get_current_map backend in
 
+  (* Compute font size to fit map in map_rect *)
+  let map_width_tiles = current_map.width in
+  let map_height_tiles = Array.length current_map.map / current_map.width in
+  let tile_w = Float.of_int map_w /. Float.of_int map_width_tiles in
+  let tile_h = Float.of_int map_h /. Float.of_int map_height_tiles in
+  let font_size = Int.of_float (Float.min tile_w tile_h) in
+  let map_font_config =
+    Renderer.init_font_config ~font_path:"resources/JetBrainsMono-Regular"
+      ~font_size
+  in
+  let map_origin =
+    Raylib.Vector2.create
+      (Float.of_int (Int.of_float (Raylib.Rectangle.x map_rect)))
+      (Float.of_int (Int.of_float (Raylib.Rectangle.y map_rect)))
+  in
+
   R.render_map_tiles ~tiles:current_map.map ~width:current_map.width
-    ~skip_positions:entity_positions ~font_config:fc;
-  R.render_entities ~entities ~font_config:fc;
+    ~skip_positions:entity_positions ~font_config:map_font_config
+    ~origin:map_origin;
+  R.render_entities ~entities ~font_config:map_font_config ~origin:map_origin;
+
+  (* Render stats bar *)
+  let player = Backend.get_player_entity backend in
+  R.draw_stats_bar_vertical ~player ~rect:stats_rect;
+
+  (* Render message log (stub: use dummy messages for now) *)
+  let messages =
+    [ "Welcome to the dungeon!"; "You see a rat."; "You attack the rat." ]
+  in
+  R.draw_message_log ~messages ~rect:log_rect;
 
   if Rl_core.State.get_debug backend then R.draw_fps_overlay fc;
   None

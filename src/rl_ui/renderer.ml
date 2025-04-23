@@ -166,17 +166,90 @@ let occupied_positions (entities : Rl_core.Types.Entity.t list) :
 let index_to_xy (i : int) (width : int) : int * int = (i % width, i / width)
 
 (* Utility: Render map tiles, skipping those in skip_positions *)
-let render_map_tiles ~tiles ~width ~skip_positions ~font_config =
+let render_map_tiles ~tiles ~width ~skip_positions ~font_config ~origin =
   Array.iteri tiles ~f:(fun i t ->
       let x, y = index_to_xy i width in
       if not (Set.mem skip_positions (x, y)) then
         let glyph, color = tile_glyph_and_color t in
-        render_cell glyph color font_config (Rl_core.Types.Loc.make x y))
+        let loc = Rl_core.Types.Loc.make x y in
+        let screen_pos =
+          let base = grid_to_screen loc in
+          Raylib.Vector2.add base origin
+        in
+        let font_size = Float.of_int font_config.font_size in
+        let glyph_size =
+          Raylib.measure_text_ex font_config.font glyph font_size 0.
+        in
+        let offset =
+          Raylib.Vector2.create
+            ((Float.of_int tile_width -. Raylib.Vector2.x glyph_size) /. 2.)
+            ((Float.of_int tile_height -. Raylib.Vector2.y glyph_size) /. 2.)
+        in
+        let centered_pos = Raylib.Vector2.add screen_pos offset in
+        Raylib.draw_text_ex font_config.font glyph centered_pos font_size 0.
+          color)
 
 (* Utility: Render all entities *)
-let render_entities ~entities ~font_config =
+let render_entities ~entities ~font_config ~origin =
   List.iter entities ~f:(fun entity ->
       let color = entity_color entity in
       let glyph = entity_glyph entity in
       let base = Rl_core.Types.Entity.get_base entity in
-      render_cell glyph color font_config base.pos)
+      let screen_pos =
+        let base_pos = grid_to_screen base.pos in
+        Raylib.Vector2.add base_pos origin
+      in
+      let font_size = Float.of_int font_config.font_size in
+      let glyph_size =
+        Raylib.measure_text_ex font_config.font glyph font_size 0.
+      in
+      let offset =
+        Raylib.Vector2.create
+          ((Float.of_int tile_width -. Raylib.Vector2.x glyph_size) /. 2.)
+          ((Float.of_int tile_height -. Raylib.Vector2.y glyph_size) /. 2.)
+      in
+      let centered_pos = Raylib.Vector2.add screen_pos offset in
+      Raylib.draw_text_ex font_config.font glyph centered_pos font_size 0. color)
+
+(* Draw the vertical player stats bar *)
+let draw_stats_bar_vertical ~player ~rect =
+  let open Raylib in
+  let padding = 8 in
+  let x = Int.of_float (Rectangle.x rect) + padding in
+  let y = Int.of_float (Rectangle.y rect) + padding in
+  let line_height = 24 in
+  match player with
+  | Rl_core.Types.Entity.Player (_, pdata) ->
+      let stats = pdata.stats in
+      let lines =
+        [
+          Printf.sprintf "HP: %d/%d" stats.hp stats.max_hp;
+          Printf.sprintf "ATK: %d" stats.attack;
+          Printf.sprintf "DEF: %d" stats.defense;
+          Printf.sprintf "SPD: %d" stats.speed;
+        ]
+      in
+      draw_rectangle_rec rect Color.darkgray;
+      List.iteri lines ~f:(fun i line ->
+          draw_text line x (y + (i * line_height)) 20 Color.white)
+  | _ ->
+      draw_rectangle_rec rect Color.darkgray;
+      draw_text "Not a player" x y 20 Color.red
+
+(* Draw the message log at the bottom *)
+let draw_message_log ~messages ~rect =
+  let open Raylib in
+  let padding = 8 in
+  let x = Int.of_float (Rectangle.x rect) + padding in
+  let y = Int.of_float (Rectangle.y rect) + padding in
+  let line_height = 20 in
+  draw_rectangle_rec rect Color.black;
+  let n = List.length messages in
+  List.iteri messages ~f:(fun i msg ->
+      draw_text msg x (y + (i * line_height)) 18 Color.lightgray)
+
+module Ui_constants = struct
+  let log_height = 60
+  let stats_bar_width_min = 200
+  let stats_bar_width_frac = 0.2
+end

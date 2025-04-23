@@ -26,8 +26,7 @@ let make ~debug ~w ~h ~seed =
   let actor_manager = Actor_manager.create () in
   let turn_queue = Turn_queue.create () in
 
-  let open Mapgen in
-  let config = Config.default ~seed in
+  let config = Mapgen.Config.make ~seed ~w ~h in
   let map_manager = Map_manager.create ~config in
   {
     debug;
