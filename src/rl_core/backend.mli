@@ -21,17 +21,3 @@ val queue_actor_action : t -> Actor.actor_id -> Types.Action.t -> t
 
 (* Map *)
 val get_current_map : t -> Tilemap.t
-
-(* Spawn helpers *)
-val spawn_player : t -> pos:Types.Loc.t -> direction:Types.Direction.t -> t
-
-val spawn_creature :
-  t ->
-  pos:Types.Loc.t ->
-  direction:Types.Direction.t ->
-  species:string ->
-  health:int ->
-  glyph:string ->
-  name:string ->
-  description:string ->
-  t

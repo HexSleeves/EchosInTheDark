@@ -65,6 +65,68 @@ module Inventory = struct
 end
 
 (* //////////////////////// *)
+(* FACTIONS *)
+
+type faction =
+  [ `Player
+  | `Vermin
+  | `Kobold
+  | `Goblin
+  | `Undead
+  | `Elemental
+  | `Abomination
+  | `Neutral
+  | `FriendlyBug
+  | `Other of string ]
+[@@deriving yojson, show, eq]
+(** Faction type for entities. Expand as needed. *)
+
+(** Map a species string to a default faction. Expand as needed. *)
+let faction_of_species (species : string) : faction =
+  match String.lowercase species with
+  | "rat" | "giant cave rat" | "bat" | "bloated bat" | "ore slime"
+  | "copper slime" | "iron slime" ->
+      `Vermin
+  | "kobold" | "grumbling kobold" -> `Kobold
+  | "goblin" | "goblin sapper" -> `Goblin
+  | "rock golem" -> `Elemental
+  | "giant spider" -> `Vermin
+  | "shadow creeper" -> `Abomination
+  | "undead miner" -> `Undead
+  | "deep worm" -> `Abomination
+  | "crystalline horror" -> `Elemental
+  | "mind flayer" | "illithid" -> `Abomination
+  | "elemental guardian" -> `Elemental
+  | "mutated abomination" -> `Abomination
+  | "glowbug" | "cave beetle" -> `FriendlyBug
+  | _ -> `Neutral
+
+(** Determine if two factions are hostile to each other. *)
+let are_factions_hostile (f1 : faction) (f2 : faction) : bool =
+  match (f1, f2) with
+  | `Player, `Player -> false
+  | `Player, (`FriendlyBug | `Neutral) -> false
+  | (`FriendlyBug | `Neutral), `Player -> false
+  | `FriendlyBug, `FriendlyBug -> false
+  | `Vermin, `Vermin -> false
+  | `Kobold, `Kobold -> false
+  | `Goblin, `Goblin -> false
+  | `Elemental, `Elemental -> false
+  | `Undead, `Undead -> false
+  | `Abomination, `Abomination -> false
+  | `Player, _ | _, `Player -> true
+  | `Vermin, _ | _, `Vermin -> true
+  | `Kobold, _ | _, `Kobold -> true
+  | `Goblin, _ | _, `Goblin -> true
+  | `Elemental, _ | _, `Elemental -> true
+  | `Undead, _ | _, `Undead -> true
+  | `Abomination, _ | _, `Abomination -> true
+  | `FriendlyBug, _ | _, `FriendlyBug -> false
+  | `Neutral, _ | _, `Neutral -> false
+  | `Other a, `Other b -> String.equal a b
+  | _ -> false
+
+(* //////////////////////// *)
 (* ENTITY TYPES *)
 
 module Entity = struct
@@ -87,7 +149,7 @@ module Entity = struct
 
   type player_data = { stats : Stats.t } [@@deriving yojson, show]
 
-  type creature_data = { species : string; stats : Stats.t }
+  type creature_data = { species : string; stats : Stats.t; faction : faction }
   [@@deriving yojson, show]
 
   type item_data = { item : Item.t } [@@deriving yojson, show]

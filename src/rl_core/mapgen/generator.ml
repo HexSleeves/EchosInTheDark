@@ -1,58 +1,9 @@
 (* Mapgen modules *)
+open Base
 module CA = Ca
 module Tile = Dungeon.Tile
 module Config = Config
 module Tilemap = Dungeon.Tilemap
-open Base
-
-let find_random_floor grid ~width ~height ~rng =
-  let rec pick () =
-    let x = 1 + Random.State.int rng (width - 2) in
-    let y = 1 + Random.State.int rng (height - 2) in
-    let idx = x + (y * width) in
-    if Tile.is_floor grid.(idx) then Types.Loc.make x y else pick ()
-  in
-  pick ()
-
-let neighbors (x, y) width height =
-  List.filter
-    ~f:(fun (nx, ny) -> nx >= 0 && ny >= 0 && nx < width && ny < height)
-    [ (x - 1, y); (x + 1, y); (x, y - 1); (x, y + 1) ]
-
-let bfs_farthest grid ~width ~height ~(start : Types.Loc.t) =
-  let open Queue in
-  let visited = Array.make_matrix ~dimx:width ~dimy:height false in
-  let dist = Array.make_matrix ~dimx:width ~dimy:height (-1) in
-  let q = create () in
-
-  let sx, sy = (start.x, start.y) in
-  visited.(sx).(sy) <- true;
-  dist.(sx).(sy) <- 0;
-  enqueue q (sx, sy);
-
-  let farthest = ref [ (sx, sy) ] in
-  let max_dist = ref 0 in
-  while not (is_empty q) do
-    let x, y = dequeue_exn q in
-    let d = dist.(x).(y) in
-    if d > !max_dist then (
-      max_dist := d;
-      farthest := [ (x, y) ])
-    else if d = !max_dist then farthest := (x, y) :: !farthest;
-    List.iter
-      (neighbors (x, y) width height)
-      ~f:(fun (nx, ny) ->
-        let idx = nx + (ny * width) in
-        if (not visited.(nx).(ny)) && Tile.is_floor grid.(idx) then (
-          visited.(nx).(ny) <- true;
-          dist.(nx).(ny) <- d + 1;
-          enqueue q (nx, ny)))
-  done;
-  (!max_dist, !farthest)
-
-let pick_random lst ~rng ~(n : int) =
-  let sorted = List.take (List.rev lst) n in
-  List.nth_exn sorted (Random.State.int rng (List.length sorted))
 
 (* Algorithm type for map generation *)
 type algorithm =
@@ -71,22 +22,34 @@ let blend_grids (base : Tile.t array) (overlay : Tile.t array) : Tile.t array =
       if is_special_tile t then t else if Tile.equal o Tile.Wall then t else o)
 
 let rec run_algorithm (algo : algorithm) ~width ~height ~rng =
+  let entity_manager = Entity_manager.create () in
   match algo with
-  | Prefab filename -> Prefab.load_prefab filename ~width ~height
-  | CA -> CA.run ~width ~height ~rng
-  | Rooms -> Rooms.rooms_generator ~width ~height ~rng
+  | Prefab filename ->
+      (Prefab.load_prefab filename ~width ~height, [], entity_manager)
+  | CA -> (CA.run ~width ~height ~rng, [], entity_manager)
+  | Rooms ->
+      let grid, rooms = Rooms.rooms_generator ~width ~height ~rng in
+      (grid, rooms, entity_manager)
   | Blend algos -> (
       match algos with
-      | [] -> CA.run ~width ~height ~rng
+      | [] -> (CA.run ~width ~height ~rng, [], entity_manager)
       | first :: rest ->
-          let base = run_algorithm first ~width ~height ~rng in
-          List.fold_left rest ~init:base ~f:(fun acc a ->
-              let overlay = run_algorithm a ~width ~height ~rng in
-              blend_grids acc overlay))
+          let base_grid, base_rooms, base_entities =
+            run_algorithm first ~width ~height ~rng
+          in
+          List.fold_left rest ~init:(base_grid, base_rooms, base_entities)
+            ~f:(fun (acc_grid, acc_rooms, acc_entities) a ->
+              let overlay_grid, overlay_rooms, _overlay_entities =
+                run_algorithm a ~width ~height ~rng
+              in
+              ( blend_grids acc_grid overlay_grid,
+                acc_rooms @ overlay_rooms,
+                acc_entities )))
 
 (** Generate a map for a specific [level] within [total_levels] using [config].
 *)
-let generate ~(config : Config.t) ~(level : int) : Tilemap.t =
+let generate ~(config : Config.t) ~(level : int) :
+    Tilemap.t * (int * int * int * int) list * Entity_manager.t =
   let seed = config.seed + level in
   let rng = Random.State.make [| seed |] in
   let total_levels = config.max_levels in
@@ -94,7 +57,7 @@ let generate ~(config : Config.t) ~(level : int) : Tilemap.t =
   let height = config.height in
 
   (* Select algorithm per level *)
-  let grid =
+  let grid, rooms, entity_manager =
     if level = 1 then
       run_algorithm (Prefab "resources/prefabs/level1.txt") ~width ~height ~rng
     else run_algorithm (Blend [ CA; Rooms ]) ~width ~height ~rng
@@ -169,7 +132,7 @@ let generate ~(config : Config.t) ~(level : int) : Tilemap.t =
   (* --- End environmental features --- *)
   Core_log.info (fun m -> m "Generating map for level %d" level);
 
-  let random_floor = find_random_floor grid ~width ~height ~rng in
+  let random_floor = Util.find_random_floor grid ~width ~height ~rng in
   let stairs_up = if level = 1 then None else Some random_floor in
   let player_start =
     if level = 1 then random_floor
@@ -179,13 +142,24 @@ let generate ~(config : Config.t) ~(level : int) : Tilemap.t =
       | None -> failwith "No stairs up found"
   in
 
+  (* Spawn player for level 1 *)
+  let entity_manager =
+    if level = 1 then
+      let em, _, _ =
+        Entity_manager.generate_player entity_manager ~pos:player_start
+          ~direction:Types.Direction.North
+      in
+      em
+    else entity_manager
+  in
+
   (* Find farthest walkable tiles from player_start *)
-  let _, farthest = bfs_farthest grid ~width ~height ~start:player_start in
+  let _, farthest = Util.bfs_farthest grid ~width ~height ~start:player_start in
 
   let stairs_down =
     if level = total_levels then None
     else
-      let x, y = pick_random farthest ~rng ~n:3 in
+      let x, y = Util.pick_random farthest ~rng ~n:3 in
       Some (Types.Loc.make x y)
   in
 
@@ -198,12 +172,29 @@ let generate ~(config : Config.t) ~(level : int) : Tilemap.t =
   | None -> ());
 
   (* Construct Tilemap record *)
-  {
-    Tilemap.seed;
-    Tilemap.width;
-    Tilemap.height;
-    Tilemap.map = grid;
-    Tilemap.player_start;
-    Tilemap.stairs_up;
-    Tilemap.stairs_down;
-  }
+  let tilemap =
+    {
+      Tilemap.seed;
+      Tilemap.width;
+      Tilemap.height;
+      Tilemap.map = grid;
+      Tilemap.player_start;
+      Tilemap.stairs_up;
+      Tilemap.stairs_down;
+    }
+  in
+  (* Place monster bands in some rooms *)
+  let depth = level in
+  List.iter rooms ~f:(fun (x, y, w, h) ->
+      if Random.State.bool rng then
+        let positions =
+          Util.cartesian_product (Util.range x (x + w)) (Util.range y (y + h))
+          |> List.filter ~f:(fun (i, j) ->
+                 let idx = i + (j * width) in
+                 Tile.is_floor grid.(idx))
+          |> List.map ~f:(fun (i, j) -> Types.Loc.make i j)
+        in
+        ignore
+          (Monster_placement.place_band_in_room ~entity_manager
+             ~room_positions:positions ~depth ~rng));
+  (tilemap, rooms, entity_manager)

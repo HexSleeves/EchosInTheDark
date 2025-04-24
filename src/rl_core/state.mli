@@ -56,8 +56,6 @@ val transition_to_previous_level : t -> t
 val transition_to_next_level : t -> t
 
 (* Spawn *)
-val spawn_player_entity :
-  pos:Types.Loc.t -> direction:Types.Direction.t -> t -> t
 
 val spawn_creature_entity :
   t ->
@@ -68,4 +66,5 @@ val spawn_creature_entity :
   glyph:string ->
   name:string ->
   description:string ->
+  faction:Types.faction ->
   t * int

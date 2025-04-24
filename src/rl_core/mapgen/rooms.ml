@@ -51,4 +51,4 @@ let rooms_generator ~width ~height ~rng =
             carve_h_corridor pxc nx ny));
       rooms := new_room :: !rooms)
   done;
-  grid
+  (grid, !rooms)

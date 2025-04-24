@@ -9,3 +9,9 @@ let err = Log.err
 let warn = Log.warn
 let info = Log.info
 let debug = Log.debug
+
+(* Per-file/module logger *)
+let make_logger name =
+  let src = Logs.Src.create name ~doc:(name ^ " module logs") in
+  let module M = (val Logs.src_log src : Logs.LOG) in
+  (module M : Logs.LOG)

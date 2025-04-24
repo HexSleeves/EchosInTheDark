@@ -5,6 +5,7 @@
 
 open Base
 open Types
+module Log = (val Core_log.make_logger "action_handler" : Logs.LOG)
 
 type action_result = (int, exn) Result.t
 
@@ -50,35 +51,31 @@ let update_entity_stats (id : Types.Entity.id) (state : State.t)
 
 let handle_entity_death (id : Types.Entity.id) (state : State.t) : State.t =
   State.get_entity id state
-  |> Base.Option.value_map ~default:state ~f:(fun entity ->
-         match entity with
-         | Types.Entity.Player _ ->
-             (* Remove from entity manager *)
-             State.remove_entity id state
-             (* Remove from actor manager and turn queue if actor *)
-             |> State.remove_actor (Entity.get_base entity).id
+  |> Option.bind ~f:(function
+       | Types.Entity.Player _ ->
+           Some
+             (State.remove_entity id state
+             |> State.remove_actor id
              |> State.set_turn_queue
-                  (Turn_queue.remove_actor (State.get_turn_queue state) id)
-         | Types.Entity.Creature (base, _) ->
-             (* Remove from entity manager *)
-             State.remove_entity id state
+                  (Turn_queue.remove_actor (State.get_turn_queue state) id))
+       | Types.Entity.Creature (base, _) ->
+           Some
+             (State.remove_entity id state
              |> State.get_entities_manager
-             (* Spawn Corpse *)
              |> Entity_manager.spawn_corpse base.pos
              |> State.set_entities_manager state
-             (* Remove from actor manager and turn queue if actor *)
              |> State.remove_actor base.id
              |> State.set_turn_queue
-                  (Turn_queue.remove_actor (State.get_turn_queue state) id)
-         | _ -> state)
+                  (Turn_queue.remove_actor (State.get_turn_queue state) id))
+       | _ -> None)
+  |> Option.value ~default:state
 
 let handle_move ~(state : State.t) ~(id : Entity.id) ~(dir : Direction.t)
     ~(handle_action :
        State.t -> Entity.id -> Action.t -> State.t * action_result) :
     State.t * action_result =
   State.get_entity id state
-  |> Option.value_map ~default:(state, Error (Failure "Entity not found"))
-       ~f:(fun entity ->
+  |> Option.map ~f:(fun entity ->
          let base = Entity.get_base entity in
          let delta = Direction.to_point dir in
          let new_pos = Loc.(base.pos + delta) in
@@ -90,22 +87,23 @@ let handle_move ~(state : State.t) ~(id : Entity.id) ~(dir : Direction.t)
          in
 
          State.get_blocking_entity_at_pos new_pos state
-         |> Option.value_map
+         |> Option.map ~f:(fun target_entity ->
+                get_entity_stats target_entity
+                |> Option.map ~f:(fun _ ->
+                       handle_action state id
+                         (Action.Attack (Entity.get_base target_entity).id))
+                |> Option.value
+                     ~default:
+                       ( state,
+                         Error (Failure "Blocked by non-attackable entity") ))
+         |> Option.value
               ~default:
                 (if in_bounds && walkable then
                    let state = State.move_entity id new_pos state in
                    (state, Ok 100)
                  else
-                   (state, Error (Failure "Cannot move here: terrain blocked")))
-              ~f:(fun target_entity ->
-                get_entity_stats target_entity
-                |> Option.value_map
-                     ~default:
-                       ( state,
-                         Error (Failure "Blocked by non-attackable entity") )
-                     ~f:(fun _ ->
-                       handle_action state id
-                         (Action.Attack (Entity.get_base target_entity).id))))
+                   (state, Error (Failure "Cannot move here: terrain blocked"))))
+  |> Option.value ~default:(state, Error (Failure "Entity not found"))
 
 let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
     State.t * action_result =
@@ -140,17 +138,20 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
       | Ok (state, time) -> (state, Ok time)
       | Error e -> (state, Error e))
   | Action.Attack target_id ->
-      Option.bind (State.get_entity id state) ~f:(fun attacker ->
-          Option.bind (State.get_entity target_id state) ~f:(fun defender ->
-              Option.bind (get_entity_stats attacker) ~f:(fun attacker_stats ->
-                  Option.bind (get_entity_stats defender)
-                    ~f:(fun defender_stats ->
-                      Some (attacker, defender, attacker_stats, defender_stats)))))
-      |> Option.value_map
-           ~default:
-             ( state,
-               Error (Failure "Attacker or defender not found or missing stats")
-             ) ~f:(fun (_attacker, _defender, attacker_stats, defender_stats) ->
+      State.get_entity id state
+      |> Option.bind ~f:(fun attacker ->
+             State.get_entity target_id state
+             |> Option.bind ~f:(fun defender ->
+                    get_entity_stats attacker
+                    |> Option.bind ~f:(fun attacker_stats ->
+                           get_entity_stats defender
+                           |> Option.map ~f:(fun defender_stats ->
+                                  ( attacker,
+                                    defender,
+                                    attacker_stats,
+                                    defender_stats )))))
+      |> Option.map
+           ~f:(fun (_attacker, _defender, attacker_stats, defender_stats) ->
              let damage = calculate_damage ~attacker_stats ~defender_stats in
 
              let state =
@@ -159,12 +160,17 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
              in
 
              let state =
-               match is_entity_dead target_id state with
-               | true -> handle_entity_death target_id state
-               | false -> state
+               if is_entity_dead target_id state then
+                 handle_entity_death target_id state
+               else state
              in
 
              (state, Ok 100))
+      |> Option.value
+           ~default:
+             ( state,
+               Error (Failure "Attacker or defender not found or missing stats")
+             )
   | Action.Interact _ -> (state, Error (Failure "Interact not implemented yet"))
   | Action.Pickup _ -> (state, Error (Failure "Pickup not implemented yet"))
   | Action.Drop _ -> (state, Error (Failure "Drop not implemented yet"))

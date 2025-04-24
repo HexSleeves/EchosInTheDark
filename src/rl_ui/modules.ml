@@ -99,27 +99,7 @@ let create_initial_state (render_ctx : R.render_context) (config : init_config)
         Backend.make ~debug:config.debug ~w:config.width ~h:config.height ~seed
   in
 
-  let current_map = Backend.get_current_map backend in
-  let player_start = current_map.player_start in
-
-  let backend =
-    (* Spawn player using Backend function. This handles entity creation,
-     actor manager update, and scheduling the first turn. *)
-    let sub_backend =
-      Backend.spawn_player ~pos:player_start ~direction:T.Direction.North
-        backend
-    in
-
-    (* Spawn creature using Backend function. This handles entity/actor creation. *)
-    let sub_backend =
-      Backend.spawn_creature sub_backend
-        ~pos:(T.Loc.add player_start (T.Loc.make 1 1))
-        ~direction:T.Direction.North ~species:"Rat" ~health:10 ~glyph:"r"
-        ~name:"Rat" ~description:"A small, brown rodent."
-    in
-    sub_backend
-  in
-
+  (* No need to spawn player or rat here; handled in mapgen/generator *)
   Logs.info (fun m -> m "Initialization done.");
   { backend; render_ctx; quitting = false; screen = Playing }
 

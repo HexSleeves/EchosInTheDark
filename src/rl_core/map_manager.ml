@@ -19,8 +19,11 @@ let create ~(config : Mapgen.Config.t) =
 
   (* Generate first level map *)
   let total_levels = config.max_levels in
-  let first_map = Mapgen.Generator.generate ~config ~level:1 in
+  let first_map, _, first_entities =
+    Mapgen.Generator.generate ~config ~level:1
+  in
   Hashtbl.set maps ~key:1 ~data:first_map;
+  Hashtbl.set entities_by_level ~key:1 ~data:first_entities;
 
   {
     maps;
@@ -38,9 +41,12 @@ let can_go_to_previous_level t = t.current_level > 1
 let can_go_to_next_level t = t.current_level < t.total_levels
 
 let ensure_level_exists t level =
-  if not (Hashtbl.mem t.maps level) then
-    let new_map = Mapgen.Generator.generate ~config:t.config ~level in
-    Hashtbl.set t.maps ~key:level ~data:new_map
+  if not (Hashtbl.mem t.maps level) then (
+    let new_map, _, new_entities =
+      Mapgen.Generator.generate ~config:t.config ~level
+    in
+    Hashtbl.set t.maps ~key:level ~data:new_map;
+    Hashtbl.set t.entities_by_level ~key:level ~data:new_entities)
 
 let go_to_previous_level t =
   if can_go_to_previous_level t then (

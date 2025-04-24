@@ -11,8 +11,14 @@ let add (mgr : t) (ent : Entity.t) : t =
 let remove (mgr : t) (id : int) : t = Map.remove mgr id
 let find (mgr : t) (id : int) : Entity.t option = Map.find mgr id
 
+let find_base (mgr : t) (id : int) : Entity.base_entity option =
+  Map.find mgr id |> Option.map ~f:(fun ent -> Entity.get_base ent)
+
+let find_id (mgr : t) (id : int) : int option =
+  Map.find mgr id |> Option.map ~f:(fun ent -> Entity.get_id ent)
+
 let find_unsafe (mgr : t) (id : int) : Entity.t =
-  Option.value_exn (find mgr id) ~message:"Entity not found"
+  find mgr id |> Option.value_exn ~message:"Entity not found"
 
 let find_by_pos (mgr : t) (pos : Loc.t) : Entity.t option =
   Map.fold mgr ~init:None ~f:(fun ~key:_ ~data acc ->
@@ -20,17 +26,35 @@ let find_by_pos (mgr : t) (pos : Loc.t) : Entity.t option =
         (let base = Entity.get_base data in
          if Loc.equal pos base.pos then Some data else None))
 
+let find_base_by_pos (mgr : t) (pos : Loc.t) : Entity.base_entity option =
+  Map.fold mgr ~init:None ~f:(fun ~key:_ ~data acc ->
+      Option.first_some acc
+        (let base = Entity.get_base data in
+         if Loc.equal pos base.pos then Some base else None))
+
+let find_player (mgr : t) : Entity.t option =
+  Map.fold mgr ~init:None ~f:(fun ~key:_ ~data acc ->
+      Option.first_some acc
+        (match data with Entity.Player _ -> Some data | _ -> None))
+
+let find_player_base (mgr : t) : Entity.base_entity option =
+  find_player mgr |> Option.map ~f:(fun ent -> Entity.get_base ent)
+
+let find_player_id (mgr : t) : int option =
+  find_player mgr |> Option.map ~f:(fun ent -> Entity.get_id ent)
+
 let update (mgr : t) (id : int) (f : Entity.t -> Entity.t) : t =
   Map.find mgr id
-  |> Option.value_map ~default:mgr ~f:(fun ent ->
-         Map.set mgr ~key:id ~data:(f ent))
+  |> Option.map ~f:(fun ent -> Map.set mgr ~key:id ~data:(f ent))
+  |> Option.value ~default:mgr
 
 let to_list (mgr : t) : Entity.t list = Map.data mgr
 
 let next_id (mgr : t) : int =
-  match Map.max_elt mgr with Some (max_id, _) -> max_id + 1 | None -> 0
+  Map.max_elt mgr
+  |> Option.value_map ~default:0 ~f:(fun (max_id, _) -> max_id + 1)
 
-let add_entity (mgr : t) (ent : Entity.t) : t * int * Entity.t =
+let add_entity (ent : Entity.t) (mgr : t) : t * int * Entity.t =
   let id = next_id mgr in
   let ent =
     match ent with
@@ -44,17 +68,16 @@ let add_entity (mgr : t) (ent : Entity.t) : t * int * Entity.t =
 let copy (t : t) : t = t
 let restore (_t : t) (src : t) : t = src
 
-let spawn_player (em : t) ~pos ~direction =
-  let id = next_id em in
+let generate_player (em : t) ~pos ~direction =
+  let player_data : Entity.player_data = { stats = Types.Stats.default } in
   let base =
-    Entity.make_base_entity ~id ~pos ~name:"Player" ~glyph:"@"
+    Entity.make_base_entity ~id:(next_id em) ~pos ~name:"Player" ~glyph:"@"
       ~description:(Some "This is you!") ~direction ()
   in
-  let player_data : Entity.player_data = { stats = Types.Stats.default } in
-  add_entity em (Entity.Player (base, player_data))
+  add_entity (Entity.Player (base, player_data)) em
 
 let spawn_creature (em : t) ~pos ~direction ~species ~health ~glyph ~name
-    ~description =
+    ~description ~faction =
   let id = next_id em in
   let base =
     Entity.make_base_entity ~id ~pos ~name ~glyph
@@ -66,9 +89,10 @@ let spawn_creature (em : t) ~pos ~direction ~species ~health ~glyph ~name
       stats =
         Types.Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5
           ~speed:100;
+      faction;
     }
   in
-  add_entity em (Entity.Creature (base, creature_data))
+  add_entity (Entity.Creature (base, creature_data)) em
 
 let spawn_item (em : t) ~pos ~direction ~item_type ~quantity ~name ~glyph
     ?(description = None) () =
@@ -79,7 +103,7 @@ let spawn_item (em : t) ~pos ~direction ~item_type ~quantity ~name ~glyph
   let item =
     Types.Item.create ~item_type ~quantity ~name ~description:None ()
   in
-  add_entity em (Entity.Item (base, { Entity.item }))
+  add_entity (Entity.Item (base, { Entity.item })) em
 
 let spawn_corpse (pos : Loc.t) (em : t) : t =
   let id = next_id em in

@@ -30,31 +30,3 @@ let queue_actor_action (state : t) (actor_id : Actor.actor_id)
 
 (* Map *)
 let get_current_map (state : t) : Tilemap.t = State.get_current_map state
-
-(* ////////////////////////////// *)
-(* SPAWN HELPERS *)
-(* ////////////////////////////// *)
-
-(* Spawn player: handles entity creation, actor management, and turn scheduling *)
-let spawn_player (state : t) ~pos ~direction : t =
-  let player_id = State.get_player_id state in
-  let player_actor = Actor.create ~speed:100 ~next_turn_time:0 in
-
-  state
-  |> State.spawn_player_entity ~pos ~direction
-  |> State.add_actor player_actor player_id
-  |> State.schedule_turn_now player_id
-
-(* Spawn creature: handles entity creation and actor management *)
-let spawn_creature (state : t) ~pos ~direction ~species ~health ~glyph ~name
-    ~description : t =
-  (* NOTE: This assumes you will add a state.spawn_creature_entity function to encapsulate this logic in state *)
-  let state, creature_actor_id =
-    State.spawn_creature_entity state ~pos ~direction ~species ~health ~glyph
-      ~name ~description
-  in
-  (* 2. Create a default actor for the creature *)
-  let creature_actor = Actor.create ~speed:100 ~next_turn_time:0 in
-  let state = State.add_actor creature_actor creature_actor_id state in
-  (* 3. Don't schedule turn immediately, let Turn_system handle it *)
-  state

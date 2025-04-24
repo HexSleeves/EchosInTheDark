@@ -51,12 +51,13 @@ let get (actor_id : Actor.actor_id) (manager : t) : Actor.t option =
   Map.find manager actor_id
 
 let get_unsafe (actor_id : Actor.actor_id) (manager : t) : Actor.t =
-  Option.value_exn (get actor_id manager) ~message:"Actor not found"
+  get actor_id manager
+  |> Option.value_exn ~message:"Actor not found"
 
-let update (actor_id : Actor.actor_id) (f : Actor.t -> Actor.t) (manager : t) :
-    t =
-  Option.value_map (Map.find manager actor_id) ~default:manager ~f:(fun actor ->
-      Map.set manager ~key:actor_id ~data:(f actor))
+let update (actor_id : Actor.actor_id) (f : Actor.t -> Actor.t) (manager : t) : t =
+  Map.find manager actor_id
+  |> Option.value_map ~default:manager ~f:(fun actor ->
+       Map.set manager ~key:actor_id ~data:(f actor))
 
 (* Actors *)
 

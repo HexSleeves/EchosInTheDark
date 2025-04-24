@@ -1,5 +1,6 @@
 open Base
 open Types
+module Log = (val Core_log.make_logger "turn_queue" : Logs.LOG)
 
 (* Persistent min-heap of (time, id) using a sorted list *)
 type t = {
@@ -16,7 +17,7 @@ let print_queue t =
         Printf.sprintf "(time: %d, actor: %d)" time actor)
     |> String.concat ~sep:"; "
   in
-  Core_log.info (fun m ->
+  Log.info (fun m ->
       m "Current time: %d, Turn queue: [%s]" t.current_time queue_str)
 
 let rec insert_sorted queue (time, entity) =
