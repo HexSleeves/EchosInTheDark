@@ -1,5 +1,6 @@
 open Base
 open Types
+open Types.Entity
 
 type t = Entity.t Map.M(Int).t
 
@@ -40,9 +41,9 @@ let find_by_pos (mgr : t) (pos : Loc.t) : Entity.t option =
           if Loc.equal pos base.pos then Some data else None)
 
 let update (mgr : t) (id : int) (f : Entity.t -> Entity.t) : t =
-  match Map.find mgr id with
-  | Some ent -> Map.set mgr ~key:id ~data:(f ent)
-  | None -> mgr
+  Map.find mgr id
+  |> Option.value_map ~default:mgr ~f:(fun ent ->
+         Map.set mgr ~key:id ~data:(f ent))
 
 let to_list (mgr : t) : Entity.t list = Map.data mgr
 
@@ -66,24 +67,18 @@ let restore (_t : t) (src : t) : t = src
 let spawn_player (em : t) ~pos ~direction =
   let id = next_id em in
   let base =
-    {
-      Entity.id;
-      pos;
-      name = "Player";
-      glyph = "@";
-      description = Some "This is you!";
-      direction;
-    }
+    Entity.make_base_entity ~id ~pos ~name:"Player" ~glyph:"@"
+      ~description:(Some "This is you!") ~direction ()
   in
   let player_data : Entity.player_data = { stats = Types.Stats.default } in
-  let ent = Entity.Player (base, player_data) in
-  add em ent
+  add_entity em (Entity.Player (base, player_data))
 
 let spawn_creature (em : t) ~pos ~direction ~species ~health ~glyph ~name
     ~description =
   let id = next_id em in
   let base =
-    { Entity.id; pos; name; glyph; description = Some description; direction }
+    Entity.make_base_entity ~id ~pos ~name ~glyph
+      ~description:(Some description) ~direction ()
   in
   let creature_data : Entity.creature_data =
     {
@@ -93,18 +88,27 @@ let spawn_creature (em : t) ~pos ~direction ~species ~health ~glyph ~name
           ~speed:100;
     }
   in
-  let ent = Entity.Creature (base, creature_data) in
-  add_entity em ent
+  add_entity em (Entity.Creature (base, creature_data))
 
 let spawn_item (em : t) ~pos ~direction ~item_type ~quantity ~name ~glyph
     ?(description = None) () =
   let id = next_id em in
-  let base = { Entity.id; pos; name; glyph; description; direction } in
+  let base =
+    Entity.make_base_entity ~id ~pos ~name ~glyph ~description ~direction ()
+  in
   let item =
     Types.Item.create ~item_type ~quantity ~name ~description:None ()
   in
-  let ent = Entity.Item (base, { Entity.item }) in
-  add_entity em ent
+  add_entity em (Entity.Item (base, { Entity.item }))
+
+let spawn_corpse (em : t) (pos : Loc.t) : t =
+  let id = next_id em in
+  let base =
+    Entity.make_base_entity ~id ~pos ~name:"Corpse" ~glyph:"%"
+      ~description:(Some "A dead creature") ~direction:Types.Direction.North
+      ~blocking:false ()
+  in
+  add em (Entity.Corpse base)
 
 let update_entity_stats (mgr : t) (id : Entity.id) (f : Stats.t -> Stats.t) : t
     =

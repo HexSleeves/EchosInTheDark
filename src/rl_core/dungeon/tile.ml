@@ -1,3 +1,5 @@
+open Base
+
 type t =
   | Wall
   | Floor

@@ -1,4 +1,4 @@
-open Core
+open Base
 open Types
 
 (* Persistent min-heap of (time, id) using a sorted list *)
@@ -13,7 +13,7 @@ let current_time t = t.current_time
 let print_queue t =
   let queue_str =
     List.map t.turn_queue ~f:(fun (time, actor) ->
-        sprintf "(time: %d, actor: %d)" time actor)
+        Printf.sprintf "(time: %d, actor: %d)" time actor)
     |> String.concat ~sep:"; "
   in
   Core_log.info (fun m ->

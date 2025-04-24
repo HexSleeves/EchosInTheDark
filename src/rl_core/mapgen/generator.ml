@@ -1,8 +1,8 @@
 (* Mapgen modules *)
 module CA = Ca
-module Tile = Map.Tile
+module Tile = Dungeon.Tile
 module Config = Config
-module Tilemap = Map.Tilemap
+module Tilemap = Dungeon.Tilemap
 open Base
 
 let find_random_floor grid ~width ~height ~rng =

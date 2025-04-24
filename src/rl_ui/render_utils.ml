@@ -1,6 +1,6 @@
 open Base
 open Raylib
-module T = Rl_core.Map.Tile
+module T = Rl_core.Dungeon.Tile
 
 (* Map grid (tile) position to screen position using FontConfig *)
 let grid_to_screen (loc : Rl_core.Types.Loc.t) =
@@ -58,7 +58,7 @@ let[@warning "-11"] tile_glyph_and_color (tile : T.t) : string * Color.t =
         Stdlib.Format.eprintf "Warning: Unhandled tile type encountered@.";
         Color.red
   in
-  (String.make 1 (Rl_core.Map.Tile.tile_to_glyph tile), color)
+  (String.make 1 (Rl_core.Dungeon.Tile.tile_to_glyph tile), color)
 
 (* Get glyph for an entity *)
 let entity_glyph_and_color (entity : Rl_core.Types.Entity.t) : string * Color.t

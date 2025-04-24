@@ -59,15 +59,6 @@ let render (state : State.t) : State.t option =
   in
 
   (* Debug: Print tile at player position in UI and backend *)
-  let player = Backend.get_player_entity backend in
-  let player_base = Rl_core.Types.Entity.get_base player in
-  let px, py = (player_base.pos.x, player_base.pos.y) in
-  let player_tile_index = Rl_utils.Utils.xy_to_index px py current_map.width in
-  let tile_ui = current_map.map.(player_tile_index) in
-  Ui_log.info (fun m ->
-      m "[DEBUG][ui] Player at (%d,%d) sees tile: %s" px py
-        (fst (Render_utils.tile_glyph_and_color tile_ui)));
-
   R.render_map_tiles ~tiles:current_map.map ~width:current_map.width
     ~skip_positions:entity_positions ~origin:map_origin ~ctx;
   R.render_entities ~entities ~origin:map_origin ~ctx;

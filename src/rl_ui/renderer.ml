@@ -1,5 +1,5 @@
 open Base
-module T = Rl_core.Map.Tile
+module T = Rl_core.Dungeon.Tile
 module Utils = Render_utils
 
 (* Font configuration for grid rendering *)

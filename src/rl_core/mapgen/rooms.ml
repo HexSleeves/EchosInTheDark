@@ -1,5 +1,5 @@
-open Map
 open Base
+open Dungeon
 
 let rooms_generator ~width ~height ~rng =
   let grid = Stdlib.Array.make (width * height) Tile.Wall in

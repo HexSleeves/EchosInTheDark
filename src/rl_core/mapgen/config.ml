@@ -36,8 +36,3 @@ let make ~seed ~w ~h ?(render_mode = Tiles) () =
     height = h;
     render_mode;
   }
-
-let pick_total_levels config =
-  let rng = Random.State.make [| config.seed |] in
-  Random.State.int rng (config.max_levels - config.min_levels + 1)
-  + config.min_levels

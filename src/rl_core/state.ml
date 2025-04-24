@@ -1,15 +1,14 @@
+open Base
 module Actor = Actor_manager.Actor
 module EntityManager = Entity_manager
-module Tile = Map.Tile
-module Tilemap = Map.Tilemap
+module Tile = Dungeon.Tile
+module Tilemap = Dungeon.Tilemap
 module Entity = Types.Entity
 
 type t = {
-  seed : int;
   debug : bool;
   player_id : Entity.id;
   mode : Types.CtrlMode.t;
-  random : Random.State.t;
   entities : EntityManager.t;
   actor_manager : Actor_manager.t;
   turn_queue : Turn_queue.t;
@@ -17,10 +16,8 @@ type t = {
 }
 
 let make ~debug ~w ~h ~seed =
-  Core_log.info (fun m -> m "Creating state with seed: %d" seed);
   Core_log.info (fun m -> m "Width: %d, Height: %d" w h);
-
-  let random = Random.State.make [| seed |] in
+  Core_log.info (fun m -> m "Creating state with seed: %d" seed);
 
   let entities = EntityManager.create () in
   let actor_manager = Actor_manager.create () in
@@ -30,8 +27,6 @@ let make ~debug ~w ~h ~seed =
   let map_manager = Map_manager.create ~config in
   {
     debug;
-    seed;
-    random;
     entities;
     actor_manager;
     turn_queue;
@@ -59,7 +54,7 @@ let set_actor_manager (state : t) (actor_manager : Actor_manager.t) : t =
 (* Turn queue *)
 let get_turn_queue (state : t) : Turn_queue.t = state.turn_queue
 
-let set_turn_queue (state : t) (turn_queue : Turn_queue.t) : t =
+let set_turn_queue (turn_queue : Turn_queue.t) (state : t) : t =
   { state with turn_queue }
 
 (* Map *)
@@ -99,23 +94,24 @@ let move_entity (state : t) (id : Types.Entity.id) (loc : Types.Loc.t) : t =
   in
   set_entities_manager state new_entities
 
-let remove_entity (state : t) (id : Types.Entity.id) : t =
-  let entities = EntityManager.remove (get_entities_manager state) id in
-  set_entities_manager state entities
+let remove_entity (id : Types.Entity.id) (state : t) : t =
+  { state with entities = EntityManager.remove state.entities id }
 
 (* Actor manager *)
 let get_actor (state : t) (actor_id : Actor.actor_id) : Actor.t option =
   Actor_manager.get (get_actor_manager state) actor_id
 
-let add_actor (state : t) (actor : Actor.t) (actor_id : Actor.actor_id) : t =
+let add_actor (actor : Actor.t) (actor_id : Actor.actor_id) (state : t) : t =
   let actor_manager =
     Actor_manager.add (get_actor_manager state) actor_id actor
   in
   set_actor_manager state actor_manager
 
-let remove_actor (state : t) (actor_id : Actor.actor_id) : t =
-  let actor_manager = Actor_manager.remove (get_actor_manager state) actor_id in
-  set_actor_manager state actor_manager
+let remove_actor (actor_id : Actor.actor_id) (state : t) : t =
+  {
+    state with
+    actor_manager = Actor_manager.remove state.actor_manager actor_id;
+  }
 
 let update_actor (state : t) (actor_id : Actor.actor_id)
     (f : Actor.t -> Actor.t) : t =
@@ -148,7 +144,7 @@ let transition_to_next_level (state : t) =
   let map_manager = Map_manager.go_to_next_level map_manager in
 
   (* Get new map *)
-  let new_map = Map_manager.get_current_map map_manager in
+  let new_dungeon = Map_manager.get_current_map map_manager in
 
   (* Either load existing level state or initialize new level *)
   let map_manager, _, _, _ =
@@ -160,7 +156,7 @@ let transition_to_next_level (state : t) =
 
   (* Position player at stairs_up in new level *)
   let player = get_player_entity state in
-  match new_map.Tilemap.stairs_up with
+  match new_dungeon.Tilemap.stairs_up with
   | Some stairs_pos ->
       let state = move_entity state (Entity.get_base player).id stairs_pos in
       ({ state with map_manager }, map_manager)
@@ -180,7 +176,7 @@ let transition_to_previous_level state =
   let map_manager = Map_manager.go_to_previous_level map_manager in
 
   (* Get new map *)
-  let new_map = Map_manager.get_current_map map_manager in
+  let new_dungeon = Map_manager.get_current_map map_manager in
 
   (* Either load existing level state or initialize new level *)
   let map_manager, _, _, _ =
@@ -192,7 +188,7 @@ let transition_to_previous_level state =
 
   (* Position player at stairs_down in previous level *)
   let player = get_player_entity state in
-  match new_map.Tilemap.stairs_down with
+  match new_dungeon.Tilemap.stairs_down with
   | Some stairs_pos ->
       let state = move_entity state (Entity.get_base player).id stairs_pos in
       ({ state with map_manager }, map_manager)
@@ -202,8 +198,8 @@ let transition_to_previous_level state =
 (* ACTION HANDLING *)
 (* ////////////////////////////// *)
 
-let spawn_player_entity (state : t) ~pos ~direction : t =
-  let entities =
+let spawn_player_entity ~pos ~direction (state : t) : t =
+  let entities, _, _ =
     EntityManager.spawn_player (get_entities_manager state) ~pos ~direction
   in
   set_entities_manager state entities
@@ -217,6 +213,6 @@ let spawn_creature_entity (state : t) ~pos ~direction ~species ~health ~glyph
   in
   (set_entities_manager state entities, creature_actor_id)
 
-let schedule_turn_now (state : t) (id : Types.Entity.id) : t =
+let schedule_turn_now (id : Types.Entity.id) (state : t) : t =
   let turn_queue = Turn_queue.schedule_now (get_turn_queue state) id in
-  set_turn_queue state turn_queue
+  set_turn_queue turn_queue state

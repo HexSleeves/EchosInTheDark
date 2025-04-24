@@ -1,5 +1,5 @@
 (* Alias tile constructors from rl_core Map module to avoid Base.Map conflict *)
-module Tile = Map.Tile
+module Tile = Dungeon.Tile
 open Base
 
 let index ~width x y = x + (y * width)

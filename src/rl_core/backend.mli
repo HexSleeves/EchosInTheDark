@@ -1,4 +1,4 @@
-module Tilemap = Map.Tilemap
+module Tilemap = Dungeon.Tilemap
 module Actor = Actor_manager.Actor
 module Entity = Types.Entity
 

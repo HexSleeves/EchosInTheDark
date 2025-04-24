@@ -1,7 +1,7 @@
-module Tilemap = Map.Tilemap
+open Base
+module Tilemap = Dungeon.Tilemap
 module Actor = Actor_manager.Actor
 module Entity = Types.Entity
-open Base
 
 type t = State.t
 
@@ -40,9 +40,10 @@ let spawn_player (state : t) ~pos ~direction : t =
   let player_id = State.get_player_id state in
   let player_actor = Actor.create ~speed:100 ~next_turn_time:0 in
 
-  state |> State.spawn_player_entity ~pos ~direction |> fun state ->
-  State.add_actor state player_actor player_id |> fun state ->
-  State.schedule_turn_now state player_id
+  state
+  |> State.spawn_player_entity ~pos ~direction
+  |> State.add_actor player_actor player_id
+  |> State.schedule_turn_now player_id
 
 (* Spawn creature: handles entity creation and actor management *)
 let spawn_creature (state : t) ~pos ~direction ~species ~health ~glyph ~name
@@ -54,6 +55,6 @@ let spawn_creature (state : t) ~pos ~direction ~species ~health ~glyph ~name
   in
   (* 2. Create a default actor for the creature *)
   let creature_actor = Actor.create ~speed:100 ~next_turn_time:0 in
-  let state = State.add_actor state creature_actor creature_actor_id in
+  let state = State.add_actor creature_actor creature_actor_id state in
   (* 3. Don't schedule turn immediately, let Turn_system handle it *)
   state

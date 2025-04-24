@@ -8,7 +8,7 @@ val get_entity : t -> Types.Entity.id -> Types.Entity.t option
 val get_base_entity : t -> Types.Entity.id -> Types.Entity.base_entity
 val get_entities : t -> Types.Entity.t list
 val move_entity : t -> Types.Entity.id -> Types.Loc.t -> t
-val remove_entity : t -> Types.Entity.id -> t
+val remove_entity : Types.Entity.id -> t -> t
 
 (* Player *)
 val get_player_id : t -> Types.Entity.id
@@ -18,8 +18,8 @@ val get_player_entity : t -> Types.Entity.t
 val get_actor :
   t -> Actor_manager.Actor.actor_id -> Actor_manager.Actor.t option
 
-val add_actor : t -> Actor_manager.Actor.t -> Actor_manager.Actor.actor_id -> t
-val remove_actor : t -> Actor_manager.Actor.actor_id -> t
+val add_actor : Actor_manager.Actor.t -> Actor_manager.Actor.actor_id -> t -> t
+val remove_actor : Actor_manager.Actor.actor_id -> t -> t
 
 val update_actor :
   t ->
@@ -32,15 +32,15 @@ val queue_actor_action :
 
 (* Turn queue *)
 val get_turn_queue : t -> Turn_queue.t
-val set_turn_queue : t -> Turn_queue.t -> t
-val schedule_turn_now : t -> Types.Entity.id -> t
+val set_turn_queue : Turn_queue.t -> t -> t
+val schedule_turn_now : Types.Entity.id -> t -> t
 
 (* Control mode *)
 val get_mode : t -> Types.CtrlMode.t
 val set_mode : t -> Types.CtrlMode.t -> t
 
 (* Tilemap *)
-val get_current_map : t -> Map.Tilemap.t
+val get_current_map : t -> Dungeon.Tilemap.t
 val get_map_manager : t -> Map_manager.t
 val set_map_manager : t -> Map_manager.t -> t
 
@@ -59,7 +59,7 @@ val transition_to_next_level : t -> t * Map_manager.t
 
 (* Spawn *)
 val spawn_player_entity :
-  t -> pos:Types.Loc.t -> direction:Types.Direction.t -> t
+  pos:Types.Loc.t -> direction:Types.Direction.t -> t -> t
 
 val spawn_creature_entity :
   t ->

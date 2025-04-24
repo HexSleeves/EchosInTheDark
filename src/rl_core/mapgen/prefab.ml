@@ -1,5 +1,5 @@
-open Map
 open Base
+open Dungeon
 
 let load_prefab filename ~width ~height =
   let lines = Stdio.In_channel.read_lines filename in

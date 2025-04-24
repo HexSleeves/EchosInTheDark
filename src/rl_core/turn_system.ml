@@ -45,7 +45,7 @@ let handle_actor_event (ctx : ctx) : State.t =
       Core_log.info (fun m ->
           m "No action for entity: %d. Rescheduling turn." id);
       let turn_queue = Turn_queue.schedule_turn tq id time in
-      State.set_turn_queue backend turn_queue
+      State.set_turn_queue turn_queue backend
   | Some action -> (
       Core_log.info (fun m -> m "Action for entity: %d. Executing..." id);
       let backend_after_action, result =
@@ -54,7 +54,7 @@ let handle_actor_event (ctx : ctx) : State.t =
       match result with
       | Ok d_time ->
           let turn_queue = Turn_queue.schedule_turn tq id (time + d_time) in
-          State.set_turn_queue backend_after_action turn_queue
+          State.set_turn_queue turn_queue backend_after_action
       | Error e ->
           Core_log.err (fun m ->
               m "Failed to perform action: %s" (Exn.to_string e));
@@ -64,7 +64,7 @@ let handle_actor_event (ctx : ctx) : State.t =
             | _ -> monster_reschedule_delay
           in
           let turn_queue = Turn_queue.schedule_turn tq id (time + delay) in
-          State.set_turn_queue backend turn_queue)
+          State.set_turn_queue turn_queue backend)
 
 (* Processes a single event from the turn queue for a given id at a specific time.
    Handles fetching the entity and actor, checking liveness, waiting for player input,
@@ -79,7 +79,7 @@ let process_actor_event (backend : State.t) (tq : Turn_queue.t) (id : Entity.id)
       | Some actor ->
           (* Remove dead actor from queue *)
           if not (Actor.is_alive actor) then
-            State.set_turn_queue backend (remove_dead_actor tq id)
+            State.set_turn_queue (remove_dead_actor tq id) backend
           else if should_wait_for_player_input entity actor then (
             Core_log.info (fun m -> m "Player is awaiting input");
             State.set_mode backend CtrlMode.WaitInput)
@@ -101,7 +101,7 @@ let process_turns (backend : State.t) : State.t =
           Turn_queue.get_next_actor (State.get_turn_queue current_backend)
         in
         match result with
-        | None -> State.set_turn_queue current_backend next_tq
+        | None -> State.set_turn_queue next_tq current_backend
         | Some (id, time) ->
             process_loop (process_actor_event current_backend next_tq id time))
   in

@@ -21,7 +21,3 @@ val make : seed:int -> w:int -> h:int -> ?render_mode:render_mode -> unit -> t
 val default : seed:int -> ?render_mode:render_mode -> unit -> t
 (** [default ~seed] returns a default mapgen config with stage bounds and
     dimensions. *)
-
-val pick_total_levels : t -> int
-(** [pick_total_levels config] deterministically picks a number of levels
-    between [min_levels] and [max_levels] based on the seed. *)

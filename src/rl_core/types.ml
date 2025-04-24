@@ -75,10 +75,15 @@ module Entity = struct
     pos : Loc.t;
     name : string;
     glyph : string;
+    blocking : bool;
     description : string option;
     direction : Direction.t;
   }
   [@@deriving yojson, show]
+
+  let make_base_entity ?(blocking = true) ~id ~pos ~name ~glyph ~description
+      ~direction () =
+    { id; pos; name; glyph; blocking; description; direction }
 
   type player_data = { stats : Stats.t } [@@deriving yojson, show]
 

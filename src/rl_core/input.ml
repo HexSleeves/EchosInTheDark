@@ -4,6 +4,7 @@
     Raylib.Key). *)
 
 open Types
+open Base
 
 let of_key (key : Raylib.Key.t) : Types.Action.t option =
   let open Raylib in

@@ -1,24 +1,26 @@
+open Base
+
 type t = {
   current_level : int;
   total_levels : int;
   player_has_amulet : bool;
-  maps : (Base.int, Map.Tilemap.t) Base.Hashtbl.t;
-  entities_by_level : (Base.int, Entity_manager.t) Base.Hashtbl.t;
-  actor_manager_by_level : (Base.int, Actor_manager.t) Base.Hashtbl.t;
-  turn_queue_by_level : (Base.int, Turn_queue.t) Base.Hashtbl.t;
+  maps : (int, Dungeon.Tilemap.t) Hashtbl.t;
+  entities_by_level : (int, Entity_manager.t) Hashtbl.t;
+  actor_manager_by_level : (int, Actor_manager.t) Hashtbl.t;
+  turn_queue_by_level : (int, Turn_queue.t) Hashtbl.t;
   config : Mapgen.Config.t;
 }
 
 let create ~(config : Mapgen.Config.t) =
-  let maps = Base.Hashtbl.create (module Base.Int) in
-  let entities_by_level = Base.Hashtbl.create (module Base.Int) in
-  let actor_manager_by_level = Base.Hashtbl.create (module Base.Int) in
-  let turn_queue_by_level = Base.Hashtbl.create (module Base.Int) in
+  let maps = Hashtbl.create (module Int) in
+  let entities_by_level = Hashtbl.create (module Int) in
+  let actor_manager_by_level = Hashtbl.create (module Int) in
+  let turn_queue_by_level = Hashtbl.create (module Int) in
 
   (* Generate first level map *)
   let total_levels = config.max_levels in
   let first_map = Mapgen.Generator.generate ~config ~level:1 in
-  Base.Hashtbl.set maps ~key:1 ~data:first_map;
+  Hashtbl.set maps ~key:1 ~data:first_map;
 
   {
     maps;
@@ -31,14 +33,14 @@ let create ~(config : Mapgen.Config.t) =
     config;
   }
 
-let get_current_map t = Base.Hashtbl.find_exn t.maps t.current_level
+let get_current_map t = Hashtbl.find_exn t.maps t.current_level
 let can_go_to_previous_level t = t.current_level > 1
 let can_go_to_next_level t = t.current_level < t.total_levels
 
 let ensure_level_exists t level =
-  if not (Base.Hashtbl.mem t.maps level) then
+  if not (Hashtbl.mem t.maps level) then
     let new_map = Mapgen.Generator.generate ~config:t.config ~level in
-    Base.Hashtbl.set t.maps ~key:level ~data:new_map
+    Hashtbl.set t.maps ~key:level ~data:new_map
 
 let go_to_previous_level t =
   if can_go_to_previous_level t then (
@@ -55,25 +57,25 @@ let go_to_next_level t =
   else t
 
 let save_level_state t level ~entities ~actor_manager ~turn_queue =
-  Base.Hashtbl.set t.entities_by_level ~key:level
+  Hashtbl.set t.entities_by_level ~key:level
     ~data:(Entity_manager.copy entities);
-  Base.Hashtbl.set t.actor_manager_by_level ~key:level
+  Hashtbl.set t.actor_manager_by_level ~key:level
     ~data:(Actor_manager.copy actor_manager);
-  Base.Hashtbl.set t.turn_queue_by_level ~key:level
+  Hashtbl.set t.turn_queue_by_level ~key:level
     ~data:(Turn_queue.copy turn_queue);
   t
 
 let load_level_state t level ~entities ~actor_manager ~turn_queue =
-  match Base.Hashtbl.find t.entities_by_level level with
+  match Hashtbl.find t.entities_by_level level with
   | Some saved_entities ->
       let entities = Entity_manager.restore entities saved_entities in
       let actor_manager =
         Actor_manager.restore actor_manager
-          (Base.Hashtbl.find_exn t.actor_manager_by_level level)
+          (Hashtbl.find_exn t.actor_manager_by_level level)
       in
       let turn_queue =
         Turn_queue.restore turn_queue
-          (Base.Hashtbl.find_exn t.turn_queue_by_level level)
+          (Hashtbl.find_exn t.turn_queue_by_level level)
       in
       (t, entities, actor_manager, turn_queue)
   | None ->
