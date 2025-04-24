@@ -101,7 +101,13 @@ let create_initial_state (render_ctx : R.render_context) (config : init_config)
 
   (* No need to spawn player or rat here; handled in mapgen/generator *)
   Logs.info (fun m -> m "Initialization done.");
-  { backend; render_ctx; quitting = false; screen = Playing }
+  {
+    backend;
+    render_ctx;
+    quitting = false;
+    screen = Playing;
+    input_ctx = Input_context.empty;
+  }
 
 let run_with_config (render_ctx : R.render_context) (config : init_config) :
     unit =

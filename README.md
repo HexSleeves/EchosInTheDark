@@ -1,12 +1,12 @@
-# RL2025 OCaml
+# Echoes in the Dark
 
-Welcome to RL2025, an experimental roguelike game project built in OCaml! This project is designed for learning, experimentation, and fun with game design and functional programming.
+Welcome to Echoes in the Dark, an experimental roguelike game project built in OCaml! This project is designed for learning, experimentation, and fun with game design and functional programming.
 
 ---
 
 ## 🚀 Project Overview
 
-RL2025 is a turn-based, entity-driven game engine and demo, using OCaml's strong type system and modern tooling. The project is structured for extensibility, maintainability, and clarity, making it a great starting point for both new and experienced OCaml developers interested in games.
+Echoes in the Dark is a turn-based, entity-driven game engine and demo, using OCaml's strong type system and modern tooling. The project is structured for extensibility, maintainability, and clarity, making it a great starting point for both new and experienced OCaml developers interested in games.
 
 - **Entity-Component System**: All game objects are managed via a flexible entity system.
 - **Raylib Integration**: Uses Raylib (via OCaml bindings) for graphics, input, and audio.
@@ -43,12 +43,12 @@ opam install . --deps-only
 
 ```sh
 dune build
-dune exec rl2025
+dune exec echoes_dark
 ```
 
 ---
 
-## 🏗️ Project Structure
+## ��️ Project Structure
 
 - `src/` — Main source code
 - `lib/` — Shared libraries

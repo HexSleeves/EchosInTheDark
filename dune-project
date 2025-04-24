@@ -1,6 +1,6 @@
 (lang dune 3.9)
 
-(name rl2025)
+(name echoes_dark)
 
 (generate_opam_files true)
 
@@ -13,10 +13,10 @@
 
 (license MIT)
 
-(documentation https://github.com/Yendor/rl2025)
+(documentation https://github.com/bayou-brogrammer/echoes_dark)
 
 (package
- (name rl2025)
+ (name echoes_dark)
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends ocaml dune)

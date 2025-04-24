@@ -1,0 +1,17 @@
+Purpose:
+Handles interpretation of Actions as state transitions in the game. All state queries and updates go through the State API.
+
+Key Functions/Types:
+- get_entity_stats: Extracts stats from an entity.
+- calculate_damage: Computes damage based on attacker and defender stats.
+- is_entity_dead: Checks if an entity is dead.
+- can_use_stairs_down / can_use_stairs_up: Checks if an entity can use stairs.
+- update_entity_stats: Updates stats for a given entity.
+- handle_entity_death: Handles removal and cleanup when an entity dies.
+- handle_move: Processes movement and resolves attacks or collisions.
+- handle_action: Main dispatcher for processing actions.
+
+Notable Implementation Details:
+- Uses pattern matching for entity and action handling.
+- Integrates with State, EntityManager, and TurnQueue modules.
+- Ensures all state transitions are funneled through a single API.

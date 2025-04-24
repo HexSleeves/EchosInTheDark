@@ -1,3 +1,3 @@
 (test
- (name rl2025)
+ (name echoes_dark)
  (libraries base fmt stdio))

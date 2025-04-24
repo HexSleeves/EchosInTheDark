@@ -1,5 +1,5 @@
 (executable
- (name rl2025)
- (public_name rl2025)
- (modules rl2025 logger)
+ (name echoes_dark)
+ (public_name echoes_dark)
+ (modules echoes_dark logger)
  (libraries rl_ui))

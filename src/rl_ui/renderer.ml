@@ -46,7 +46,7 @@ let init_window ~flags ~window_width ~window_height ~title =
   init_window window_width window_height title;
   set_window_min_size window_width window_height
 
-let create_render_context ?(title = "Rougelike Tutorial 2025")
+let create_render_context ?(title = "Echoes in the Dark")
     ?(font_path = Constants.font_path) ?(font_size = Constants.font_size)
     ?(window_width = 1280) ?(window_height = 720)
     ?(flags =

@@ -1,0 +1,83 @@
+---
+description:
+globs: *.ml,*.mli
+alwaysApply: false
+---
+# OCaml Project Workflow Policies
+
+This document formalizes key workflow policies for this project. All contributors and LLMs should follow these guidelines to ensure code quality, maintainability, and idiomatic OCaml practices.
+
+---
+
+## 1. Always Run `dune build` After Each Code Change
+
+**Policy:**
+After every code change, you must run `dune build` to verify that the project builds successfully.
+
+**Rationale:**
+Running the build immediately after changes ensures that errors are caught early, prevents broken builds from being committed, and maintains project stability.
+
+**Example:**
+```sh
+# After editing any .ml or .mli file
+dune build
+```
+
+---
+
+## 2. Prefer Functional and OCaml-Idiomatic Patterns
+
+**Policy:**
+Always use the most functional and OCaml-idiomatic approach to problem solving. This includes, but is not limited to, using types and combinators such as `Result.t`, `Option.value`, `Option.bind`, and other patterns from the OCaml ecosystem.
+
+**Rationale:**
+Functional and idiomatic code is more robust, composable, and easier to reason about. Leveraging OCaml’s type system and functional patterns reduces bugs and improves maintainability.
+
+**Examples:**
+
+- **Using `Result.t` for error handling:**
+  ```ocaml
+  let divide x y =
+    if y = 0 then Error "Division by zero"
+    else Ok (x / y)
+  ```
+
+- **Chaining with `Option.bind`:**
+  ```ocaml
+  let find_and_double tbl key =
+    Hashtbl.find tbl key
+    |> Option.bind ~f:(fun v -> Some (v * 2))
+  ```
+
+- **Providing defaults with `Option.value`:**
+  ```ocaml
+  let port = Option.value ~default:8080 maybe_port
+  ```
+
+---
+
+## Use of Base Library
+- **Standard Types:** Use types and modules from the [Base](mdc:base) library (e.g., `List`, `Option`, `Result`, `Map`, `Set`, `Int`, `Float`, `String`).
+- **Error Handling:** Use `Option.t` and `Result.t` for error handling instead of exceptions.
+- **Module Functions:** Prefer `Base.List`, `Base.Option`, etc., over OCaml's standard library equivalents.
+- **No Pervasives:** Avoid using OCaml's `Pervasives` or shadowed standard library functions unless necessary.
+- **Explicit Imports:** Open modules locally (e.g., `let open Base in ...`) rather than globally.
+
+## Code Style
+- **No Side Effects:** Avoid side effects in functions unless interfacing with IO or external systems.
+- **Explicit Types:** Use explicit type annotations for public functions and module interfaces.
+- **Consistent Naming:** Use snake_case for values and functions, PascalCase for types and modules.
+- **Short Functions:** Keep functions small and focused on a single responsibility.
+
+## Example
+```ocaml
+let sum_positive (xs : int list) : int =
+  List.filter xs ~f:(fun x -> x > 0)
+  |> List.fold ~init:0 ~f:(+)
+```
+
+**Adherence to these policies is required for all code contributions.**
+
+## References
+- [Base Library Documentation](mdc:base)
+- [Functional Programming in OCaml](mdc:functional-ocaml-guide.md)

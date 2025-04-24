@@ -1,4 +1,4 @@
-let src = Logs.Src.create "rl2025" ~doc:"Rougelike Tutorial 2025"
+let src = Logs.Src.create "echoes_dark" ~doc:"Echoes in the Dark"
 
 module Log = (val Logs.src_log src : Logs.LOG)
 

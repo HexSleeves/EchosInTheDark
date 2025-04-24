@@ -19,7 +19,7 @@ let () =
         "Log level (app|info|debug|warn|error)" );
     ]
   in
-  let usage = "Rougelike Tutorial 2025 [options]" in
+  let usage = "Echoes in the Dark [options]" in
   Arg.parse speclist (fun _ -> ()) usage;
 
   let level =
