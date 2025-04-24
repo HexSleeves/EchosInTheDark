@@ -53,7 +53,7 @@ let create_render_context ?(title = "Rougelike Tutorial 2025")
       [ Raylib.ConfigFlags.Window_resizable; Raylib.ConfigFlags.Vsync_hint ])
     ?(tile_width = Constants.tile_width) ?(tile_height = Constants.tile_height)
     ?(tileset_path = Constants.tileset_path)
-    ?(render_mode = Constants.render_mode)
+    ?(render_mode = !Constants.render_mode_ref)
     ?(tile_render_size = Constants.tile_render_size) () : render_context =
   (* Initialize window *)
   init_window ~flags ~window_width ~window_height ~title;

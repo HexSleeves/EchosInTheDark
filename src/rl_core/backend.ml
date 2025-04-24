@@ -10,8 +10,8 @@ let make ~debug ~w ~h ~seed : t = State.make ~debug ~w ~h ~seed
 (* Mode *)
 let get_mode (state : t) : Types.CtrlMode.t = State.get_mode state
 
-let set_mode (state : t) (mode : Types.CtrlMode.t) : t =
-  State.set_mode state mode
+let set_mode (mode : Types.CtrlMode.t) (state : t) : t =
+  State.set_mode mode state
 
 (* Entity *)
 let get_player_id (state : t) : Types.Entity.id = State.get_player_id state
@@ -21,8 +21,8 @@ let get_player_entity (state : t) : Types.Entity.t =
 
 let get_entities (state : t) : Types.Entity.t list = State.get_entities state
 
-let move_entity (state : t) (id : Types.Entity.id) (loc : Types.Loc.t) : t =
-  State.move_entity state id loc
+let move_entity (id : Types.Entity.id) (loc : Types.Loc.t) (state : t) : t =
+  State.move_entity id loc state
 
 let queue_actor_action (state : t) (actor_id : Actor.actor_id)
     (action : Types.Action.t) : t =

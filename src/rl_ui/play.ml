@@ -82,12 +82,28 @@ let handle_mouse (state : State.t) =
     let mouse_pos = get_mouse_position () in
     let tile_pos = Render_utils.screen_to_grid mouse_pos in
     let player_id = Backend.get_player_id state.backend in
-    let b = Backend.move_entity state.backend player_id tile_pos in
+    let b = Backend.move_entity player_id tile_pos state.backend in
     { state with backend = b }
   else state
 
 let handle_player_input (state : State.t) : State.t =
   let state = handle_mouse state in
+
+  (* Handle render mode toggle key (T) *)
+  let state =
+    if Rl_core.Input.is_render_toggle_pressed () then (
+      let () = Constants.toggle_render_mode () in
+      (* Log the toggle action *)
+      let new_mode = !Constants.render_mode_ref in
+      Ui_log.info (fun m ->
+          m "Toggled render mode to: %s"
+            (Constants.render_mode_to_string new_mode));
+
+      (* Create a new render context with updated render mode *)
+      let new_ctx = { state.render_ctx with render_mode = new_mode } in
+      { state with render_ctx = new_ctx })
+    else state
+  in
 
   match I.action_from_keys () with
   | Some action ->
@@ -97,7 +113,7 @@ let handle_player_input (state : State.t) : State.t =
         Backend.queue_actor_action state.backend (T.Entity.get_base entity).id
           action
       in
-      { state with backend = Backend.set_mode backend T.CtrlMode.Normal }
+      { state with backend = Backend.set_mode T.CtrlMode.Normal backend }
   | None -> state
 
 let handle_tick (state : State.t) : State.t =
@@ -112,5 +128,5 @@ let handle_tick (state : State.t) : State.t =
       {
         state with
         screen = GameOver;
-        backend = Backend.set_mode backend T.CtrlMode.Normal;
+        backend = Backend.set_mode T.CtrlMode.Normal backend;
       }

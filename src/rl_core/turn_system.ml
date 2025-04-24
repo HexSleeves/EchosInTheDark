@@ -20,7 +20,7 @@ let remove_dead_actor turn_queue id =
 
 (* Context record for passing necessary data to handle_actor_event *)
 type ctx = {
-  backend : State.t;
+  state : State.t;
   tq : Turn_queue.t;
   actor : Actor.t;
   id : Entity.id;
@@ -32,79 +32,82 @@ type ctx = {
    updating the actor manager, and either rescheduling (if no action)
    or executing the action and rescheduling based on the result. *)
 let handle_actor_event (ctx : ctx) : State.t =
-  let { backend; tq; actor; id; entity; time } = ctx in
+  let { state; tq; actor; id; entity; time } = ctx in
 
   (* Attempt to get the next action from the actor's internal queue.
      Also get the actor state *after* dequeuing the action. *)
   let maybe_action, updated_actor = Actor.next_action actor in
-  (* Update the actor manager with the state reflecting the dequeued action. *)
-  let backend = State.update_actor backend id (fun _ -> updated_actor) in
 
-  match maybe_action with
-  | None ->
-      Core_log.info (fun m ->
-          m "No action for entity: %d. Rescheduling turn." id);
-      let turn_queue = Turn_queue.schedule_turn tq id time in
-      State.set_turn_queue turn_queue backend
-  | Some action -> (
-      Core_log.info (fun m -> m "Action for entity: %d. Executing..." id);
-      let backend_after_action, result =
-        Action_handler.handle_action backend id action
-      in
-      match result with
-      | Ok d_time ->
-          let turn_queue = Turn_queue.schedule_turn tq id (time + d_time) in
-          State.set_turn_queue turn_queue backend_after_action
-      | Error e ->
-          Core_log.err (fun m ->
-              m "Failed to perform action: %s" (Exn.to_string e));
-          let delay =
-            match entity with
-            | Entity.Player _ -> player_retry_delay
-            | _ -> monster_reschedule_delay
-          in
-          let turn_queue = Turn_queue.schedule_turn tq id (time + delay) in
+  (* Update the actor manager with the state reflecting the dequeued action. *)
+  let backend = State.update_actor state id (fun _ -> updated_actor) in
+
+  maybe_action
+  |> Option.value_map
+       ~default:
+         (Core_log.info (fun m ->
+              m "No action for entity: %d. Rescheduling turn." id);
+          Turn_queue.schedule_turn tq id time |> fun turn_queue ->
           State.set_turn_queue turn_queue backend)
+       ~f:(fun action ->
+         Core_log.info (fun m -> m "Action for entity: %d. Executing..." id);
+         let backend_after_action, result =
+           Action_handler.handle_action backend id action
+         in
+         match result with
+         | Ok d_time ->
+             Turn_queue.schedule_turn tq id (time + d_time) |> fun turn_queue ->
+             State.set_turn_queue turn_queue backend_after_action
+         | Error e ->
+             Core_log.err (fun m ->
+                 m "Failed to perform action: %s" (Exn.to_string e));
+             let delay =
+               match entity with
+               | Entity.Player _ -> player_retry_delay
+               | _ -> monster_reschedule_delay
+             in
+             Turn_queue.schedule_turn tq id (time + delay) |> fun turn_queue ->
+             State.set_turn_queue turn_queue backend)
 
 (* Processes a single event from the turn queue for a given id at a specific time.
    Handles fetching the entity and actor, checking liveness, waiting for player input,
    and dispatching to handle_actor_event for action execution. *)
-let process_actor_event (backend : State.t) (tq : Turn_queue.t) (id : Entity.id)
+let process_actor_event (state : State.t) (tq : Turn_queue.t) (id : Entity.id)
     (time : int) : State.t =
-  match State.get_entity backend id with
-  | None -> backend
-  | Some entity -> (
-      match State.get_actor backend id with
-      | None -> backend
-      | Some actor ->
-          (* Remove dead actor from queue *)
-          if not (Actor.is_alive actor) then
-            State.set_turn_queue (remove_dead_actor tq id) backend
-          else if should_wait_for_player_input entity actor then (
-            Core_log.info (fun m -> m "Player is awaiting input");
-            State.set_mode backend CtrlMode.WaitInput)
-          else
-            let ctx = { backend; tq; actor; id; entity; time } in
-            handle_actor_event ctx)
+  State.get_entity id state
+  |> Option.bind ~f:(fun entity ->
+         State.get_actor state id
+         |> Option.map ~f:(fun actor -> (entity, actor)))
+  |> Option.value_map ~default:state ~f:(fun (entity, actor) ->
+         match
+           (Actor.is_alive actor, should_wait_for_player_input entity actor)
+         with
+         | false, _ -> State.set_turn_queue (remove_dead_actor tq id) state
+         | true, true ->
+             Core_log.info (fun m -> m "Player is awaiting input");
+             State.set_mode CtrlMode.WaitInput state
+         | true, false ->
+             let ctx = { state; tq; actor; id; entity; time } in
+             handle_actor_event ctx)
 
 (* Main turn processing function.
    Continuously processes actors from the turn queue until the queue is empty
    or the game enters WaitInput mode. *)
 let process_turns (backend : State.t) : State.t =
-  let rec process_loop (current_backend : State.t) : State.t =
+  let rec process_loop current_backend =
     match State.get_mode current_backend with
     | CtrlMode.WaitInput ->
         Core_log.info (fun m -> m "Waiting for player input");
         current_backend
-    | _ -> (
-        let result, next_tq =
-          Turn_queue.get_next_actor (State.get_turn_queue current_backend)
-        in
-        match result with
-        | None -> State.set_turn_queue next_tq current_backend
-        | Some (id, time) ->
+    | _ ->
+        Turn_queue.get_next_actor (State.get_turn_queue current_backend)
+        |> fun (result, next_tq) ->
+        Option.value_map result
+          ~default:(State.set_turn_queue next_tq current_backend)
+          ~f:(fun (id, time) ->
             process_loop (process_actor_event current_backend next_tq id time))
   in
+
   if State.get_debug backend then
-    Turn_queue.print_queue (State.get_turn_queue backend);
+    State.get_turn_queue backend |> Turn_queue.print_queue;
+
   process_loop backend

@@ -4,24 +4,24 @@
 
 - [x] `can_use_stairs_down` and `can_use_stairs_up`: Use Option.value_map instead of explicit match for entity lookup.
 - [ ] `handle_action`:
-  - [ ] `Action.Move`: Use Option.value_map for entity lookup and for get_entity_at_pos.
-  - [ ] `Action.StairsUp`/`Action.StairsDown`: Use Option.value_map for entity lookup.
-  - [ ] `Action.Attack`: Use Option.bind or Option.value_map for attacker/defender lookup and stats lookup.
+  - [x] `Action.Move`: Use Option.value_map for entity lookup and for get_entity_at_pos.
+  - [x] `Action.StairsUp`/`Action.StairsDown`: Use Option.value_map for entity lookup.
+  - [x] `Action.Attack`: Use Option.bind or Option.value_map for attacker/defender lookup and stats lookup.
 
 ## src/rl_core/turn_system.ml
 
-- [ ] `process_actor_event`: Use Option.value_map or Option.bind for entity and actor lookup.
+- [x] `process_actor_event`: Use Option.value_map or Option.bind for entity and actor lookup.
 
 ## src/rl_core/entity_manager.ml
 
-- [ ] `find_unsafe`: Use Option.value_map or Option.get with error for more idiomatic error handling.
-- [ ] `find_by_pos`: Use Option.first_some or Option.value_map for fold logic.
-- [ ] `update`: Already refactored, but review for further pipeline opportunities.
+- [x] `find_unsafe`: Use Option.value_map or Option.get with error for more idiomatic error handling.
+- [x] `find_by_pos`: Use Option.first_some or Option.value_map for fold logic.
+- [x] `update`: Already refactored, but review for further pipeline opportunities.
 
 ## src/rl_core/actor_manager.ml
 
-- [ ] `get_unsafe`: Use Option.value_map or Option.get with error for more idiomatic error handling.
-- [ ] `update`: Use Option.value_map instead of explicit match.
+- [x] `get_unsafe`: Use Option.value_map or Option.get with error for more idiomatic error handling.
+- [x] `update`: Use Option.value_map instead of explicit match.
 
 ---
 

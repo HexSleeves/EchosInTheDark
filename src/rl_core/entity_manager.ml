@@ -1,44 +1,24 @@
 open Base
 open Types
-open Types.Entity
 
 type t = Entity.t Map.M(Int).t
 
 let create () : t = Map.empty (module Int)
 
 let add (mgr : t) (ent : Entity.t) : t =
-  let id =
-    match ent with
-    | Entity.Player (base, _)
-    | Entity.Creature (base, _)
-    | Entity.Item (base, _)
-    | Entity.Corpse base ->
-        base.id
-  in
-  Map.set mgr ~key:id ~data:ent
+  Map.set mgr ~key:(Entity.get_id ent) ~data:ent
 
 let remove (mgr : t) (id : int) : t = Map.remove mgr id
 let find (mgr : t) (id : int) : Entity.t option = Map.find mgr id
 
 let find_unsafe (mgr : t) (id : int) : Entity.t =
-  match find mgr id with
-  | Some ent -> ent
-  | None -> failwith (Printf.sprintf "Entity not found: %d" id)
+  Option.value_exn (find mgr id) ~message:"Entity not found"
 
 let find_by_pos (mgr : t) (pos : Loc.t) : Entity.t option =
   Map.fold mgr ~init:None ~f:(fun ~key:_ ~data acc ->
-      match acc with
-      | Some _ -> acc
-      | None ->
-          let base =
-            match data with
-            | Entity.Player (base, _)
-            | Entity.Creature (base, _)
-            | Entity.Item (base, _)
-            | Entity.Corpse base ->
-                base
-          in
-          if Loc.equal pos base.pos then Some data else None)
+      Option.first_some acc
+        (let base = Entity.get_base data in
+         if Loc.equal pos base.pos then Some data else None))
 
 let update (mgr : t) (id : int) (f : Entity.t -> Entity.t) : t =
   Map.find mgr id
@@ -101,7 +81,7 @@ let spawn_item (em : t) ~pos ~direction ~item_type ~quantity ~name ~glyph
   in
   add_entity em (Entity.Item (base, { Entity.item }))
 
-let spawn_corpse (em : t) (pos : Loc.t) : t =
+let spawn_corpse (pos : Loc.t) (em : t) : t =
   let id = next_id em in
   let base =
     Entity.make_base_entity ~id ~pos ~name:"Corpse" ~glyph:"%"

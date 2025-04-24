@@ -21,3 +21,6 @@ let of_key (key : Raylib.Key.t) : Types.Action.t option =
 let action_from_keys () : Types.Action.t option =
   let open Raylib in
   get_key_pressed () |> of_key
+
+(** Check if the render mode toggle key (T) is pressed *)
+let is_render_toggle_pressed () = Raylib.is_key_pressed Raylib.Key.T

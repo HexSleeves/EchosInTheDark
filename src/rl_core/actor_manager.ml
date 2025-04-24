@@ -41,25 +41,22 @@ type t = Actor.t Map.M(Int).t
 
 let create () : t = Map.empty (module Int)
 
-let add (manager : t) (actor_id : Actor.actor_id) (actor : Actor.t) : t =
+let add (actor_id : Actor.actor_id) (actor : Actor.t) (manager : t) : t =
   Map.set manager ~key:actor_id ~data:actor
 
-let remove (manager : t) (actor_id : Actor.actor_id) : t =
+let remove (actor_id : Actor.actor_id) (manager : t) : t =
   Map.remove manager actor_id
 
-let get (manager : t) (actor_id : Actor.actor_id) : Actor.t option =
+let get (actor_id : Actor.actor_id) (manager : t) : Actor.t option =
   Map.find manager actor_id
 
-let get_unsafe (manager : t) (actor_id : Actor.actor_id) : Actor.t =
-  match get manager actor_id with
-  | Some actor -> actor
-  | None -> failwith "Actor not found"
+let get_unsafe (actor_id : Actor.actor_id) (manager : t) : Actor.t =
+  Option.value_exn (get actor_id manager) ~message:"Actor not found"
 
-let update (manager : t) (actor_id : Actor.actor_id) (f : Actor.t -> Actor.t) :
+let update (actor_id : Actor.actor_id) (f : Actor.t -> Actor.t) (manager : t) :
     t =
-  match Map.find manager actor_id with
-  | Some actor -> Map.set manager ~key:actor_id ~data:(f actor)
-  | None -> manager
+  Option.value_map (Map.find manager actor_id) ~default:manager ~f:(fun actor ->
+      Map.set manager ~key:actor_id ~data:(f actor))
 
 (* Actors *)
 

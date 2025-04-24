@@ -22,11 +22,11 @@ let get_height v = v.height
 let get_width v = v.width
 
 (* Tile *)
-let get_tile v (loc : Loc.t) =
-  v.map.(Rl_utils.Utils.xy_to_index loc.x loc.y v.width)
+let get_tile (loc : Loc.t) d =
+  d.map.(Rl_utils.Utils.xy_to_index loc.x loc.y d.width)
 
-let set_tile v (loc : Loc.t) tile =
-  v.map.(Rl_utils.Utils.xy_to_index loc.x loc.y v.width) <- tile
+let set_tile (loc : Loc.t) (tile : Tile.t) (d : t) =
+  d.map.(Rl_utils.Utils.xy_to_index loc.x loc.y d.width) <- tile
 
-let in_bounds v (loc : Loc.t) =
-  loc.x >= 0 && loc.x < v.width && loc.y >= 0 && loc.y < v.height
+let in_bounds (loc : Loc.t) (d : t) =
+  loc.x >= 0 && loc.x < d.width && loc.y >= 0 && loc.y < d.height

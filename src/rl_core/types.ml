@@ -99,11 +99,23 @@ module Entity = struct
     | Corpse of base_entity
   [@@deriving yojson, show]
 
+  let get_id = function
+    | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
+        base.id
+
+  let get_blocking = function
+    | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
+        base.blocking
+
   let get_base = function
     | Player (base, _) -> base
     | Creature (base, _) -> base
     | Item (base, _) -> base
     | Corpse base -> base
+
+  let get_pos = function
+    | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
+        base.pos
 end
 
 module Action = struct
