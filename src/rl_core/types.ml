@@ -2,7 +2,7 @@ open Base
 open Ppx_yojson_conv_lib.Yojson_conv
 
 module CtrlMode = struct
-  type t = Normal | WaitInput | Died of float
+  type t = Normal | WaitInput | AI | Died of float
   (* [@@deriving yojson] *)
 end
 
@@ -124,7 +124,6 @@ let are_factions_hostile (f1 : faction) (f2 : faction) : bool =
   | `FriendlyBug, _ | _, `FriendlyBug -> false
   | `Neutral, _ | _, `Neutral -> false
   | `Other a, `Other b -> String.equal a b
-  | _ -> false
 
 (* //////////////////////// *)
 (* ENTITY TYPES *)

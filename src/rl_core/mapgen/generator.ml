@@ -1,6 +1,5 @@
 (* Mapgen modules *)
 open Base
-module CA = Ca
 module Tile = Dungeon.Tile
 module Config = Config
 module Tilemap = Dungeon.Tilemap
@@ -21,26 +20,35 @@ let blend_grids (base : Tile.t array) (overlay : Tile.t array) : Tile.t array =
       let o = overlay.(i) in
       if is_special_tile t then t else if Tile.equal o Tile.Wall then t else o)
 
-let rec run_algorithm (algo : algorithm) ~width ~height ~rng =
+let rec run_algorithm (algo : algorithm) ~width ~height ~rng ~depth =
   let entity_manager = Entity_manager.create () in
   match algo with
   | Prefab filename ->
       (Prefab.load_prefab filename ~width ~height, [], entity_manager)
-  | CA -> (CA.run ~width ~height ~rng, [], entity_manager)
+  | CA ->
+      let grid = Ca.run ~width ~height ~rng in
+      let entity_manager = Entity_manager.create () in
+      let entity_manager =
+        Ca.place_monsters ~grid ~width ~height ~rng entity_manager
+      in
+      (grid, [], entity_manager)
   | Rooms ->
       let grid, rooms = Rooms.rooms_generator ~width ~height ~rng in
+      let entity_manager =
+        Rooms.place_monsters ~grid ~width ~rooms ~rng ~depth entity_manager
+      in
       (grid, rooms, entity_manager)
   | Blend algos -> (
       match algos with
-      | [] -> (CA.run ~width ~height ~rng, [], entity_manager)
+      | [] -> (Ca.run ~width ~height ~rng, [], entity_manager)
       | first :: rest ->
           let base_grid, base_rooms, base_entities =
-            run_algorithm first ~width ~height ~rng
+            run_algorithm first ~width ~height ~rng ~depth
           in
           List.fold_left rest ~init:(base_grid, base_rooms, base_entities)
             ~f:(fun (acc_grid, acc_rooms, acc_entities) a ->
               let overlay_grid, overlay_rooms, _overlay_entities =
-                run_algorithm a ~width ~height ~rng
+                run_algorithm a ~width ~height ~rng ~depth
               in
               ( blend_grids acc_grid overlay_grid,
                 acc_rooms @ overlay_rooms,
@@ -58,9 +66,11 @@ let generate ~(config : Config.t) ~(level : int) :
 
   (* Select algorithm per level *)
   let grid, rooms, entity_manager =
-    if level = 1 then
-      run_algorithm (Prefab "resources/prefabs/level1.txt") ~width ~height ~rng
-    else run_algorithm (Blend [ CA; Rooms ]) ~width ~height ~rng
+    match level with
+    | 1 ->
+        run_algorithm (Prefab "resources/prefabs/level1.txt") ~width ~height
+          ~rng ~depth:level
+    | _ -> run_algorithm (Blend [ CA; Rooms ]) ~width ~height ~rng ~depth:level
   in
 
   if level <> 1 then (
@@ -183,18 +193,5 @@ let generate ~(config : Config.t) ~(level : int) :
       Tilemap.stairs_down;
     }
   in
-  (* Place monster bands in some rooms *)
-  let depth = level in
-  List.iter rooms ~f:(fun (x, y, w, h) ->
-      if Random.State.bool rng then
-        let positions =
-          Util.cartesian_product (Util.range x (x + w)) (Util.range y (y + h))
-          |> List.filter ~f:(fun (i, j) ->
-                 let idx = i + (j * width) in
-                 Tile.is_floor grid.(idx))
-          |> List.map ~f:(fun (i, j) -> Types.Loc.make i j)
-        in
-        ignore
-          (Monster_placement.place_band_in_room ~entity_manager
-             ~room_positions:positions ~depth ~rng));
+
   (tilemap, rooms, entity_manager)

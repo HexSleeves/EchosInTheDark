@@ -35,8 +35,8 @@ let occupied_positions (entities : Rl_core.Types.Entity.t list) :
 let tile_to_sprite_coords = function
   | T.Wall -> (0, 2)
   | T.Floor -> (1, 0)
-  | T.Stairs_up -> (2, 7)
-  | T.Stairs_down -> (3, 7)
+  | T.Stairs_up -> (18, 2)
+  | T.Stairs_down -> (17, 2)
   | T.River -> (1, 0)
   | T.Tree -> (4, 0)
   | T.Door -> (13, 2)

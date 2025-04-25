@@ -11,6 +11,10 @@ val set_mode : Types.CtrlMode.t -> t -> t
 val get_entity : Types.Entity.id -> t -> Types.Entity.t option
 val get_base_entity : Types.Entity.id -> t -> Types.Entity.base_entity
 val get_entities : t -> Types.Entity.t list
+
+val get_creatures :
+  t -> (Types.Entity.base_entity * Types.Entity.creature_data) list
+
 val move_entity : Types.Entity.id -> Types.Loc.t -> t -> t
 val remove_entity : Types.Entity.id -> t -> t
 

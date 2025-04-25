@@ -30,3 +30,17 @@ let queue_actor_action (state : t) (actor_id : Actor.actor_id)
 
 (* Map *)
 let get_current_map (state : t) : Tilemap.t = State.get_current_map state
+let process_turns (state : t) : t = Turn_system.process_turns state
+
+let run_ai_step (state : t) : t =
+  let open Types in
+  let creatures = State.get_creatures state in
+  List.fold creatures ~init:state ~f:(fun st (base, data) ->
+      let id = base.id in
+      match State.get_actor st id with
+      | Some actor
+        when Option.is_none (Actor_manager.Actor.peek_next_action actor) ->
+          let action = Ai.Wander.decide (Entity.Creature (base, data)) st in
+          queue_actor_action st id action
+      | _ -> st)
+  |> fun state -> State.set_mode Types.CtrlMode.Normal state

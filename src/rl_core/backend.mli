@@ -21,3 +21,7 @@ val queue_actor_action : t -> Actor.actor_id -> Types.Action.t -> t
 
 (* Map *)
 val get_current_map : t -> Tilemap.t
+
+(* AI *)
+val run_ai_step : t -> t
+val process_turns : t -> t

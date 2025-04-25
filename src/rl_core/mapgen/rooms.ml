@@ -52,3 +52,17 @@ let rooms_generator ~width ~height ~rng =
       rooms := new_room :: !rooms)
   done;
   (grid, !rooms)
+
+let place_monsters ~grid ~width ~rooms ~rng ~depth entity_manager =
+  List.fold rooms ~init:entity_manager ~f:(fun em (x, y, w, h) ->
+      if Random.State.bool rng then
+        let positions =
+          Util.cartesian_product (Util.range x (x + w)) (Util.range y (y + h))
+          |> List.filter ~f:(fun (i, j) ->
+                 let idx = i + (j * width) in
+                 Tile.is_floor grid.(idx))
+          |> List.map ~f:(fun (i, j) -> Types.Loc.make i j)
+        in
+        Monster_placement.place_band_in_room ~entity_manager:em
+          ~room_positions:positions ~depth ~rng
+      else em)

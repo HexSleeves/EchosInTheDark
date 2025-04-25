@@ -34,6 +34,15 @@ type ctx = {
    or executing the action and rescheduling based on the result. *)
 let handle_actor_event (ctx : ctx) : State.t =
   let { state; tq; actor; id; entity; time } = ctx in
+  (* Inject AI for creatures with no queued action *)
+  let actor =
+    match entity with
+    | Entity.Creature _ when Option.is_none (Actor.peek_next_action actor) ->
+        let action = Ai.Wander.decide entity state in
+        Actor.queue_action actor action
+    | _ -> actor
+  in
+
   (* Attempt to get the next action from the actor's internal queue.
      Also get the actor state *after* dequeuing the action. *)
   let maybe_action, updated_actor = Actor.next_action actor in

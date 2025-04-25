@@ -109,6 +109,13 @@ let get_blocking_entity_at_pos (pos : Types.Loc.t) (state : t) :
 let get_entities (state : t) : Types.Entity.t list =
   EntityManager.to_list (get_entities_manager state)
 
+let get_creatures (state : t) :
+    (Types.Entity.base_entity * Types.Entity.creature_data) list =
+  EntityManager.to_list (get_entities_manager state)
+  |> List.filter_map ~f:(function
+       | Entity.Creature (base, data) -> Some (base, data)
+       | _ -> None)
+
 let move_entity (id : Types.Entity.id) (loc : Types.Loc.t) (state : t) : t =
   let open Types.Entity in
   let new_entities =

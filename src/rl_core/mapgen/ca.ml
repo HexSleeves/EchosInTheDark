@@ -51,7 +51,28 @@ let smooth grid ~width ~height ~passes =
 
 (** Run the CA generator: init and smooth, return tile array. *)
 let run ~width ~height ~rng =
-  let wall_prob = 0.45 in
-  let passes = 4 in
+  let wall_prob = 0.58 in
+  (* More initial walls *)
+  let passes = 6 in
+  (* More smoothing passes *)
   let grid = init_grid ~rng ~width ~height ~wall_prob in
   smooth grid ~width ~height ~passes
+
+let place_monsters ~grid ~width ~height ~rng entity_manager =
+  let floor_positions =
+    List.filter_map
+      (List.init (width * height) ~f:Fn.id)
+      ~f:(fun idx ->
+        if Tile.is_floor grid.(idx) then
+          let x = idx % width in
+          let y = idx / width in
+          Some (Types.Loc.make x y)
+        else None)
+  in
+  let num_monsters = Int.max 1 (width * height / 120) in
+  let shuffled = List.permute floor_positions ~random_state:rng in
+  let monster_positions = List.take shuffled num_monsters in
+  List.fold monster_positions ~init:entity_manager ~f:(fun em pos ->
+      let spec = Monster_placement.get_template "Rat" in
+      Monster_placement.place_monster ~entity_manager:em ~pos
+        ~direction:Types.Direction.North spec)
