@@ -31,3 +31,32 @@ let tile_to_glyph tile =
   | Tree -> 'T'
   | Door -> '+'
   | Unknown -> '?'
+
+let tile_to_tileset tile =
+  match tile with
+  | Wall -> (0, 2)
+  | Floor -> (1, 0)
+  | Stairs_up -> (18, 2)
+  | Stairs_down -> (17, 2)
+  | River -> (1, 0)
+  | Tree -> (4, 0)
+  | Door -> (13, 2)
+  | Trap -> (15, 1)
+  | Secret_door -> (19, 1)
+  | Chasm -> (3, 2)
+  | _ -> (20, 5)
+
+let tile_to_color tile =
+  let open Raylib in
+  match tile with
+  | Wall -> Color.gray
+  | Floor -> Color.lightgray
+  | Stairs_up -> Color.gold
+  | Stairs_down -> Color.gold
+  | Trap -> Color.red
+  | Secret_door -> Color.purple
+  | River -> Color.blue
+  | Chasm -> Color.darkgray
+  | Tree -> Color.green
+  | Door -> Color.brown
+  | Unknown -> Color.red

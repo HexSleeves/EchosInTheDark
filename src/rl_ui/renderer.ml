@@ -1,6 +1,5 @@
 open Base
-module T = Rl_core.Dungeon.Tile
-module Utils = Render_utils
+module Tile = Rl_core.Dungeon.Tile
 
 (* Font configuration for grid rendering *)
 type font_config = { font : Raylib.Font.t; font_size : int; font_path : string }
@@ -150,7 +149,7 @@ let render_cell ~glyph ~color ~fc ~loc ~origin =
 
 let render_tile ~texture ~tile ~loc ~origin ~tile_render_size =
   let open Raylib in
-  let col, row = Utils.tile_to_sprite_coords tile in
+  let col, row = Tile.tile_to_tileset tile in
 
   let src =
     let tile_width = Constants.tile_width in
@@ -162,7 +161,7 @@ let render_tile ~texture ~tile ~loc ~origin ~tile_render_size =
   in
 
   let dest =
-    let base = Utils.grid_to_screen loc in
+    let base = Render_utils.grid_to_screen loc in
     Vector2.add base origin
   in
 
@@ -197,10 +196,35 @@ let render_entities ~entities ~origin ~ctx =
   let open Render_utils in
   let font_config = ctx.font_config in
   List.iter entities ~f:(fun entity ->
-      let glyph, color = entity_glyph_and_color entity in
       let base = Rl_core.Types.Entity.get_base entity in
-
-      render_cell ~glyph ~color ~fc:font_config ~loc:base.pos ~origin)
+      match (ctx.render_mode, ctx.tileset_config) with
+      | Constants.Tiles, Some t_cfg ->
+          let col, row = Render_utils.entity_to_sprite_coords entity in
+          let tile_width = Constants.tile_width in
+          let tile_height = Constants.tile_height in
+          let src =
+            Raylib.Rectangle.create
+              (Float.of_int (col * tile_width))
+              (Float.of_int (row * tile_height))
+              (Float.of_int tile_width) (Float.of_int tile_height)
+          in
+          let dest =
+            let base_pos = grid_to_screen base.pos in
+            Raylib.Vector2.add base_pos origin
+          in
+          let dest_rect =
+            Raylib.Rectangle.create (Raylib.Vector2.x dest)
+              (Raylib.Vector2.y dest)
+              (Float.of_int ctx.tile_render_size)
+              (Float.of_int ctx.tile_render_size)
+          in
+          let rotation = 0. in
+          let img_origin = Raylib.Vector2.create 0. 0. in
+          Raylib.draw_texture_pro t_cfg.texture src dest_rect img_origin
+            rotation Raylib.Color.white
+      | _ ->
+          let glyph, color = entity_glyph_and_color entity in
+          render_cell ~glyph ~color ~fc:font_config ~loc:base.pos ~origin)
 
 (* Draw the vertical player stats bar *)
 let draw_stats_bar_vertical ~player ~rect =

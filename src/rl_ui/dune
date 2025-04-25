@@ -2,7 +2,7 @@
 
 (library
  (name rl_ui)
- (libraries rl_core rl_utils base core_kernel raylib raygui)
+ (libraries rl_core rl_utils rl_loader base core_kernel raylib raygui)
  (preprocess
   (staged_pps
    ppx_yojson_conv
