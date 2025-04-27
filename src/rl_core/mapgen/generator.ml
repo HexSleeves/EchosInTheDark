@@ -64,6 +64,8 @@ let generate ~(config : Config.t) ~(level : int) :
   let width = config.width in
   let height = config.height in
 
+  Core_log.info (fun m -> m "Generating map for level %d" level);
+
   (* Select algorithm per level *)
   let grid, rooms, entity_manager =
     match level with
@@ -140,8 +142,6 @@ let generate ~(config : Config.t) ~(level : int) :
     done);
 
   (* --- End environmental features --- *)
-  Core_log.info (fun m -> m "Generating map for level %d" level);
-
   let random_floor = Util.find_random_floor grid ~width ~height ~rng in
   let stairs_up = if level = 1 then None else Some random_floor in
   let player_start =
@@ -180,6 +180,16 @@ let generate ~(config : Config.t) ~(level : int) :
   (match stairs_down with
   | Some loc -> grid.((loc.y * width) + loc.x) <- Tile.Stairs_down
   | None -> ());
+
+  (* Print stair locations *)
+  Core_log.info (fun m ->
+      m "Stairs up: %s"
+        (match stairs_up with Some loc -> Types.Loc.show loc | None -> "None"));
+  Core_log.info (fun m ->
+      m "Stairs down: %s"
+        (match stairs_down with
+        | Some loc -> Types.Loc.show loc
+        | None -> "None"));
 
   (* Construct Tilemap record *)
   let tilemap =

@@ -72,6 +72,7 @@ let place_monsters ~grid ~width ~height ~rng entity_manager =
   let num_monsters = Int.max 1 (width * height / 120) in
   let shuffled = List.permute floor_positions ~random_state:rng in
   let monster_positions = List.take shuffled num_monsters in
+  Core_log.info (fun m -> m "Placing %d monsters..." num_monsters);
   List.fold monster_positions ~init:entity_manager ~f:(fun em pos ->
       let spec = Monster_placement.get_template "Rat" in
       Monster_placement.place_monster ~entity_manager:em ~pos

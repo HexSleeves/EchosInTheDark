@@ -7,7 +7,8 @@ module CtrlMode = struct
 end
 
 module Loc = struct
-  type t = { x : int; y : int } [@@deriving yojson, show, eq]
+  type t = { x : int; y : int }
+  [@@deriving yojson, show, eq, compare, hash, sexp]
 
   let make x y = { x; y }
   let add a b = { x = a.x + b.x; y = a.y + b.y }

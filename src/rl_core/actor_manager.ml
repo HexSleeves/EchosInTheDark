@@ -51,13 +51,13 @@ let get (actor_id : Actor.actor_id) (manager : t) : Actor.t option =
   Map.find manager actor_id
 
 let get_unsafe (actor_id : Actor.actor_id) (manager : t) : Actor.t =
-  get actor_id manager
-  |> Option.value_exn ~message:"Actor not found"
+  get actor_id manager |> Option.value_exn ~message:"Actor not found"
 
-let update (actor_id : Actor.actor_id) (f : Actor.t -> Actor.t) (manager : t) : t =
+let update (actor_id : Actor.actor_id) (f : Actor.t -> Actor.t) (manager : t) :
+    t =
   Map.find manager actor_id
   |> Option.value_map ~default:manager ~f:(fun actor ->
-       Map.set manager ~key:actor_id ~data:(f actor))
+         Map.set manager ~key:actor_id ~data:(f actor))
 
 (* Actors *)
 
@@ -72,6 +72,6 @@ let create_goblin_actor = Actor.create ~speed:150
 let copy (t : t) : t = t (* Map is persistent, so this is just identity *)
 let restore (_t : t) (src : t) : t = src (* Just return the source *)
 
-let debug_print (manager : t) : unit =
+let print_actor_manager (manager : t) : unit =
   Map.iteri manager ~f:(fun ~key ~data ->
       Core_log.info (fun m -> m "Actor %d: %s" key (Actor.show data)))

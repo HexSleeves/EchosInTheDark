@@ -52,8 +52,6 @@ let handle_actor_event (ctx : ctx) : State.t =
 
   match maybe_action with
   | Some action -> (
-      Log.info (fun m ->
-          m "Executing action %s for entity: %d" (Action.to_string action) id);
       let backend_after_action, result =
         Action_handler.handle_action backend id action
       in
@@ -96,7 +94,6 @@ let process_actor_event (state : State.t) (tq : Turn_queue.t) (id : Entity.id)
              Log.info (fun m -> m "Player is awaiting input");
              State.set_mode CtrlMode.WaitInput state
          | true, false ->
-             Log.info (fun m -> m "Processing actor event for entity %d" id);
              let ctx = { state; tq; actor; id; entity; time } in
              handle_actor_event ctx)
 
@@ -106,9 +103,7 @@ let process_actor_event (state : State.t) (tq : Turn_queue.t) (id : Entity.id)
 let process_turns (backend : State.t) : State.t =
   let rec process_loop current_backend =
     match State.get_mode current_backend with
-    | CtrlMode.WaitInput ->
-        Log.info (fun m -> m "Waiting for player input");
-        current_backend
+    | CtrlMode.WaitInput -> current_backend
     | _ ->
         Turn_queue.get_next_actor (State.get_turn_queue current_backend)
         |> fun (result, next_tq) ->

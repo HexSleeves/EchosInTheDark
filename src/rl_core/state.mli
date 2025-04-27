@@ -1,6 +1,6 @@
 type t
 
-val make : debug:bool -> w:int -> h:int -> seed:int -> t
+val make : debug:bool -> w:int -> h:int -> seed:int -> current_level:int -> t
 val get_debug : t -> bool
 
 (* Control mode *)

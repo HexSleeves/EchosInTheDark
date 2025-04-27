@@ -5,7 +5,8 @@ module Entity = Types.Entity
 
 type t = State.t
 
-let make ~debug ~w ~h ~seed : t = State.make ~debug ~w ~h ~seed
+let make ~debug ~w ~h ~seed ~current_level : t =
+  State.make ~debug ~w ~h ~seed ~current_level
 
 (* Mode *)
 let get_mode (state : t) : Types.CtrlMode.t = State.get_mode state

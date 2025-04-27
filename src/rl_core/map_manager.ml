@@ -11,7 +11,7 @@ type t = {
   config : Mapgen.Config.t;
 }
 
-let create ~(config : Mapgen.Config.t) =
+let create ~(config : Mapgen.Config.t) ~current_level =
   let maps = Hashtbl.create (module Int) in
   let entities_by_level = Hashtbl.create (module Int) in
   let actor_manager_by_level = Hashtbl.create (module Int) in
@@ -20,14 +20,14 @@ let create ~(config : Mapgen.Config.t) =
   (* Generate first level map *)
   let total_levels = config.max_levels in
   let first_map, _, first_entities =
-    Mapgen.Generator.generate ~config ~level:1
+    Mapgen.Generator.generate ~config ~level:current_level
   in
-  Hashtbl.set maps ~key:1 ~data:first_map;
-  Hashtbl.set entities_by_level ~key:1 ~data:first_entities;
+  Hashtbl.set maps ~key:current_level ~data:first_map;
+  Hashtbl.set entities_by_level ~key:current_level ~data:first_entities;
 
   {
     maps;
-    current_level = 1;
+    current_level;
     total_levels;
     player_has_amulet = false;
     entities_by_level;
@@ -74,6 +74,7 @@ let save_level_state t level ~entities ~actor_manager ~turn_queue =
 let load_level_state t level ~entities ~actor_manager ~turn_queue =
   match Hashtbl.find t.entities_by_level level with
   | Some saved_entities ->
+      Core_log.info (fun m -> m "Loading level state for level %d" level);
       let entities = Entity_manager.restore entities saved_entities in
       let actor_manager =
         Actor_manager.restore actor_manager

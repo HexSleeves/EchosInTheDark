@@ -54,7 +54,7 @@ let entity_to_sprite_coords (entity : Rl_core.Types.Entity.t) =
   | Rl_core.Types.Entity.Player _ -> (0, 3) (* Example: player tile *)
   | Rl_core.Types.Entity.Creature (_, data) -> (
       match String.lowercase data.species with
-      | "rat" -> (1, 0)
+      | "rat" -> (5, 3)
       | "goblin" -> (2, 0)
       | "kobold" -> (3, 0)
       | "giant spider" -> (4, 0)

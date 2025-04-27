@@ -195,36 +195,46 @@ let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx =
 let render_entities ~entities ~origin ~ctx =
   let open Render_utils in
   let font_config = ctx.font_config in
+
+  (* Only render the first entity at each position *)
+  let table = Hashtbl.create (module Rl_core.Types.Loc) in
   List.iter entities ~f:(fun entity ->
       let base = Rl_core.Types.Entity.get_base entity in
-      match (ctx.render_mode, ctx.tileset_config) with
-      | Constants.Tiles, Some t_cfg ->
-          let col, row = Render_utils.entity_to_sprite_coords entity in
-          let tile_width = Constants.tile_width in
-          let tile_height = Constants.tile_height in
-          let src =
-            Raylib.Rectangle.create
-              (Float.of_int (col * tile_width))
-              (Float.of_int (row * tile_height))
-              (Float.of_int tile_width) (Float.of_int tile_height)
-          in
-          let dest =
-            let base_pos = grid_to_screen base.pos in
-            Raylib.Vector2.add base_pos origin
-          in
-          let dest_rect =
-            Raylib.Rectangle.create (Raylib.Vector2.x dest)
-              (Raylib.Vector2.y dest)
-              (Float.of_int ctx.tile_render_size)
-              (Float.of_int ctx.tile_render_size)
-          in
-          let rotation = 0. in
-          let img_origin = Raylib.Vector2.create 0. 0. in
-          Raylib.draw_texture_pro t_cfg.texture src dest_rect img_origin
-            rotation Raylib.Color.white
-      | _ ->
-          let glyph, color = entity_glyph_and_color entity in
-          render_cell ~glyph ~color ~fc:font_config ~loc:base.pos ~origin)
+      let pos = base.pos in
+      if not (Hashtbl.mem table pos) then
+        Hashtbl.set table ~key:pos ~data:entity);
+
+  Hashtbl.data table
+  |> List.iter ~f:(fun entity ->
+         let base = Rl_core.Types.Entity.get_base entity in
+         match (ctx.render_mode, ctx.tileset_config) with
+         | Constants.Tiles, Some t_cfg ->
+             let col, row = Render_utils.entity_to_sprite_coords entity in
+             let tile_width = Constants.tile_width in
+             let tile_height = Constants.tile_height in
+             let src =
+               Raylib.Rectangle.create
+                 (Float.of_int (col * tile_width))
+                 (Float.of_int (row * tile_height))
+                 (Float.of_int tile_width) (Float.of_int tile_height)
+             in
+             let dest =
+               let base_pos = grid_to_screen base.pos in
+               Raylib.Vector2.add base_pos origin
+             in
+             let dest_rect =
+               Raylib.Rectangle.create (Raylib.Vector2.x dest)
+                 (Raylib.Vector2.y dest)
+                 (Float.of_int ctx.tile_render_size)
+                 (Float.of_int ctx.tile_render_size)
+             in
+             let rotation = 0. in
+             let img_origin = Raylib.Vector2.create 0. 0. in
+             Raylib.draw_texture_pro t_cfg.texture src dest_rect img_origin
+               rotation Raylib.Color.white
+         | _ ->
+             let glyph, color = entity_glyph_and_color entity in
+             render_cell ~glyph ~color ~fc:font_config ~loc:base.pos ~origin)
 
 (* Draw the vertical player stats bar *)
 let draw_stats_bar_vertical ~player ~rect =

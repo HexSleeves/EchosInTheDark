@@ -4,6 +4,11 @@ open Types
 type t = Entity.t Map.M(Int).t
 
 let create () : t = Map.empty (module Int)
+let length (mgr : t) : int = Map.length mgr
+
+let print_entity_manager (mgr : t) : unit =
+  Map.iteri mgr ~f:(fun ~key ~data ->
+      Core_log.info (fun m -> m "Entity %d: %s" key (Entity.show data)))
 
 let add (mgr : t) (ent : Entity.t) : t =
   Map.set mgr ~key:(Entity.get_id ent) ~data:ent
@@ -92,6 +97,9 @@ let spawn_creature (em : t) ~pos ~direction ~species ~health ~glyph ~name
       faction;
     }
   in
+
+  Core_log.info (fun m -> m "Spawning creature %s at %s" name (Loc.show pos));
+
   add_entity (Entity.Creature (base, creature_data)) em
 
 let spawn_item (em : t) ~pos ~direction ~item_type ~quantity ~name ~glyph

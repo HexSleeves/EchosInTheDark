@@ -4,7 +4,7 @@ module Entity = Types.Entity
 
 type t = State.t
 
-val make : debug:bool -> w:int -> h:int -> seed:int -> t
+val make : debug:bool -> w:int -> h:int -> seed:int -> current_level:int -> t
 
 (* Control mode *)
 val get_mode : t -> Types.CtrlMode.t
