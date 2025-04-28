@@ -13,6 +13,11 @@ module R = Renderer
 module T = Types
 module Backend = Rl_core.Backend
 
+let margin = Constants.margin
+let log_height = Constants.log_height
+let stats_bar_width_min = Constants.stats_bar_width_min
+let stats_bar_width_frac = Constants.stats_bar_width_frac
+
 module PosSet = struct
   module T = struct
     type t = int * int [@@deriving compare, sexp]
@@ -28,24 +33,29 @@ let render (state : State.t) : State.t option =
 
   let screen_w = Raylib.get_screen_width () in
   let screen_h = Raylib.get_screen_height () in
+
   let stats_bar_w =
-    max Constants.stats_bar_width_min
-      (Int.of_float (Float.of_int screen_w *. Constants.stats_bar_width_frac))
+    max stats_bar_width_min
+      (Int.of_float (Float.of_int screen_w *. stats_bar_width_frac))
   in
-  let log_h = Constants.log_height in
-  let map_w = screen_w - stats_bar_w in
-  let map_h = screen_h - log_h in
+
+  let log_h = log_height in
+  let map_w = screen_w - stats_bar_w - (2 * margin) in
+  let map_h = screen_h - log_h - (2 * margin) in
 
   let map_rect =
-    Raylib.Rectangle.create 0. 0. (Float.of_int map_w) (Float.of_int map_h)
+    Raylib.Rectangle.create (Float.of_int margin) (Float.of_int margin)
+      (Float.of_int map_w) (Float.of_int map_h)
   in
   let stats_rect =
-    Raylib.Rectangle.create (Float.of_int map_w) 0. (Float.of_int stats_bar_w)
-      (Float.of_int screen_h)
+    Raylib.Rectangle.create
+      (Float.of_int (map_w + (2 * margin)))
+      0. (Float.of_int stats_bar_w) (Float.of_int screen_h)
   in
   let log_rect =
-    Raylib.Rectangle.create 0. (Float.of_int map_h) (Float.of_int map_w)
-      (Float.of_int log_h)
+    Raylib.Rectangle.create (Float.of_int margin)
+      (Float.of_int (map_h + margin))
+      (Float.of_int map_w) (Float.of_int log_h)
   in
 
   let entities = Backend.get_entities backend in
@@ -54,8 +64,8 @@ let render (state : State.t) : State.t option =
 
   let map_origin =
     Raylib.Vector2.create
-      (Float.of_int (Int.of_float (Raylib.Rectangle.x map_rect)))
-      (Float.of_int (Int.of_float (Raylib.Rectangle.y map_rect)))
+      (Raylib.Rectangle.x map_rect)
+      (Raylib.Rectangle.y map_rect)
   in
 
   (match current_map_opt with
@@ -67,7 +77,7 @@ let render (state : State.t) : State.t option =
 
   (* Render stats bar *)
   (match Backend.get_player_entity backend with
-  | Some player -> R.draw_stats_bar_vertical ~player ~rect:stats_rect
+  | Some player -> R.draw_stats_bar_vertical ~player ~rect:stats_rect ~ctx
   | None -> ());
 
   (* Render message log from UI console buffer *)

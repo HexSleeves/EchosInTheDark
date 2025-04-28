@@ -47,3 +47,8 @@ let run_ai_step (state : t) : t =
           queue_actor_action st id action
       | _ -> st)
   |> fun state -> State.set_normal_mode state
+
+let get_equipment (id : Types.Entity.id) = State.get_equipment id
+
+let set_equipment (id : Types.Entity.id) (eq : Types.Equipment.t) =
+  State.set_equipment id eq

@@ -128,6 +128,22 @@ let are_factions_hostile (f1 : faction) (f2 : faction) : bool =
 (* //////////////////////// *)
 (* ENTITY TYPES *)
 
+module Equipment = struct
+  type slot = Weapon | Armor | Trinket1 | Trinket2
+  [@@deriving yojson, show, eq, enum]
+
+  type t = (slot * Item.t option) list [@@deriving yojson, show]
+
+  let empty =
+    [ (Weapon, None); (Armor, None); (Trinket1, None); (Trinket2, None) ]
+end
+
+(* Add player_data for player-specific fields *)
+type player_data = {
+  equipment : Equipment.t; (* Add more player-specific fields here if needed *)
+}
+[@@deriving yojson, show]
+
 module Entity = struct
   type id = int [@@deriving yojson, show]
 
@@ -147,7 +163,7 @@ module Entity = struct
   type item_data = { item : Item.t } [@@deriving yojson, show]
 
   type t =
-    | Player of base_entity
+    | Player of base_entity * player_data
     | Creature of base_entity * creature_data
     | Item of base_entity * item_data
     | Corpse of base_entity
@@ -157,21 +173,22 @@ module Entity = struct
       ?(blocking = true) () =
     { id; name; glyph; blocking; description; direction }
 
-  let is_player = function Player _ -> true | _ -> false
+  let is_player = function Player (_, _) -> true | _ -> false
 
   let get_id = function
-    | Player base | Creature (base, _) | Item (base, _) | Corpse base -> base.id
+    | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
+        base.id
 
   let get_name = function
-    | Player base | Creature (base, _) | Item (base, _) | Corpse base ->
+    | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
         base.name
 
   let get_blocking = function
-    | Player base | Creature (base, _) | Item (base, _) | Corpse base ->
+    | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
         base.blocking
 
   let get_base = function
-    | Player base -> base
+    | Player (base, _) -> base
     | Creature (base, _) -> base
     | Item (base, _) -> base
     | Corpse base -> base

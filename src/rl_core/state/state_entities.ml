@@ -104,3 +104,10 @@ let spawn_entity (state : State_types.t) (entity : Types.Entity.t) :
     State_types.t =
   add_entity_to_index entity state
   |> set_entities_manager (Entity_manager.add entity state.entities)
+
+(* Equipment helpers *)
+let get_equipment (id : Types.Entity.id) : Types.Equipment.t option =
+  Components.Equipment.get id
+
+let set_equipment (id : Types.Entity.id) (eq : Types.Equipment.t) : unit =
+  Components.Equipment.set id eq

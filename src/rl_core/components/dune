@@ -2,5 +2,5 @@
 
 (library
  (name components)
- (modules position stats)
+ (modules position stats equipment)
  (libraries base core_kernel containers logs types))

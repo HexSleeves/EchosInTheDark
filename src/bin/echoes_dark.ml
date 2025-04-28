@@ -2,6 +2,11 @@
 
 module Constants = Rl_ui.Constants
 
+let margin = Constants.margin
+let stats_bar_width_min = Constants.stats_bar_width_min
+let stats_bar_width_frac = Constants.stats_bar_width_frac
+let log_height = Constants.log_height
+
 let () =
   (* CLI argument refs *)
   let debug = ref false in
@@ -40,19 +45,16 @@ let () =
   let screen_w = Raylib.get_screen_width () in
   let screen_h = Raylib.get_screen_height () in
 
+  let log_h = log_height in
   let stats_bar_w =
-    max Constants.stats_bar_width_min
-      (screen_w |> float_of_int
-      |> ( *. ) Constants.stats_bar_width_frac
-      |> int_of_float)
+    max stats_bar_width_min
+      (screen_w |> float_of_int |> ( *. ) stats_bar_width_frac |> int_of_float)
   in
-  let log_h = Constants.log_height in
 
-  let map_w = screen_w - stats_bar_w in
-  let map_h = screen_h - log_h in
+  let map_w = screen_w - stats_bar_w - (2 * margin) in
+  let map_h = screen_h - log_h - (2 * margin) in
 
-  (* 3. Compute font size and map size *)
-  let map_width_tiles = map_w / render_ctx.font_config.font_size in
+  let map_width_tiles = (map_w / render_ctx.font_config.font_size) + 1 in
   let map_height_tiles = map_h / render_ctx.font_config.font_size in
 
   let config : Rl_ui.Modules.init_config =

@@ -17,9 +17,9 @@ let spawn_player ~pos ~direction (em : t) =
     create_base ~name:"Player" ~glyph:"@" ~description:(Some "This is you!")
       ~direction ~pos em
   in
-
+  let pdata : Types.player_data = { equipment = Types.Equipment.empty } in
   Components.Stats.set id Stats.default;
-  add_entity (Entity.Player base) em
+  add_entity (Entity.Player (base, pdata)) em
 
 let spawn_creature ~pos ~direction ~species ~health ~glyph ~name ~description
     ~faction (em : t) =

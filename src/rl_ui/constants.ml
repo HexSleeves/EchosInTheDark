@@ -2,9 +2,10 @@ let font_size = 20
 let font_path = "resources/fonts/FiraMono-Regular.ttf"
 
 (* Dimensions for UI elements *)
-let log_height = 60
-let stats_bar_width_min = 200
-let stats_bar_width_frac = 0.2
+let log_height = 120
+let stats_bar_width_min = 220
+let stats_bar_width_frac = 0.24
+let margin = 8
 
 (* Tileset *)
 let tile_width = 8
@@ -28,3 +29,7 @@ let toggle_render_mode () =
 (* Get render mode as string for display *)
 let render_mode_to_string mode =
   match mode with Ascii -> "ASCII" | Tiles -> "Tiles"
+
+(* Color palette for dark/gold theme *)
+let color_dark_bg = Raylib.Color.create 18 18 20 255
+let color_gold = Raylib.Color.create 212 175 55 255

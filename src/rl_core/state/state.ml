@@ -27,6 +27,8 @@ let setup_entities_for_level = State_levels.setup_entities_for_level
 let transition_to_next_level = State_levels.transition_to_next_level
 let transition_to_previous_level = State_levels.transition_to_previous_level
 let rebuild_position_index = State_entities.rebuild_position_index
+let get_equipment = State_entities.get_equipment
+let set_equipment = State_entities.set_equipment
 
 let make ~debug ~w ~h ~seed ~current_level =
   Core_log.info (fun m -> m "Width: %d, Height: %d" w h);
@@ -43,7 +45,7 @@ let make ~debug ~w ~h ~seed ~current_level =
   let player_id =
     Entities.Entity_manager.to_list entities
     |> List.find_map ~f:(function
-         | Types.Entity.Player base -> Some base.id
+         | Types.Entity.Player (base, _) -> Some base.id
          | _ -> None)
     |> Option.value_exn
          ~message:"No player entity found in first level entity manager"

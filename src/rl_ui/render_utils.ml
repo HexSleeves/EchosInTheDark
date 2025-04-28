@@ -2,17 +2,18 @@ open Base
 open Raylib
 open Components
 open Dungeon
+open Constants
 
 (* Map grid (tile) position to screen position using FontConfig *)
 let grid_to_screen (loc : Types.Loc.t) =
   Raylib.Vector2.create
-    (Float.of_int loc.x *. Float.of_int Constants.font_size)
-    (Float.of_int loc.y *. Float.of_int Constants.font_size)
+    (Float.of_int loc.x *. Float.of_int font_size)
+    (Float.of_int loc.y *. Float.of_int font_size)
 
 let screen_to_grid (vec : Vector2.t) =
   Types.Loc.make
-    (Float.to_int (Vector2.x vec /. Float.of_int Constants.font_size))
-    (Float.to_int (Vector2.y vec /. Float.of_int Constants.font_size))
+    (Float.to_int (Vector2.x vec /. Float.of_int font_size))
+    (Float.to_int (Vector2.y vec /. Float.of_int font_size))
 
 (* Utility: Get set of occupied positions from a list of entities *)
 module PosSet = struct
@@ -61,3 +62,33 @@ let entity_to_sprite_coords (entity : Types.Entity.t) =
       | _ -> (20, 5))
   | Types.Entity.Item _ -> (5, 0)
   | Types.Entity.Corpse _ -> (6, 0)
+
+let draw_font_text ~font ~font_size ~color ~text ~pos_x ~pos_y =
+  Raylib.draw_text_ex font text
+    (Raylib.Vector2.create pos_x pos_y)
+    font_size 0. color
+
+let draw_texture_ex ~texture ~pos ~origin ~tile_render_size ~col ~row =
+  let tile_width = Constants.tile_width in
+  let tile_height = Constants.tile_height in
+
+  let src =
+    Raylib.Rectangle.create
+      (Float.of_int (col * tile_width))
+      (Float.of_int (row * tile_height))
+      (Float.of_int tile_width) (Float.of_int tile_height)
+  in
+  let dest =
+    let base_pos = grid_to_screen pos in
+    Raylib.Vector2.add base_pos origin
+  in
+  let dest_rect =
+    Raylib.Rectangle.create (Raylib.Vector2.x dest) (Raylib.Vector2.y dest)
+      (Float.of_int tile_render_size)
+      (Float.of_int tile_render_size)
+  in
+
+  let rotation = 0. in
+  let img_origin = Raylib.Vector2.create 0. 0. in
+  Raylib.draw_texture_pro texture src dest_rect img_origin rotation
+    Raylib.Color.white
