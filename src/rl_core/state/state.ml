@@ -3,7 +3,7 @@ open State_types
 
 type t = State_types.t
 
-(* Delegate to split modules *)
+let add_entity_to_index = State_entities.add_entity_to_index
 let get_entities_manager = State_entities.get_entities_manager
 let set_entities_manager = State_entities.set_entities_manager
 let get_player_id = State_entities.get_player_id
@@ -25,6 +25,7 @@ let queue_actor_action = State_actors.queue_actor_action
 let setup_entities_for_level = State_levels.setup_entities_for_level
 let transition_to_next_level = State_levels.transition_to_next_level
 let transition_to_previous_level = State_levels.transition_to_previous_level
+let spawn_corpse_entity = State_entities.spawn_corpse_entity
 
 let make ~debug ~w ~h ~seed ~current_level =
   Core_log.info (fun m -> m "Width: %d, Height: %d" w h);
@@ -63,7 +64,15 @@ let make ~debug ~w ~h ~seed ~current_level =
            (am, tq))
   in
 
-  let state : State_types.t =
+  let position_index = Base.Hashtbl.create (module Types.Loc) in
+  Entities.Entity_manager.to_list entities
+  |> List.iter ~f:(fun entity ->
+         let id = Types.Entity.get_id entity in
+         match Components.Position.get id with
+         | Some pos -> Base.Hashtbl.set position_index ~key:pos ~data:id
+         | None -> ());
+
+  let state =
     {
       debug;
       entities;
@@ -72,9 +81,10 @@ let make ~debug ~w ~h ~seed ~current_level =
       map_manager;
       player_id;
       mode = Types.CtrlMode.Normal;
+      position_index;
     }
   in
-  state
+  State_utils.rebuild_position_index state
 
 let get_debug (state : t) : bool = state.debug
 let get_mode (state : t) : Types.CtrlMode.t = state.mode

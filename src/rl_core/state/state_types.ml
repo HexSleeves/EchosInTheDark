@@ -11,4 +11,6 @@ type t = {
   actor_manager : Actor_manager.t;
   turn_queue : Turn_queue.t;
   map_manager : Map_manager.t;
+  position_index : (Types.Loc.t, Types.Entity.id) Base.Hashtbl.t;
+      (* Fast position lookup *)
 }

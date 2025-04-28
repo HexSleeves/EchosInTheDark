@@ -155,9 +155,9 @@ let place_band_in_room ~entity_manager ~room_positions ~depth ~rng =
 let place_monster ~entity_manager ~pos ~direction (spec : monster_spec) :
     Entity_manager.t =
   let faction = faction_of_species spec.species in
-  Spawner.spawn_creature entity_manager ~pos ~direction ~species:spec.species
+  Spawner.spawn_creature ~pos ~direction ~species:spec.species
     ~health:spec.health ~glyph:spec.glyph ~name:spec.name
-    ~description:(Some spec.description) ~faction
+    ~description:(Some spec.description) ~faction entity_manager
 
 (* Utility: Generate a list of monster specs for a band *)
 let make_band ~species ~count ~health ~glyph ~name ~description =

@@ -64,9 +64,8 @@ let handle_entity_death (id : Types.Entity.id) (state : State.t) : State.t =
 
            Some
              (State.remove_entity id state
-             |> State.get_entities_manager
-             |> Spawner.spawn_corpse ~pos:(Components.Position.get_exn base.id)
-             |> State.set_entities_manager state
+             |> State.spawn_corpse_entity
+                  ~pos:(Components.Position.get_exn base.id)
              |> State.remove_actor base.id
              |> State.set_turn_queue
                   (Turn_queue.remove_actor (State.get_turn_queue state) id))

@@ -2,7 +2,13 @@
 
 (library
  (name state)
- (modules state state_types state_entities state_actors state_levels)
+ (modules
+  state
+  state_types
+  state_entities
+  state_actors
+  state_levels
+  state_utils)
  (libraries
   base
   core_kernel
