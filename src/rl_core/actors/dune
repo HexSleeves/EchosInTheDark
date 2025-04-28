@@ -3,7 +3,7 @@
 (library
  (name actors)
  (modules actor_manager actor)
- (libraries base core_kernel containers logs types core_log entities events)
+ (libraries base core_kernel containers logs types core_log entities)
  (preprocess
   (staged_pps
    ppx_yojson_conv

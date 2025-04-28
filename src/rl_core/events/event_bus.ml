@@ -10,9 +10,11 @@ type event =
 (* Add more events as needed *)
 
 (* Handler type: takes an event and returns unit *)
-type handler = event -> unit
+type handler = event -> State_types.t -> State_types.t
 
 (* Internal list of handlers *)
 let handlers : handler list ref = ref []
 let subscribe (f : handler) : unit = handlers := f :: !handlers
-let publish (ev : event) : unit = List.iter (fun h -> h ev) !handlers
+
+let publish (ev : event) (state : State_types.t) : State_types.t =
+  List.fold_left (fun st h -> h ev st) state !handlers

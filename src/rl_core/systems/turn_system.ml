@@ -57,7 +57,7 @@ let handle_actor_event (ctx : ctx) : State.t =
       match result with
       | Ok d_time when d_time >= 0 ->
           State.set_turn_queue
-            (Turn_queue.schedule_turn tq_after_action id (time + d_time))
+            (Turn_queue.schedule_at tq_after_action id (time + d_time))
             backend_after_action
       | Ok _ -> backend_after_action
       | Error e ->
@@ -68,11 +68,11 @@ let handle_actor_event (ctx : ctx) : State.t =
             | Entity.Player _ -> player_retry_delay
             | _ -> monster_reschedule_delay
           in
-          Turn_queue.schedule_turn tq_after_action id (time + delay)
+          Turn_queue.schedule_at tq_after_action id (time + delay)
           |> fun turn_queue ->
           State.set_turn_queue turn_queue backend_after_action)
   | None ->
-      Turn_queue.schedule_turn tq id (time + 100) |> fun turn_queue ->
+      Turn_queue.schedule_at tq id (time + 100) |> fun turn_queue ->
       State.set_turn_queue turn_queue backend
 
 (* Processes a single event from the turn queue for a given id at a specific time.

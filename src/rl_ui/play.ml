@@ -70,10 +70,8 @@ let render (state : State.t) : State.t option =
   | Some player -> R.draw_stats_bar_vertical ~player ~rect:stats_rect
   | None -> ());
 
-  (* Render message log (stub: use dummy messages for now) *)
-  let messages =
-    [ "Welcome to the dungeon!"; "You see a rat."; "You attack the rat." ]
-  in
+  (* Render message log from UI console buffer *)
+  let messages = Ui_log.get_console_messages () in
   R.draw_message_log ~messages ~rect:log_rect;
 
   if Backend.get_debug backend then R.render_fps_overlay ctx.font_config;
@@ -99,17 +97,17 @@ let handle_player_input (state : State.t) : State.t =
     | Some Input.ToggleRender ->
         let () = Constants.toggle_render_mode () in
         let new_mode = !Constants.render_mode_ref in
-        Ui_log.info (fun m ->
-            m "Toggled render mode to: %s"
-              (Constants.render_mode_to_string new_mode));
-        let new_ctx = { state.render_ctx with render_mode = new_mode } in
-        { state with render_ctx = new_ctx }
+        Ui_log.console "Toggled render mode to: %s"
+          (Constants.render_mode_to_string new_mode);
+        {
+          state with
+          render_ctx = { state.render_ctx with render_mode = new_mode };
+        }
     | _ -> state
   in
 
   match action_opt with
   | Some (Input.Backend action) -> (
-      Ui_log.info (fun m -> m "Player action: %s" (T.Action.to_string action));
       match Backend.get_player_entity state.backend with
       | Some entity ->
           let backend =

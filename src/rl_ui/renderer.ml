@@ -127,7 +127,7 @@ let render_fps_overlay (fc : font_config) : unit =
   let text_y = Float.to_int (box_y +. padding) in
   draw_text fps_text text_x text_y fc.font_size Color.white
 
-let render_cell ~glyph ~color ~fc ~loc ~origin =
+let render_ascii_cell ~glyph ~color ~fc ~loc ~origin =
   let open Raylib in
   let open Render_utils in
   let font_size = Float.of_int fc.font_size in
@@ -150,7 +150,7 @@ let render_cell ~glyph ~color ~fc ~loc ~origin =
   (* Font, Text, Position, Font-size, Spacing, Color *)
   draw_text_ex fc.font glyph centered_pos font_size spacing color
 
-let render_tile ~texture ~tile ~loc ~origin ~tile_render_size =
+let render_tileset_tile ~texture ~tile ~loc ~origin ~tile_render_size =
   let open Raylib in
   let col, row = Tile.tile_to_tileset tile in
 
@@ -178,6 +178,34 @@ let render_tile ~texture ~tile ~loc ~origin ~tile_render_size =
   let img_origin = Vector2.create 0. 0. in
   draw_texture_pro texture src dest_rect img_origin rotation Color.white
 
+let render_tileset_sprite ~entity ~origin ~pos ~texture ~tile_render_size =
+  let open Raylib in
+  let open Render_utils in
+  let col, row = entity_to_sprite_coords entity in
+  let tile_width = Constants.tile_width in
+  let tile_height = Constants.tile_height in
+
+  let src =
+    Raylib.Rectangle.create
+      (Float.of_int (col * tile_width))
+      (Float.of_int (row * tile_height))
+      (Float.of_int tile_width) (Float.of_int tile_height)
+  in
+  let dest =
+    let base_pos = grid_to_screen pos in
+    Raylib.Vector2.add base_pos origin
+  in
+  let dest_rect =
+    Raylib.Rectangle.create (Raylib.Vector2.x dest) (Raylib.Vector2.y dest)
+      (Float.of_int tile_render_size)
+      (Float.of_int tile_render_size)
+  in
+
+  let rotation = 0. in
+  let img_origin = Raylib.Vector2.create 0. 0. in
+  Raylib.draw_texture_pro texture src dest_rect img_origin rotation
+    Raylib.Color.white
+
 (* //////////////////////////////////////////////////////////////// *)
 (* //////////////////////////////////////////////////////////////// *)
 
@@ -188,51 +216,32 @@ let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx =
         let loc = Types.Loc.make x y in
         match (ctx.render_mode, ctx.tileset_config) with
         | Constants.Tiles, Some t_cfg ->
-            render_tile ~texture:t_cfg.texture ~tile:t ~loc ~origin
+            render_tileset_tile ~texture:t_cfg.texture ~tile:t ~loc ~origin
               ~tile_render_size:ctx.tile_render_size
         | Constants.Tiles, None | Constants.Ascii, _ ->
             let glyph, color = Render_utils.tile_glyph_and_color t in
-            render_cell ~glyph ~color ~fc:ctx.font_config ~loc ~origin)
+            render_ascii_cell ~glyph ~color ~fc:ctx.font_config ~loc ~origin)
 
 (* Utility: Render all entities *)
 let render_entities ~entities ~origin ~ctx =
   let open Render_utils in
   let font_config = ctx.font_config in
+  let drawn = ref (Base.Set.empty (module Int)) in
 
-  List.iter
-    ~f:(fun entity ->
+  List.iter entities ~f:(fun entity ->
       let base = Types.Entity.get_base entity in
       let pos = Position.get_exn base.id in
-      match (ctx.render_mode, ctx.tileset_config) with
-      | Constants.Tiles, Some t_cfg ->
-          let col, row = Render_utils.entity_to_sprite_coords entity in
-          let tile_width = Constants.tile_width in
-          let tile_height = Constants.tile_height in
-          let src =
-            Raylib.Rectangle.create
-              (Float.of_int (col * tile_width))
-              (Float.of_int (row * tile_height))
-              (Float.of_int tile_width) (Float.of_int tile_height)
-          in
-          let dest =
-            let base_pos = grid_to_screen pos in
-            Raylib.Vector2.add base_pos origin
-          in
+      let pos_tuple = (pos.x lsl 16) lor pos.y in
+      if not (Base.Set.mem !drawn pos_tuple) then (
+        drawn := Base.Set.add !drawn pos_tuple;
 
-          let dest_rect =
-            Raylib.Rectangle.create (Raylib.Vector2.x dest)
-              (Raylib.Vector2.y dest)
-              (Float.of_int ctx.tile_render_size)
-              (Float.of_int ctx.tile_render_size)
-          in
-          let rotation = 0. in
-          let img_origin = Raylib.Vector2.create 0. 0. in
-          Raylib.draw_texture_pro t_cfg.texture src dest_rect img_origin
-            rotation Raylib.Color.white
-      | _ ->
-          let glyph, color = entity_glyph_and_color entity in
-          render_cell ~glyph ~color ~fc:font_config ~loc:pos ~origin)
-    entities
+        match (ctx.render_mode, ctx.tileset_config) with
+        | Constants.Tiles, Some t_cfg ->
+            render_tileset_sprite ~entity ~origin ~pos ~texture:t_cfg.texture
+              ~tile_render_size:ctx.tile_render_size
+        | _ ->
+            let glyph, color = entity_glyph_and_color entity in
+            render_ascii_cell ~glyph ~color ~fc:font_config ~loc:pos ~origin))
 
 (* Draw the vertical player stats bar *)
 let draw_stats_bar_vertical ~player ~rect =

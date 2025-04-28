@@ -16,7 +16,8 @@ let get_entities = State_entities.get_entities
 let get_creatures = State_entities.get_creatures
 let move_entity = State_entities.move_entity
 let remove_entity = State_entities.remove_entity
-let spawn_creature_entity = State_entities.spawn_creature_entity
+
+(* let spawn_creature_entity = State_entities.spawn_creature_entity *)
 let get_actor = State_actors.get_actor
 let add_actor = State_actors.add_actor
 let remove_actor = State_actors.remove_actor
@@ -25,7 +26,6 @@ let queue_actor_action = State_actors.queue_actor_action
 let setup_entities_for_level = State_levels.setup_entities_for_level
 let transition_to_next_level = State_levels.transition_to_next_level
 let transition_to_previous_level = State_levels.transition_to_previous_level
-let spawn_corpse_entity = State_entities.spawn_corpse_entity
 let rebuild_position_index = State_entities.rebuild_position_index
 
 let make ~debug ~w ~h ~seed ~current_level =

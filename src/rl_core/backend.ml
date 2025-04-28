@@ -6,6 +6,9 @@ module Entity = Types.Entity
 type t = State.t
 
 let make ~debug ~w ~h ~seed ~current_level : t =
+  (* Initialize systems *)
+  Systems.Log_system.init ();
+  Systems.Combat_system.init ();
   State.make ~debug ~w ~h ~seed ~current_level
 
 let get_debug (state : t) : bool = State.get_debug state

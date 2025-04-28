@@ -2,13 +2,7 @@
 
 (library
  (name state)
- (modules
-  state
-  state_types
-  state_entities
-  state_actors
-  state_levels
-  state_utils)
+ (modules state state_entities state_actors state_levels state_utils)
  (libraries
   base
   core_kernel
@@ -23,4 +17,21 @@
   core_log
   events
   map_manager
-  turn_queue))
+  turn_queue
+  state_types))
+
+(library
+ (name state_types)
+ (modules state_types)
+ (libraries
+  base
+  core_kernel
+  containers
+  logs
+  types
+  core_log
+  entities
+  actors
+  components
+  turn_queue
+  map_manager))

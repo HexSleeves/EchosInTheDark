@@ -23,7 +23,9 @@ let spawn_player ~pos ~direction (em : t) =
 
 let spawn_creature ~pos ~direction ~species ~health ~glyph ~name ~description
     ~faction (em : t) =
-  let id, base = create_base ~name ~glyph ~description ~direction ~pos em in
+  let id, base =
+    create_base ~name ~glyph ~description ~direction ~pos ~blocking:true em
+  in
 
   let creature_data : Entity.creature_data =
     {

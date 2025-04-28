@@ -4,7 +4,7 @@ open Entities
 let get_entities_manager (state : State_types.t) : Entity_manager.t =
   state.entities
 
-let set_entities_manager (state : State_types.t) (entities : Entity_manager.t) :
+let set_entities_manager (entities : Entity_manager.t) (state : State_types.t) :
     State_types.t =
   { state with entities }
 
@@ -43,19 +43,33 @@ let get_creatures (state : State_types.t) :
        | _ -> None)
 
 (* Helper: Add an entity's position to the index if it has one *)
-let add_entity_to_index (state : State_types.t) (entity : Types.Entity.t) : unit
-    =
+let add_entity_to_index (entity : Types.Entity.t) (state : State_types.t) :
+    State_types.t =
   let id = Types.Entity.get_id entity in
   match Components.Position.get id with
-  | Some pos -> Base.Hashtbl.set state.position_index ~key:pos ~data:id
-  | None -> ()
+  | Some pos ->
+      Base.Hashtbl.set state.position_index ~key:pos ~data:id;
+      state
+  | None -> state
 
 (* Helper: Remove an entity's position from the index if it has one *)
-let remove_entity_from_index (state : State_types.t) (id : Types.Entity.id) :
-    unit =
+let remove_entity_from_index (id : Types.Entity.id) (state : State_types.t) :
+    State_types.t =
   match Components.Position.get id with
-  | Some pos -> Base.Hashtbl.remove state.position_index pos
-  | None -> ()
+  | Some pos ->
+      Base.Hashtbl.remove state.position_index pos;
+      state
+  | None -> state
+
+let rebuild_position_index (state : State_types.t) : State_types.t =
+  Base.Hashtbl.clear state.position_index;
+  Entity_manager.to_list state.entities
+  |> List.iter ~f:(fun entity ->
+         let id = Types.Entity.get_id entity in
+         match Components.Position.get id with
+         | Some pos -> Base.Hashtbl.set state.position_index ~key:pos ~data:id
+         | None -> ());
+  state
 
 let move_entity (id : Types.Entity.id) (loc : Types.Loc.t)
     (state : State_types.t) =
@@ -67,57 +81,26 @@ let move_entity (id : Types.Entity.id) (loc : Types.Loc.t)
   Base.Hashtbl.set state.position_index ~key:loc ~data:id;
   state
 
+let spawn_corpse_entity ~pos (state : State_types.t) : State_types.t =
+  let new_entities = Spawner.spawn_corpse ~pos state.entities in
+  Entity_manager.to_list new_entities
+  |> List.fold_left ~init:state ~f:(fun state e -> add_entity_to_index e state)
+  |> set_entities_manager new_entities
+
 let remove_entity (id : Types.Entity.id) (state : State_types.t) : State_types.t
     =
-  remove_entity_from_index state id;
-  { state with entities = Entity_manager.remove id state.entities }
+  remove_entity_from_index id state |> fun state ->
+  {
+    state with
+    entities = Entity_manager.remove id state.entities;
+    turn_queue = Turn_queue.remove_actor state.turn_queue id;
+  }
+  |> fun state ->
+  match Components.Position.get id with
+  | Some pos -> spawn_corpse_entity ~pos state
+  | None -> state
 
 let spawn_entity (state : State_types.t) (entity : Types.Entity.t) :
     State_types.t =
-  let new_entities = Entity_manager.add entity state.entities in
-  add_entity_to_index state entity;
-  set_entities_manager state new_entities
-
-let spawn_creature_entity (state : State_types.t) ~pos ~direction ~species
-    ~health ~glyph ~name ~description ~faction : State_types.t =
-  let new_entities =
-    Spawner.spawn_creature state.entities ~pos ~direction ~species ~health
-      ~glyph ~name ~description ~faction
-  in
-  (* Find the new entity (assume it's the one at this pos and species) *)
-  Entity_manager.to_list new_entities
-  |> List.iter ~f:(add_entity_to_index state);
-  set_entities_manager state new_entities
-
-let spawn_player_entity (state : State_types.t) ~pos ~direction : State_types.t
-    =
-  let new_entities = Spawner.spawn_player ~pos ~direction state.entities in
-  Entity_manager.to_list new_entities
-  |> List.iter ~f:(add_entity_to_index state);
-  set_entities_manager state new_entities
-
-let spawn_item_entity (state : State_types.t) ~pos ~direction ~item_type
-    ~quantity ~name ~glyph ?description () : State_types.t =
-  let new_entities =
-    Spawner.spawn_item ~pos ~direction ~item_type ~quantity ~name ~glyph
-      ?description state.entities
-  in
-  Entity_manager.to_list new_entities
-  |> List.iter ~f:(add_entity_to_index state);
-  set_entities_manager state new_entities
-
-let spawn_corpse_entity (state : State_types.t) ~pos : State_types.t =
-  let new_entities = Spawner.spawn_corpse ~pos state.entities in
-  Entity_manager.to_list new_entities
-  |> List.iter ~f:(add_entity_to_index state);
-  set_entities_manager state new_entities
-
-let rebuild_position_index (state : State_types.t) : State_types.t =
-  Base.Hashtbl.clear state.position_index;
-  Entity_manager.to_list state.entities
-  |> List.iter ~f:(fun entity ->
-         let id = Types.Entity.get_id entity in
-         match Components.Position.get id with
-         | Some pos -> Base.Hashtbl.set state.position_index ~key:pos ~data:id
-         | None -> ());
-  state
+  add_entity_to_index entity state
+  |> set_entities_manager (Entity_manager.add entity state.entities)

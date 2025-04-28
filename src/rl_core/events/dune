@@ -3,4 +3,4 @@
 (library
  (name events)
  (modules event_bus)
- (libraries base core_kernel containers logs types core_log))
+ (libraries base core_kernel containers logs types core_log state_types))

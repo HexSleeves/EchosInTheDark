@@ -26,7 +26,7 @@ let print_turn_queue t =
   | (t, _) :: _ when time < t -> (time, entity) :: queue
   | (t, e) :: rest -> (t, e) :: insert_sorted rest (time, entity) *)
 
-let schedule_turn t (entity : int) (next_time : int) =
+let schedule_at t (entity : int) (next_time : int) =
   let new_queue = List.append t.turn_queue [ (next_time, entity) ] in
   {
     t with

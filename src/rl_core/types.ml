@@ -162,6 +162,10 @@ module Entity = struct
   let get_id = function
     | Player base | Creature (base, _) | Item (base, _) | Corpse base -> base.id
 
+  let get_name = function
+    | Player base | Creature (base, _) | Item (base, _) | Corpse base ->
+        base.name
+
   let get_blocking = function
     | Player base | Creature (base, _) | Item (base, _) | Corpse base ->
         base.blocking
