@@ -16,7 +16,7 @@ let print_entity_manager (mgr : t) : unit =
 let print_entity_manager_ids (mgr : t) : unit =
   Map.iter mgr ~f:(fun data ->
       match data with
-      | Entity.Player (base, _) ->
+      | Entity.Player base ->
           Core_log.info (fun m -> m "Entity player id: %d" base.id)
       | Entity.Creature (base, _) ->
           Core_log.info (fun m -> m "Entity creature id: %d" base.id)
@@ -81,7 +81,7 @@ let add_entity (ent : Entity.t) (mgr : t) : t =
   let id = next_id mgr in
   let ent =
     match ent with
-    | Entity.Player (base, data) -> Entity.Player ({ base with id }, data)
+    | Entity.Player base -> Entity.Player { base with id }
     | Entity.Creature (base, data) -> Entity.Creature ({ base with id }, data)
     | Entity.Item (base, data) -> Entity.Item ({ base with id }, data)
     | Entity.Corpse base -> Entity.Corpse { base with id }
@@ -93,9 +93,7 @@ let update_entity_stats (mgr : t) (id : Entity.id) (f : Stats.t -> Stats.t) : t
   update id
     (fun entity ->
       match entity with
-      | Entity.Player (base, data) ->
-          Entity.Player (base, { stats = f data.stats })
-      | Entity.Creature (base, data) ->
-          Entity.Creature (base, { data with stats = f data.stats })
+      | Entity.Player base -> Entity.Player { base with id }
+      | Entity.Creature (base, data) -> Entity.Creature ({ base with id }, data)
       | _ -> entity)
     mgr

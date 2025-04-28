@@ -3,7 +3,7 @@ type action_result = (int, exn) Result.t
 val calculate_damage :
   attacker_stats:Types.Stats.t -> defender_stats:Types.Stats.t -> int
 
-val is_entity_dead : Types.Entity.id -> State.t -> bool
+val is_entity_dead : Types.Entity.id -> bool
 val can_use_stairs_down : State.t -> Types.Entity.id -> bool
 val can_use_stairs_up : State.t -> Types.Entity.id -> bool
 

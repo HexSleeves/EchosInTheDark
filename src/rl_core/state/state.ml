@@ -38,7 +38,7 @@ let make ~debug ~w ~h ~seed ~current_level =
   let player_id =
     Entities.Entity_manager.to_list entities
     |> List.find_map ~f:(function
-         | Types.Entity.Player (base, _) -> Some base.id
+         | Types.Entity.Player base -> Some base.id
          | _ -> None)
     |> Option.value_exn
          ~message:"No player entity found in first level entity manager"

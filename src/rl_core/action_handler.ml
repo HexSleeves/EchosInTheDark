@@ -19,8 +19,8 @@ let calculate_damage ~attacker_stats ~defender_stats =
   (* Ensure at least 1 damage *)
   max 1 base_damage
 
-let is_entity_dead (id : Types.Entity.id) (backend : State.t) : bool =
-  Base.Option.bind (State.get_entity id backend) ~f:Entity.get_entity_stats
+let is_entity_dead (id : Types.Entity.id) : bool =
+  Components.Stats.get id
   |> Base.Option.value_map ~default:false ~f:(fun stats -> stats.Stats.hp <= 0)
 
 let can_use_stairs_down state id =
@@ -90,7 +90,7 @@ let handle_move ~(state : State.t) ~(id : Entity.id) ~(dir : Direction.t)
 
          State.get_blocking_entity_at_pos new_pos state
          |> Option.map ~f:(fun target_entity ->
-                Entity.get_entity_stats target_entity
+                Components.Stats.get id
                 |> Option.map ~f:(fun _ ->
                        handle_action state id
                          (Action.Attack (Entity.get_base target_entity).id))
@@ -149,9 +149,9 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
       |> Option.bind ~f:(fun attacker ->
              State.get_entity target_id state
              |> Option.bind ~f:(fun defender ->
-                    Entity.get_entity_stats attacker
+                    Components.Stats.get id
                     |> Option.bind ~f:(fun attacker_stats ->
-                           Entity.get_entity_stats defender
+                           Components.Stats.get target_id
                            |> Option.map ~f:(fun defender_stats ->
                                   ( attacker,
                                     defender,
@@ -171,9 +171,9 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
              in
 
              let state =
-               if is_entity_dead target_id state then
-                 handle_entity_death target_id state
-               else state
+               match is_entity_dead target_id with
+               | true -> handle_entity_death target_id state
+               | false -> state
              in
 
              (state, Ok 100))

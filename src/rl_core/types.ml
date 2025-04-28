@@ -142,15 +142,13 @@ module Entity = struct
   }
   [@@deriving yojson, show]
 
-  type player_data = { stats : Stats.t } [@@deriving yojson, show]
-
   type creature_data = { species : string; stats : Stats.t; faction : faction }
   [@@deriving yojson, show]
 
   type item_data = { item : Item.t } [@@deriving yojson, show]
 
   type t =
-    | Player of base_entity * player_data
+    | Player of base_entity
     | Creature of base_entity * creature_data
     | Item of base_entity * item_data
     | Corpse of base_entity
@@ -163,24 +161,17 @@ module Entity = struct
   let is_player = function Player _ -> true | _ -> false
 
   let get_id = function
-    | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
-        base.id
+    | Player base | Creature (base, _) | Item (base, _) | Corpse base -> base.id
 
   let get_blocking = function
-    | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
+    | Player base | Creature (base, _) | Item (base, _) | Corpse base ->
         base.blocking
 
   let get_base = function
-    | Player (base, _) -> base
+    | Player base -> base
     | Creature (base, _) -> base
     | Item (base, _) -> base
     | Corpse base -> base
-
-  let get_entity_stats = function
-    | Player (_, { stats }) -> Some stats
-    | Creature (_, { stats; _ }) -> Some stats
-    | Item _ -> None
-    | Corpse _ -> None
 end
 
 module Action = struct

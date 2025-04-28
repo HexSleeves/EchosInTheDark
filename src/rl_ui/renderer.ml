@@ -243,8 +243,8 @@ let draw_stats_bar_vertical ~player ~rect =
   let y = Int.of_float (Rectangle.y rect) + padding in
 
   match player with
-  | Rl_core.Types.Entity.Player (_, pdata) ->
-      let stats = pdata.stats in
+  | Rl_core.Types.Entity.Player base ->
+      let stats = Stats.get_exn base.id in
       let pos = Position.get_exn (Entity.get_id player) in
       let pos_x = pos.x in
       let pos_y = pos.y in

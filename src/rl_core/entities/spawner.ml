@@ -18,9 +18,8 @@ let spawn_player ~pos ~direction (em : t) =
       ~direction ~pos em
   in
 
-  let player_data : Entity.player_data = { stats = Stats.default } in
-  Components.Health.set id Stats.default.hp;
-  add_entity (Entity.Player (base, player_data)) em
+  Components.Stats.set id Stats.default;
+  add_entity (Entity.Player base) em
 
 let spawn_creature ~pos ~direction ~species ~health ~glyph ~name ~description
     ~faction (em : t) =
@@ -35,7 +34,7 @@ let spawn_creature ~pos ~direction ~species ~health ~glyph ~name ~description
     }
   in
 
-  Components.Health.set id health;
+  Components.Stats.set id creature_data.stats;
   add_entity (Entity.Creature (base, creature_data)) em
 
 let spawn_item ~pos ~direction ~item_type ~quantity ~name ~glyph
