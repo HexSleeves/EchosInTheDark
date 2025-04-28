@@ -1,0 +1,10 @@
+(* State type definition extracted from state.ml *)
+type t = {
+  debug : bool;
+  player_id : Types.Entity.id;
+  mode : Types.CtrlMode.t;
+  entities : Entity_manager.t;
+  actor_manager : Actor_manager.t;
+  turn_queue : Turn_queue.t;
+  map_manager : Map_manager.t;
+}

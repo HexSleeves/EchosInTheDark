@@ -5,7 +5,7 @@
 
 open Base
 open Types
-open Entity_manager
+open Entities.Entity_manager
 open Dungeon
 open Util
 module Tilemap = Tilemap

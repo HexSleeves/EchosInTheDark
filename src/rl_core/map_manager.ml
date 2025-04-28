@@ -41,6 +41,12 @@ let get_current_entities t = Hashtbl.find t.entities_by_level t.current_level
 let can_go_to_previous_level t = t.current_level > 1
 let can_go_to_next_level t = t.current_level < t.total_levels
 
+let get_entities_by_level t level =
+  Hashtbl.find t.entities_by_level level
+  |> Option.value_exn ~message:"No entities found for level"
+
+let get_current_level t = t.current_level
+
 let ensure_level_exists t level =
   if not (Hashtbl.mem t.maps level) then (
     let new_map, new_entities, _ =

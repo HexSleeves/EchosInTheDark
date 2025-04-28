@@ -1,5 +1,6 @@
 open Base
 open Types
+open Ppx_yojson_conv_lib.Yojson_conv
 
 type t = Entity.t Map.M(Int).t
 
@@ -84,7 +85,7 @@ let add_entity (ent : Entity.t) (mgr : t) : t =
   in
   Map.set mgr ~key:id ~data:ent
 
-let generate_player (em : t) ~pos ~direction =
+let spawn_player (em : t) ~pos ~direction =
   let current_player = find_player em in
   match current_player with
   | Some player -> add_entity player em
@@ -93,7 +94,7 @@ let generate_player (em : t) ~pos ~direction =
         Entity.make_base_entity ~id:0 ~pos ~name:"Player" ~glyph:"@"
           ~description:(Some "This is you!") ~direction ()
       in
-      let player_data : Entity.player_data = { stats = Types.Stats.default } in
+      let player_data : Entity.player_data = { stats = Stats.default } in
       add_entity (Entity.Player (base, player_data)) em
 
 let spawn_creature (em : t) ~pos ~direction ~species ~health ~glyph ~name
@@ -107,8 +108,7 @@ let spawn_creature (em : t) ~pos ~direction ~species ~health ~glyph ~name
     {
       species;
       stats =
-        Types.Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5
-          ~speed:100;
+        Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5 ~speed:100;
       faction;
     }
   in
@@ -123,16 +123,14 @@ let spawn_item (em : t) ~pos ~direction ~item_type ~quantity ~name ~glyph
   let base =
     Entity.make_base_entity ~id ~pos ~name ~glyph ~description ~direction ()
   in
-  let item =
-    Types.Item.create ~item_type ~quantity ~name ~description:None ()
-  in
-  add_entity (Entity.Item (base, { Entity.item })) em
+  let item = Item.create ~item_type ~quantity ~name ~description:None () in
+  add_entity (Entity.Item (base, { item })) em
 
 let spawn_corpse (pos : Loc.t) (em : t) : t =
   let id = next_id em in
   let base =
     Entity.make_base_entity ~id ~pos ~name:"Corpse" ~glyph:"%"
-      ~description:(Some "A dead creature") ~direction:Types.Direction.North
+      ~description:(Some "A dead creature") ~direction:Direction.North
       ~blocking:false ()
   in
   add (Entity.Corpse base) em
