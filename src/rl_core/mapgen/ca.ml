@@ -21,8 +21,13 @@ let count_wall_neighbors (grid : Tile.t array) ~width ~height x y =
       if dx <> 0 || dy <> 0 then
         let nx = x + dx and ny = y + dy in
         if nx < 0 || ny < 0 || nx >= width || ny >= height then Int.incr count
-        else if Tile.equal grid.(index ~width nx ny) Tile.Wall then
-          Int.incr count
+        else
+          match Rl_utils.Utils.xy_to_index_opt nx ny width height with
+          | Some idx -> (
+              match Rl_utils.Utils.array_get_opt grid idx with
+              | Some tile when Tile.equal tile Tile.Wall -> Int.incr count
+              | _ -> ())
+          | None -> ()
     done
   done;
   !count
@@ -34,14 +39,15 @@ let smooth grid ~width ~height ~passes =
   for _ = 1 to passes do
     for y = 0 to height - 1 do
       for x = 0 to width - 1 do
-        let idx = index ~width x y in
-        if x = 0 || x = width - 1 || y = 0 || y = height - 1 then
-          next.(idx) <- Tile.Wall
-        else
-          let walls = count_wall_neighbors current ~width ~height x y in
-          (* if too many neighbors, be a wall, else floor *)
-          if walls >= 5 then next.(idx) <- Tile.Wall
-          else next.(idx) <- Tile.Floor
+        match Rl_utils.Utils.xy_to_index_opt x y width height with
+        | Some idx when idx >= 0 && idx < Array.length next ->
+            if x = 0 || x = width - 1 || y = 0 || y = height - 1 then
+              next.(idx) <- Tile.Wall
+            else
+              let walls = count_wall_neighbors current ~width ~height x y in
+              if walls >= 5 then next.(idx) <- Tile.Wall
+              else next.(idx) <- Tile.Floor
+        | _ -> ()
       done
     done;
     Base.Array.blit ~src:next ~dst:current ~src_pos:0 ~dst_pos:0
@@ -63,11 +69,12 @@ let place_monsters ~grid ~width ~height ~rng entity_manager =
     List.filter_map
       (List.init (width * height) ~f:Fn.id)
       ~f:(fun idx ->
-        if Tile.is_floor grid.(idx) then
-          let x = idx % width in
-          let y = idx / width in
-          Some (Types.Loc.make x y)
-        else None)
+        match Rl_utils.Utils.array_get_opt grid idx with
+        | Some tile when Tile.is_floor tile ->
+            let x = idx % width in
+            let y = idx / width in
+            Some (Types.Loc.make x y)
+        | _ -> None)
   in
   (* let num_monsters = Int.max 1 (width * height / 120) in *)
   let num_monsters = 2 in

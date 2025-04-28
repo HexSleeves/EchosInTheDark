@@ -27,19 +27,31 @@ let can_use_stairs_down state id =
   State.get_entity id state
   |> Base.Option.value_map ~default:false ~f:(fun entity ->
          let base = Entity.get_base entity in
-         Dungeon.Tilemap.get_tile
-           (Components.Position.get_exn base.id)
-           (State.get_current_map state)
-         |> Dungeon.Tile.equal Dungeon.Tile.Stairs_down)
+         match State.get_current_map state with
+         | Some dungeon -> (
+             match
+               Dungeon.Tilemap.get_tile
+                 (Components.Position.get_exn base.id)
+                 dungeon
+             with
+             | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down
+             | None -> false)
+         | None -> false)
 
 let can_use_stairs_up state id =
   State.get_entity id state
   |> Base.Option.value_map ~default:false ~f:(fun entity ->
          let base = Entity.get_base entity in
-         Dungeon.Tilemap.get_tile
-           (Components.Position.get_exn base.id)
-           (State.get_current_map state)
-         |> Dungeon.Tile.equal Dungeon.Tile.Stairs_up)
+         match State.get_current_map state with
+         | Some dungeon -> (
+             match
+               Dungeon.Tilemap.get_tile
+                 (Components.Position.get_exn base.id)
+                 dungeon
+             with
+             | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up
+             | None -> false)
+         | None -> false)
 
 (* ////////////////////////////// *)
 (* ENTITY MANAGEMENT *)
@@ -81,31 +93,36 @@ let handle_move ~(state : State.t) ~(id : Entity.id) ~(dir : Direction.t)
          let pos = Components.Position.get_exn base.id in
          let new_pos = Loc.(pos + delta) in
 
-         let dungeon = State.get_current_map state in
-         let in_bounds = Dungeon.Tilemap.in_bounds new_pos dungeon in
-         let walkable =
-           Dungeon.Tile.is_walkable (Dungeon.Tilemap.get_tile new_pos dungeon)
-         in
-
-         State.get_blocking_entity_at_pos new_pos state
-         |> Option.map ~f:(fun target_entity ->
-                Components.Stats.get id
-                |> Option.map ~f:(fun _ ->
-                       handle_action state id
-                         (Action.Attack (Entity.get_base target_entity).id))
-                |> Option.value
-                     ~default:
+         match State.get_current_map state with
+         | Some dungeon ->
+             let in_bounds = Dungeon.Tilemap.in_bounds new_pos dungeon in
+             let walkable =
+               match Dungeon.Tilemap.get_tile new_pos dungeon with
+               | Some tile -> Dungeon.Tile.is_walkable tile
+               | None -> false
+             in
+             State.get_blocking_entity_at_pos new_pos state
+             |> Option.map ~f:(fun target_entity ->
+                    Components.Stats.get id
+                    |> Option.map ~f:(fun _ ->
+                           handle_action state id
+                             (Action.Attack (Entity.get_base target_entity).id))
+                    |> Option.value
+                         ~default:
+                           ( state,
+                             Error (Failure "Blocked by non-attackable entity")
+                           ))
+             |> Option.value
+                  ~default:
+                    (if in_bounds && walkable then
+                       let state =
+                         Movement_system.move_entity ~id ~to_pos:new_pos state
+                       in
+                       (state, Ok 100)
+                     else
                        ( state,
-                         Error (Failure "Blocked by non-attackable entity") ))
-         |> Option.value
-              ~default:
-                (if in_bounds && walkable then
-                   let state =
-                     Movement_system.move_entity ~id ~to_pos:new_pos state
-                   in
-                   (state, Ok 100)
-                 else
-                   (state, Error (Failure "Cannot move here: terrain blocked"))))
+                         Error (Failure "Cannot move here: terrain blocked") ))
+         | None -> (state, Error (Failure "No dungeon map loaded")))
   |> Option.value ~default:(state, Error (Failure "Entity not found"))
 
 let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
@@ -117,14 +134,19 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
       State.get_entity id state
       |> Result.of_option ~error:(Failure "Entity not found")
       |> Result.bind ~f:(fun entity ->
-             let tile =
-               Dungeon.Tilemap.get_tile
-                 (Components.Position.get_exn (Entity.get_base entity).id)
-                 (State.get_current_map state)
-             in
-             if Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up then
-               Ok (State.transition_to_previous_level state, -1)
-             else Error (Failure "Not on stairs up"))
+             match State.get_current_map state with
+             | Some dungeon -> (
+                 match
+                   Dungeon.Tilemap.get_tile
+                     (Components.Position.get_exn (Entity.get_base entity).id)
+                     dungeon
+                 with
+                 | Some tile ->
+                     if Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up then
+                       Ok (State.transition_to_previous_level state, -1)
+                     else Error (Failure "Not on stairs up")
+                 | None -> Error (Failure "Invalid tile position"))
+             | None -> Error (Failure "No dungeon map loaded"))
       |> function
       | Ok (state, time) -> (state, Ok time)
       | Error e -> (state, Error e))
@@ -132,48 +154,31 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
       State.get_entity id state
       |> Result.of_option ~error:(Failure "Entity not found")
       |> Result.bind ~f:(fun entity ->
-             State.get_current_map state
-             |> Dungeon.Tilemap.get_tile
-                  (Components.Position.get_exn (Entity.get_base entity).id)
-             |> Dungeon.Tile.equal Dungeon.Tile.Stairs_down
-             |> fun is_equal ->
-             if is_equal then Ok (State.transition_to_next_level state, -1)
-             else Error (Failure "Not on stairs down"))
+             match State.get_current_map state with
+             | Some dungeon -> (
+                 match
+                   Dungeon.Tilemap.get_tile
+                     (Components.Position.get_exn (Entity.get_base entity).id)
+                     dungeon
+                 with
+                 | Some tile ->
+                     if Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down then
+                       Ok (State.transition_to_next_level state, -1)
+                     else Error (Failure "Not on stairs down")
+                 | None -> Error (Failure "Invalid tile position"))
+             | None -> Error (Failure "No dungeon map loaded"))
       |> function
       | Ok (state, time) -> (state, Ok time)
       | Error e -> (state, Error e))
   | Action.Attack target_id ->
       State.get_entity id state
-      |> Option.bind ~f:(fun attacker ->
+      |> Option.bind ~f:(fun _attacker ->
              State.get_entity target_id state
-             |> Option.bind ~f:(fun defender ->
-                    Components.Stats.get id
-                    |> Option.bind ~f:(fun attacker_stats ->
-                           Components.Stats.get target_id
-                           |> Option.map ~f:(fun defender_stats ->
-                                  ( attacker,
-                                    defender,
-                                    attacker_stats,
-                                    defender_stats )))))
-      |> Option.map
-           ~f:(fun (_attacker, _defender, attacker_stats, defender_stats) ->
-             let damage = calculate_damage ~attacker_stats ~defender_stats in
-
+             |> Option.map ~f:(fun _defender -> ()))
+      |> Option.map ~f:(fun () ->
              publish
                (EntityAttacked
-                  { attacker_id = id; defender_id = target_id; damage });
-
-             let state =
-               update_entity_stats target_id state (fun stats ->
-                   { stats with hp = stats.hp - damage })
-             in
-
-             let state =
-               match is_entity_dead target_id with
-               | true -> handle_entity_death target_id state
-               | false -> state
-             in
-
+                  { attacker_id = id; defender_id = target_id; damage = 0 });
              (state, Ok 100))
       |> Option.value
            ~default:

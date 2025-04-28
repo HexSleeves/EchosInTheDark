@@ -54,10 +54,12 @@ let transition_to_next_level (state : State_types.t) : State_types.t =
       }
   in
 
-  let new_dungeon = Map_manager.get_current_map map_manager in
-  Option.value_map new_dungeon.stairs_up ~default:new_state
-    ~f:(fun stairs_pos ->
-      State_entities.move_entity new_state.player_id stairs_pos new_state)
+  match Map_manager.get_current_map map_manager with
+  | Some dungeon ->
+      Option.value_map dungeon.stairs_up ~default:new_state
+        ~f:(fun stairs_pos ->
+          State_entities.move_entity new_state.player_id stairs_pos new_state)
+  | None -> new_state
 
 let transition_to_previous_level (state : State_types.t) : State_types.t =
   let map_manager, entities, actor_manager, turn_queue =
@@ -78,7 +80,9 @@ let transition_to_previous_level (state : State_types.t) : State_types.t =
       }
   in
 
-  let new_dungeon = Map_manager.get_current_map map_manager in
-  Option.value_map new_dungeon.stairs_down ~default:new_state
-    ~f:(fun stairs_pos ->
-      State_entities.move_entity new_state.player_id stairs_pos new_state)
+  match Map_manager.get_current_map map_manager with
+  | Some dungeon ->
+      Option.value_map dungeon.stairs_down ~default:new_state
+        ~f:(fun stairs_pos ->
+          State_entities.move_entity new_state.player_id stairs_pos new_state)
+  | None -> new_state

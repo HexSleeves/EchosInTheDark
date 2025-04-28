@@ -14,9 +14,6 @@ let remove (actor_id : Actor.actor_id) (manager : t) : t =
 let get (actor_id : Actor.actor_id) (manager : t) : Actor.t option =
   Map.find manager actor_id
 
-let get_unsafe (actor_id : Actor.actor_id) (manager : t) : Actor.t =
-  get actor_id manager |> Option.value_exn ~message:"Actor not found"
-
 let update (actor_id : Actor.actor_id) (f : Actor.t -> Actor.t) (manager : t) :
     t =
   Map.find manager actor_id

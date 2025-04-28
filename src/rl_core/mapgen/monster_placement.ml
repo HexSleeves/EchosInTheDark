@@ -146,10 +146,16 @@ let expand_band band =
 
 (* Place a band of monsters in a room, with mixed species support *)
 let place_band_in_room ~entity_manager ~room_positions ~depth ~rng =
-  let band_spec = random_band_for_room ~depth ~rng in
-  let band = expand_band band_spec in
-  let positions = List.take room_positions (List.length band) in
-  place_monster_band ~entity_manager ~positions ~direction:Direction.North band
+  match random_band_for_room ~depth ~rng with
+  | Some band_spec ->
+      let band = expand_band band_spec in
+      let positions = List.take room_positions (List.length band) in
+      place_monster_band ~entity_manager ~positions ~direction:Direction.North
+        band
+  | None ->
+      Core_log.err (fun m ->
+          m "No band spec could be selected for depth %d" depth);
+      entity_manager
 
 (* Place a single monster at a given location *)
 let place_monster ~entity_manager ~pos ~direction (spec : monster_spec) :

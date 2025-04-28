@@ -50,7 +50,7 @@ let render (state : State.t) : State.t option =
 
   let entities = Backend.get_entities backend in
   let entity_positions = Render_utils.occupied_positions entities in
-  let current_map = Backend.get_current_map backend in
+  let current_map_opt = Backend.get_current_map backend in
 
   let map_origin =
     Raylib.Vector2.create
@@ -58,14 +58,17 @@ let render (state : State.t) : State.t option =
       (Float.of_int (Int.of_float (Raylib.Rectangle.y map_rect)))
   in
 
-  (* Debug: Print tile at player position in UI and backend *)
-  R.render_map_tiles ~tiles:current_map.map ~width:current_map.width
-    ~skip_positions:entity_positions ~origin:map_origin ~ctx;
-  R.render_entities ~entities ~origin:map_origin ~ctx;
+  (match current_map_opt with
+  | Some current_map ->
+      R.render_map_tiles ~tiles:current_map.map ~width:current_map.width
+        ~skip_positions:entity_positions ~origin:map_origin ~ctx;
+      R.render_entities ~entities ~origin:map_origin ~ctx
+  | None -> ());
 
   (* Render stats bar *)
-  let player = Backend.get_player_entity backend in
-  R.draw_stats_bar_vertical ~player ~rect:stats_rect;
+  (match Backend.get_player_entity backend with
+  | Some player -> R.draw_stats_bar_vertical ~player ~rect:stats_rect
+  | None -> ());
 
   (* Render message log (stub: use dummy messages for now) *)
   let messages =
@@ -105,14 +108,16 @@ let handle_player_input (state : State.t) : State.t =
   in
 
   match action_opt with
-  | Some (Input.Backend action) ->
+  | Some (Input.Backend action) -> (
       Ui_log.info (fun m -> m "Player action: %s" (T.Action.to_string action));
-      let entity = Backend.get_player_entity state.backend in
-      let backend =
-        Backend.queue_actor_action state.backend (T.Entity.get_base entity).id
-          action
-      in
-      { state with backend = Backend.set_mode T.CtrlMode.AI backend }
+      match Backend.get_player_entity state.backend with
+      | Some entity ->
+          let backend =
+            Backend.queue_actor_action state.backend
+              (T.Entity.get_base entity).id action
+          in
+          { state with backend = Backend.set_mode T.CtrlMode.AI backend }
+      | None -> state)
   | _ -> state
 
 let handle_tick (state : State.t) : State.t =

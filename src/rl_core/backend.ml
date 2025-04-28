@@ -17,7 +17,7 @@ let set_mode mode (state : t) : t = State.set_mode mode state
 (* Entity *)
 let get_player_id (state : t) : Types.Entity.id = State.get_player_id state
 
-let get_player_entity (state : t) : Types.Entity.t =
+let get_player_entity (state : t) : Types.Entity.t option =
   State.get_player_entity state
 
 let get_entities (state : t) : Types.Entity.t list = State.get_entities state
@@ -30,7 +30,7 @@ let queue_actor_action (state : t) (actor_id : Actor.actor_id)
   State.queue_actor_action state actor_id action
 
 (* Map *)
-let get_current_map (state : t) : Tilemap.t = State.get_current_map state
+let get_current_map (state : t) : Tilemap.t option = State.get_current_map state
 let process_turns (state : t) : t = Systems.Turn_system.process_turns state
 
 let run_ai_step (state : t) : t =

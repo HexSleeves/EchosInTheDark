@@ -38,14 +38,14 @@ let create ~(config : Mapgen.Config.t) ~current_level =
     player_has_amulet = false;
   }
 
-let get_current_map t = Hashtbl.find_exn t.maps t.current_level
+let get_current_map t = Hashtbl.find t.maps t.current_level
 let get_current_entities t = Hashtbl.find t.entities_by_level t.current_level
 let can_go_to_previous_level t = t.current_level > 1
 let can_go_to_next_level t = t.current_level < t.total_levels
 
 let get_entities_by_level t level =
   Hashtbl.find t.entities_by_level level
-  |> Option.value_exn ~message:"No entities found for level"
+  |> Option.value ~default:(Entity_manager.create ())
 
 let get_current_level t = t.current_level
 
@@ -92,9 +92,12 @@ let load_level_state t =
   let default =
     (t, Entity_manager.create (), Actor_manager.create (), Turn_queue.create ())
   in
-
   value_map (Hashtbl.find t.entities_by_level level) ~default
     ~f:(fun saved_entities ->
-      let actor_manager = Hashtbl.find_exn t.actor_manager_by_level level in
-      let turn_queue = Hashtbl.find_exn t.turn_queue_by_level level in
-      (t, saved_entities, actor_manager, turn_queue))
+      match
+        ( Hashtbl.find t.actor_manager_by_level level,
+          Hashtbl.find t.turn_queue_by_level level )
+      with
+      | Some actor_manager, Some turn_queue ->
+          (t, saved_entities, actor_manager, turn_queue)
+      | _ -> default)

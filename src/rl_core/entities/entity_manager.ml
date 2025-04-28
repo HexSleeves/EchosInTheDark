@@ -33,9 +33,6 @@ let find_base (id : int) (mgr : t) : Entity.base_entity option =
 let find_id (id : int) (mgr : t) : int option =
   Map.find mgr id |> Option.map ~f:(fun ent -> Entity.get_id ent)
 
-let find_unsafe (id : int) (mgr : t) : Entity.t =
-  find id mgr |> Option.value_exn ~message:"Entity not found"
-
 let find_by_pos (pos : Loc.t) (mgr : t) : Entity.t option =
   Map.fold mgr ~init:None ~f:(fun ~key:_ ~data acc ->
       Option.first_some acc

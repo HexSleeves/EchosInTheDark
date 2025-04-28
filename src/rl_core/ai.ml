@@ -14,9 +14,11 @@ end = struct
     in
 
     let dir =
-      List.random_element_exn
-        ~random_state:(Random.State.make_self_init ())
-        dirs
+      match
+        List.random_element ~random_state:(Random.State.make_self_init ()) dirs
+      with
+      | Some d -> d
+      | None -> Direction.North
     in
     Action.Move dir
 end

@@ -23,10 +23,16 @@ let get_width v = v.width
 
 (* Tile *)
 let get_tile (loc : Loc.t) d =
-  d.map.(Rl_utils.Utils.xy_to_index loc.x loc.y d.width)
+  match Rl_utils.Utils.xy_to_index_opt loc.x loc.y d.width d.height with
+  | Some idx -> Rl_utils.Utils.array_get_opt d.map idx
+  | None -> None
 
 let set_tile (loc : Loc.t) (tile : Tile.t) (d : t) =
-  d.map.(Rl_utils.Utils.xy_to_index loc.x loc.y d.width) <- tile
+  match Rl_utils.Utils.xy_to_index_opt loc.x loc.y d.width d.height with
+  | Some idx when idx >= 0 && idx < Array.length d.map ->
+      d.map.(idx) <- tile;
+      true
+  | _ -> false
 
 let in_bounds (loc : Loc.t) (d : t) =
   loc.x >= 0 && loc.x < d.width && loc.y >= 0 && loc.y < d.height

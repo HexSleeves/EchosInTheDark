@@ -6,6 +6,7 @@ type event =
   | ActorDamaged of { actor_id : int; amount : int }
   | TrapTriggered of { entity_id : int; trap_id : int }
   | EntityAttacked of { attacker_id : int; defender_id : int; damage : int }
+  | EntityDied of { entity_id : int }
 (* Add more events as needed *)
 
 (* Handler type: takes an event and returns unit *)

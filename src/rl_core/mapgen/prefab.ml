@@ -16,17 +16,22 @@ let load_prefab filename ~width ~height =
       if y + y_offset < height then
         Base.String.iteri line ~f:(fun x ch ->
             if x + x_offset < width then
-              let idx = x + x_offset + ((y + y_offset) * width) in
-              grid.(idx) <-
-                (match ch with
-                | '.' -> Tile.Floor
-                | '#' -> Tile.Wall
-                | '>' -> Tile.Stairs_down
-                | '<' -> Tile.Stairs_up
-                | '~' -> Tile.River
-                | 'S' -> Tile.Secret_door
-                | 'C' -> Tile.Chasm
-                | 'D' -> Tile.Door
-                | 'T' -> Tile.Tree
-                | _ -> Tile.Unknown)));
+              match
+                Rl_utils.Utils.xy_to_index_opt (x + x_offset) (y + y_offset)
+                  width height
+              with
+              | Some idx when idx >= 0 && idx < Array.length grid ->
+                  grid.(idx) <-
+                    (match ch with
+                    | '.' -> Tile.Floor
+                    | '#' -> Tile.Wall
+                    | '>' -> Tile.Stairs_down
+                    | '<' -> Tile.Stairs_up
+                    | '~' -> Tile.River
+                    | 'S' -> Tile.Secret_door
+                    | 'C' -> Tile.Chasm
+                    | 'D' -> Tile.Door
+                    | 'T' -> Tile.Tree
+                    | _ -> Tile.Unknown)
+              | _ -> ()));
   grid

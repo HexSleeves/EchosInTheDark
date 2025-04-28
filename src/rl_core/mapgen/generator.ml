@@ -16,8 +16,12 @@ let is_special_tile = function
 
 let blend_grids (base : Tile.t array) (overlay : Tile.t array) : Tile.t array =
   Array.mapi base ~f:(fun i t ->
-      let o = overlay.(i) in
-      if is_special_tile t then t else if Tile.equal o Tile.Wall then t else o)
+      match Rl_utils.Utils.array_get_opt overlay i with
+      | Some o ->
+          if is_special_tile t then t
+          else if Tile.equal o Tile.Wall then t
+          else o
+      | None -> t)
 
 let rec run_algorithm (algo : algorithm) ~width ~height ~rng ~depth ~entities =
   match algo with
@@ -82,13 +86,23 @@ let generate ~(config : Config.t) ~(level : int) =
         let rec walk n x y =
           if n = 0 then ()
           else
-            let idx = x + (y * width) in
-            if Tile.is_floor grid.(idx) then grid.(idx) <- tile;
-            let dirs = [ (1, 0); (-1, 0); (0, 1); (0, -1) ] in
-            let dx, dy = List.nth_exn dirs (Random.State.int rng 4) in
-            let nx = Int.max 1 (Int.min (x + dx) (width - 2)) in
-            let ny = Int.max 1 (Int.min (y + dy) (height - 2)) in
-            walk (n - 1) nx ny
+            match Rl_utils.Utils.xy_to_index_opt x y width height with
+            | Some idx when idx >= 0 && idx < Array.length grid ->
+                (match Rl_utils.Utils.array_get_opt grid idx with
+                | Some t when Tile.is_floor t -> grid.(idx) <- tile
+                | _ -> ());
+                let dirs = [ (1, 0); (-1, 0); (0, 1); (0, -1) ] in
+                let dx, dy =
+                  match
+                    Rl_utils.Utils.list_nth_opt dirs (Random.State.int rng 4)
+                  with
+                  | Some (dx, dy) -> (dx, dy)
+                  | None -> (0, 0)
+                in
+                let nx = Int.max 1 (Int.min (x + dx) (width - 2)) in
+                let ny = Int.max 1 (Int.min (y + dy) (height - 2)) in
+                walk (n - 1) nx ny
+            | _ -> ()
         in
         let x = 1 + Random.State.int rng (width - 2) in
         let y = 1 + Random.State.int rng (height - 2) in
@@ -107,11 +121,14 @@ let generate ~(config : Config.t) ~(level : int) =
         else
           let x = 1 + Random.State.int rng (width - 2) in
           let y = 1 + Random.State.int rng (height - 2) in
-          let idx = x + (y * width) in
-          if Tile.is_floor grid.(idx) then (
-            grid.(idx) <- Tile.Trap;
-            place_traps (placed + 1))
-          else place_traps placed
+          match Rl_utils.Utils.xy_to_index_opt x y width height with
+          | Some idx when idx >= 0 && idx < Array.length grid -> (
+              match Rl_utils.Utils.array_get_opt grid idx with
+              | Some t when Tile.is_floor t ->
+                  grid.(idx) <- Tile.Trap;
+                  place_traps (placed + 1)
+              | _ -> place_traps placed)
+          | _ -> place_traps placed
       in
       place_traps 0;
       let secret_door_count = (width + height) / 20 in
@@ -120,21 +137,32 @@ let generate ~(config : Config.t) ~(level : int) =
         else
           let x = 1 + Random.State.int rng (width - 2) in
           let y = 1 + Random.State.int rng (height - 2) in
-          let idx = x + (y * width) in
-          if Tile.equal grid.(idx) Tile.Wall then
-            let neighbors =
-              [ (x - 1, y); (x + 1, y); (x, y - 1); (x, y + 1) ]
-            in
-            let floor_neighbors =
-              List.filter neighbors ~f:(fun (nx, ny) ->
-                  nx >= 0 && nx < width && ny >= 0 && ny < height
-                  && Tile.is_floor grid.(nx + (ny * width)))
-            in
-            if List.length floor_neighbors >= 2 then (
-              grid.(idx) <- Tile.Secret_door;
-              place_secret_doors (placed + 1))
-            else place_secret_doors placed
-          else place_secret_doors placed
+          match Rl_utils.Utils.xy_to_index_opt x y width height with
+          | Some idx when idx >= 0 && idx < Array.length grid -> (
+              match Rl_utils.Utils.array_get_opt grid idx with
+              | Some t when Tile.equal t Tile.Wall ->
+                  let neighbors =
+                    [ (x - 1, y); (x + 1, y); (x, y - 1); (x, y + 1) ]
+                  in
+                  let floor_neighbors =
+                    List.filter neighbors ~f:(fun (nx, ny) ->
+                        match
+                          Rl_utils.Utils.xy_to_index_opt nx ny width height
+                        with
+                        | Some nidx -> (
+                            nx >= 0 && nx < width && ny >= 0 && ny < height
+                            &&
+                            match Rl_utils.Utils.array_get_opt grid nidx with
+                            | Some t -> Tile.is_floor t
+                            | None -> false)
+                        | None -> false)
+                  in
+                  if List.length floor_neighbors >= 2 then (
+                    grid.(idx) <- Tile.Secret_door;
+                    place_secret_doors (placed + 1))
+                  else place_secret_doors placed
+              | _ -> place_secret_doors placed)
+          | _ -> place_secret_doors placed
       in
       place_secret_doors 0)
   in
@@ -156,14 +184,21 @@ let generate ~(config : Config.t) ~(level : int) =
   let _, farthest = Util.bfs_farthest grid ~width ~height ~start:player_start in
   let stairs_down =
     Option.some_if (level <> total_levels)
-      (let x, y = Util.pick_random farthest ~rng ~n:3 in
-       Types.Loc.make x y)
+      (match Util.pick_random farthest ~rng ~n:3 with
+      | Some (x, y) -> Types.Loc.make x y
+      | None -> random_floor)
   in
 
   Option.iter stairs_up ~f:(fun loc ->
-      grid.((loc.y * width) + loc.x) <- Tile.Stairs_up);
+      match Rl_utils.Utils.xy_to_index_opt loc.x loc.y width height with
+      | Some idx when idx >= 0 && idx < Array.length grid ->
+          grid.(idx) <- Tile.Stairs_up
+      | _ -> ());
   Option.iter stairs_down ~f:(fun loc ->
-      grid.((loc.y * width) + loc.x) <- Tile.Stairs_down);
+      match Rl_utils.Utils.xy_to_index_opt loc.x loc.y width height with
+      | Some idx when idx >= 0 && idx < Array.length grid ->
+          grid.(idx) <- Tile.Stairs_down
+      | _ -> ());
 
   let tilemap =
     {

@@ -8,23 +8,6 @@ This document tracks the architectural review, refactor plan, and rationale for 
 
 ## 1. Architectural Review & Recommendations
 
-### a. Module Boundaries & Interfaces
-
-- **Issue:** Only `state.mli` and `backend.mli` exist; other modules lack interfaces, making boundaries fuzzy.
-- **Action:**
-  - Create `.mli` files for all major modules (`entity_manager`, `actor_manager`, `turn_queue`, etc.).
-  - Restrict direct access to internal data structures. Expose only what's necessary.
-
-### b. File Size & Responsibility
-
-- **Issue:** `state.ml` is a god-object (272 lines), mixing state, entity, actor, and level logic.
-- **Action:**
-  - Split `state.ml` into smaller modules:
-    - `state_types.ml` (types only)
-    - `state_entities.ml` (entity logic)
-    - `state_actors.ml` (actor logic)
-    - `state_levels.ml` (level transitions)
-
 ### c. ECS/Event-Driven Patterns
 
 - **Issue:** Entity and actor logic is scattered; systems are not clearly separated.
@@ -38,53 +21,9 @@ This document tracks the architectural review, refactor plan, and rationale for 
 - **Action:**
   - Use `Map`/`Hashtbl` for all entity/actor lookups. Replace list traversals with direct map access.
 
-### e. Testability
-
-- **Issue:** Large, coupled modules are hard to test.
-- **Action:**
-  - Write unit tests for all pure functions in managers and state logic.
-  - Mock dependencies using interfaces.
-
-### f. Documentation
-
-- **Issue:** No explicit documentation of architectural decisions.
-- **Action:**
-  - Update `docs/architecture.md` to reflect the new modular structure and rationale.
-
 ---
 
-## 2. Concrete Refactor Example
-
-**Before:**
-
-- One large `state.ml` file, all logic mixed.
-
-**After:**
-
-- `state_types.ml`: type definitions
-- `state_entities.ml`: entity-related functions
-- `state_actors.ml`: actor-related functions
-- `state_levels.ml`: level transition logic
-
----
-
-## 3. Directory Structure Suggestion
-
-**Before:**
-
-- Flat, all core logic in `rl_core/`.
-
-**After:**
-
-- `rl_core/entities/` (entity types, manager)
-- `rl_core/actors/` (actor types, manager)
-- `rl_core/systems/` (movement, combat, etc.)
-- `rl_core/state/` (state types, transitions)
-- `rl_core/events/` (event bus, event types)
-
----
-
-## 4. Best Practices & Further Progression
+## 2. Best Practices & Further Progression
 
 - Add property-based and unit tests for state transitions.
 - Profile entity/actor lookups; add indices if needed.

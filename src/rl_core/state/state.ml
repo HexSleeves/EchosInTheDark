@@ -26,6 +26,7 @@ let setup_entities_for_level = State_levels.setup_entities_for_level
 let transition_to_next_level = State_levels.transition_to_next_level
 let transition_to_previous_level = State_levels.transition_to_previous_level
 let spawn_corpse_entity = State_entities.spawn_corpse_entity
+let rebuild_position_index = State_entities.rebuild_position_index
 
 let make ~debug ~w ~h ~seed ~current_level =
   Core_log.info (fun m -> m "Width: %d, Height: %d" w h);
@@ -101,5 +102,5 @@ let get_turn_queue (state : t) : Turn_queue.t = state.turn_queue
 let set_turn_queue (turn_queue : Turn_queue.t) (state : t) : t =
   { state with turn_queue }
 
-let get_current_map (state : t) : Dungeon.Tilemap.t =
+let get_current_map (state : t) : Dungeon.Tilemap.t option =
   Map_manager.get_current_map state.map_manager
