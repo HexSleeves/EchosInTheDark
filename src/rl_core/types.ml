@@ -143,10 +143,6 @@ module Entity = struct
   }
   [@@deriving yojson, show]
 
-  let make_base_entity ?(blocking = true) ~id ~pos ~name ~glyph ~description
-      ~direction () =
-    { id; pos; name; glyph; blocking; description; direction }
-
   type player_data = { stats : Stats.t } [@@deriving yojson, show]
 
   type creature_data = { species : string; stats : Stats.t; faction : faction }
@@ -160,6 +156,10 @@ module Entity = struct
     | Item of base_entity * item_data
     | Corpse of base_entity
   [@@deriving yojson, show]
+
+  let make_base_entity ?(blocking = true) ~id ~pos ~name ~glyph ~description
+      ~direction () =
+    { id; pos; name; glyph; blocking; description; direction }
 
   let get_id = function
     | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
@@ -178,6 +178,8 @@ module Entity = struct
   let get_pos = function
     | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
         base.pos
+
+  let is_player = function Player _ -> true | _ -> false
 end
 
 module Action = struct

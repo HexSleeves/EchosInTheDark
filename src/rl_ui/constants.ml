@@ -16,7 +16,7 @@ let tileset_path = "resources/tiles/classic_roguelike_pico8.png"
 type render_mode = Tiles | Ascii
 
 (* Mutable render mode that can be toggled at runtime *)
-let render_mode_ref = ref Ascii
+let render_mode_ref = ref Tiles
 
 (* Functions to get and toggle the render mode *)
 let render_mode () = !render_mode_ref

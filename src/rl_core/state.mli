@@ -41,7 +41,7 @@ val queue_actor_action :
 (* Turn queue *)
 val get_turn_queue : t -> Turn_queue.t
 val set_turn_queue : Turn_queue.t -> t -> t
-val schedule_turn_now : Types.Entity.id -> t -> t
+(* val schedule_turn_now : Types.Entity.id -> t -> t *)
 
 (* Tilemap *)
 val get_current_map : t -> Dungeon.Tilemap.t
@@ -71,4 +71,4 @@ val spawn_creature_entity :
   name:string ->
   description:string ->
   faction:Types.faction ->
-  t * int
+  t

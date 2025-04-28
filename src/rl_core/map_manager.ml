@@ -19,7 +19,7 @@ let create ~(config : Mapgen.Config.t) ~current_level =
 
   (* Generate first level map *)
   let total_levels = config.max_levels in
-  let first_map, _, first_entities =
+  let first_map, first_entities, _ =
     Mapgen.Generator.generate ~config ~level:current_level
   in
   Hashtbl.set maps ~key:current_level ~data:first_map;
@@ -27,26 +27,31 @@ let create ~(config : Mapgen.Config.t) ~current_level =
 
   {
     maps;
-    current_level;
-    total_levels;
-    player_has_amulet = false;
-    entities_by_level;
-    actor_manager_by_level;
-    turn_queue_by_level;
     config;
+    total_levels;
+    current_level;
+    entities_by_level;
+    turn_queue_by_level;
+    actor_manager_by_level;
+    player_has_amulet = false;
   }
 
 let get_current_map t = Hashtbl.find_exn t.maps t.current_level
+let get_current_entities t = Hashtbl.find t.entities_by_level t.current_level
 let can_go_to_previous_level t = t.current_level > 1
 let can_go_to_next_level t = t.current_level < t.total_levels
 
 let ensure_level_exists t level =
   if not (Hashtbl.mem t.maps level) then (
-    let new_map, _, new_entities =
+    let new_map, new_entities, _ =
       Mapgen.Generator.generate ~config:t.config ~level
     in
+
     Hashtbl.set t.maps ~key:level ~data:new_map;
-    Hashtbl.set t.entities_by_level ~key:level ~data:new_entities)
+    Hashtbl.set t.entities_by_level ~key:level ~data:new_entities;
+    Hashtbl.set t.actor_manager_by_level ~key:level
+      ~data:(Actor_manager.create ());
+    Hashtbl.set t.turn_queue_by_level ~key:level ~data:(Turn_queue.create ()))
 
 let go_to_previous_level t =
   if can_go_to_previous_level t then (
@@ -71,20 +76,16 @@ let save_level_state t level ~entities ~actor_manager ~turn_queue =
     ~data:(Turn_queue.copy turn_queue);
   t
 
-let load_level_state t level ~entities ~actor_manager ~turn_queue =
-  match Hashtbl.find t.entities_by_level level with
-  | Some saved_entities ->
-      Core_log.info (fun m -> m "Loading level state for level %d" level);
-      let entities = Entity_manager.restore entities saved_entities in
-      let actor_manager =
-        Actor_manager.restore actor_manager
-          (Hashtbl.find_exn t.actor_manager_by_level level)
-      in
-      let turn_queue =
-        Turn_queue.restore turn_queue
-          (Hashtbl.find_exn t.turn_queue_by_level level)
-      in
-      (t, entities, actor_manager, turn_queue)
-  | None ->
-      (* New level, nothing to restore *)
-      (t, entities, actor_manager, turn_queue)
+let load_level_state t =
+  let open Option in
+  let level = t.current_level in
+  let default =
+    (t, Entity_manager.create (), Actor_manager.create (), Turn_queue.create ())
+  in
+
+  value_map (Hashtbl.find t.entities_by_level level) ~default
+    ~f:(fun saved_entities ->
+      let actor_manager = Hashtbl.find_exn t.actor_manager_by_level level in
+      let turn_queue = Hashtbl.find_exn t.turn_queue_by_level level in
+
+      (t, saved_entities, actor_manager, turn_queue))

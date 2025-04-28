@@ -59,6 +59,8 @@ let handle_entity_death (id : Types.Entity.id) (state : State.t) : State.t =
              |> State.set_turn_queue
                   (Turn_queue.remove_actor (State.get_turn_queue state) id))
        | Types.Entity.Creature (base, _) ->
+           Logs.info (fun m -> m "Removing corpse for entity %d" id);
+
            Some
              (State.remove_entity id state
              |> State.get_entities_manager
@@ -119,7 +121,7 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
                  (State.get_current_map state)
              in
              if Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up then
-               Ok (State.transition_to_previous_level state, 0)
+               Ok (State.transition_to_previous_level state, -1)
              else Error (Failure "Not on stairs up"))
       |> function
       | Ok (state, time) -> (state, Ok time)
@@ -132,7 +134,7 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
              |> Dungeon.Tilemap.get_tile (Entity.get_pos entity)
              |> Dungeon.Tile.equal Dungeon.Tile.Stairs_down
              |> fun is_equal ->
-             if is_equal then Ok (State.transition_to_next_level state, 0)
+             if is_equal then Ok (State.transition_to_next_level state, -1)
              else Error (Failure "Not on stairs down"))
       |> function
       | Ok (state, time) -> (state, Ok time)

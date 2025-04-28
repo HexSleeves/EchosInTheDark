@@ -43,16 +43,15 @@ let make ~debug ~w ~h ~seed ~current_level =
            let base = Entity.get_base entity in
            let actor =
              match entity with
-             | Entity.Player _ ->
-                 Actor_manager.create_player_actor ~next_turn_time:0
-             | Entity.Creature _ ->
-                 Actor_manager.create_rat_actor ~next_turn_time:0
-             | _ -> Actor_manager.create_player_actor ~next_turn_time:0
+             | Entity.Player _ -> Actor_manager.create_player_actor
+             | Entity.Creature _ -> Actor_manager.create_rat_actor
+             | _ -> Actor_manager.create_player_actor
            in
            let am = Actor_manager.add base.id actor am in
            let tq = Turn_queue.schedule_now tq base.id in
            (am, tq))
   in
+
   {
     debug;
     entities;
@@ -89,21 +88,21 @@ let set_turn_queue (turn_queue : Turn_queue.t) (state : t) : t =
 let get_player_id (state : t) : Types.Entity.id = state.player_id
 
 let get_player_entity (state : t) : Types.Entity.t =
-  EntityManager.find_unsafe state.entities state.player_id
+  EntityManager.find_unsafe state.player_id state.entities
 
 let get_entity (id : Types.Entity.id) (state : t) : Types.Entity.t option =
-  EntityManager.find state.entities id
+  EntityManager.find id state.entities
 
 let get_base_entity (id : Types.Entity.id) (state : t) :
     Types.Entity.base_entity =
-  EntityManager.find_unsafe state.entities id |> Entity.get_base
+  EntityManager.find_unsafe id state.entities |> Entity.get_base
 
 let get_entity_at_pos (pos : Types.Loc.t) (state : t) : Types.Entity.t option =
-  EntityManager.find_by_pos state.entities pos
+  EntityManager.find_by_pos pos state.entities
 
 let get_blocking_entity_at_pos (pos : Types.Loc.t) (state : t) :
     Types.Entity.t option =
-  EntityManager.find_by_pos state.entities pos
+  EntityManager.find_by_pos pos state.entities
   |> Option.filter ~f:Entity.get_blocking
 
 let get_entities (state : t) : Types.Entity.t list =
@@ -119,17 +118,19 @@ let get_creatures (state : t) :
 let move_entity (id : Types.Entity.id) (loc : Types.Loc.t) (state : t) : t =
   let open Types.Entity in
   let new_entities =
-    EntityManager.update state.entities id (fun ent ->
+    EntityManager.update id
+      (fun ent ->
         match ent with
         | Player (base, data) -> Player ({ base with pos = loc }, data)
         | Creature (base, data) -> Creature ({ base with pos = loc }, data)
         | Item (base, data) -> Item ({ base with pos = loc }, data)
         | Corpse base -> Corpse { base with pos = loc })
+      state.entities
   in
   set_entities_manager state new_entities
 
 let remove_entity (id : Types.Entity.id) (state : t) : t =
-  { state with entities = EntityManager.remove state.entities id }
+  { state with entities = EntityManager.remove id state.entities }
 
 (* Actor manager *)
 let get_actor (state : t) (actor_id : Actor.actor_id) : Actor.t option =
@@ -159,71 +160,74 @@ let queue_actor_action (state : t) (actor_id : Actor.actor_id)
 let get_current_map (state : t) : Tilemap.t =
   Map_manager.get_current_map state.map_manager
 
+let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
+  EntityManager.to_list entities
+  |> List.fold_left ~init:(actor_manager, turn_queue) ~f:(fun (am, tq) entity ->
+         let base = Entity.get_base entity in
+         let actor =
+           match entity with
+           | Entity.Player _ -> Actor_manager.create_player_actor
+           | Entity.Creature _ -> Actor_manager.create_rat_actor
+           | _ -> Actor_manager.create_player_actor
+         in
+         (Actor_manager.add base.id actor am, Turn_queue.schedule_now tq base.id))
+
 let transition_to_next_level (state : t) : t =
+  let current_player =
+    Option.value_exn
+      (Entity_manager.find_player state.entities)
+      ~message:"Player not found (should not happen)"
+  in
+
+  Core_log.info (fun m ->
+      m "Transitioning to next level from %d" state.map_manager.current_level);
+
   (* Save current level state *)
-  let map_manager, new_dungeon =
-    let mm =
-      Map_manager.save_level_state state.map_manager
-        state.map_manager.current_level ~entities:state.entities
-        ~actor_manager:state.actor_manager ~turn_queue:state.turn_queue
-    in
-
-    (* Go to next level and get the new map *)
-    (Map_manager.go_to_next_level mm, Map_manager.get_current_map mm)
+  let map_manager, entities, actor_manager, turn_queue =
+    Map_manager.save_level_state state.map_manager
+      state.map_manager.current_level ~entities:state.entities
+      ~actor_manager:state.actor_manager ~turn_queue:state.turn_queue
+    |> Map_manager.go_to_next_level |> Map_manager.load_level_state
   in
 
-  (* Either load existing level state or initialize new level *)
-  (* let map_manager, entities, actor_manager, turn_queue =
-    Map_manager.load_level_state map_manager map_manager.current_level
-      ~entities:state.entities ~actor_manager:state.actor_manager
-      ~turn_queue:state.turn_queue
-  in *)
+  Entity_manager.print_entity_manager_ids entities;
 
-  (* Find entities and insert player at 0 *)
-  let entities =
-    Hashtbl.find_exn map_manager.entities_by_level map_manager.current_level
-  in
-  let player = get_player_entity state in
-  let entities = EntityManager.add entities player in
-
-  let actor_manager =
-    Actor_manager.restore state.actor_manager
-      (Hashtbl.find_exn map_manager.actor_manager_by_level
-         (map_manager.current_level - 1))
-  in
-  let turn_queue =
-    Turn_queue.restore state.turn_queue
-      (Hashtbl.find_exn map_manager.turn_queue_by_level
-         (map_manager.current_level - 1))
+  let entities = Entity_manager.add current_player entities in
+  let player_id =
+    Option.value_exn
+      (Entity_manager.find_player_id entities)
+      ~message:"Player not found (should not happen)"
   in
 
-  EntityManager.print_entity_manager entities;
-  Actor_manager.print_actor_manager actor_manager;
-  Turn_queue.print_queue turn_queue;
+  let actor_manager, turn_queue =
+    setup_entities_for_level ~entities ~actor_manager ~turn_queue
+  in
+
+  Turn_queue.print_turn_queue turn_queue;
 
   let new_state =
     {
       state with
-      map_manager;
       entities;
-      actor_manager;
+      player_id;
+      map_manager;
       turn_queue;
-      mode = Types.CtrlMode.WaitInput;
+      actor_manager;
+      mode = Types.CtrlMode.Normal;
     }
   in
 
-  match new_dungeon.Tilemap.stairs_up with
-  | Some stairs_pos ->
-      let state = move_entity state.player_id stairs_pos new_state in
-      { state with map_manager; entities; actor_manager; turn_queue }
-  | None -> new_state
+  (* Get new map *)
+  let new_dungeon = Map_manager.get_current_map map_manager in
+
+  Option.value_map new_dungeon.stairs_up ~default:new_state
+    ~f:(fun stairs_pos -> move_entity new_state.player_id stairs_pos new_state)
 
 let transition_to_previous_level (state : t) : t =
   (* Save current level state *)
   let map_manager =
     Map_manager.save_level_state state.map_manager
-      state.map_manager.current_level
-      ~entities:(get_entities_manager state)
+      state.map_manager.current_level ~entities:state.entities
       ~actor_manager:state.actor_manager ~turn_queue:state.turn_queue
   in
 
@@ -234,32 +238,34 @@ let transition_to_previous_level (state : t) : t =
   let new_dungeon = Map_manager.get_current_map map_manager in
 
   (* Either load existing level state or initialize new level *)
-  let map_manager, _, _, _ =
-    Map_manager.load_level_state map_manager state.map_manager.current_level
-      ~entities:state.entities ~actor_manager:state.actor_manager
-      ~turn_queue:state.turn_queue
+  let map_manager, entities, actor_manager, turn_queue =
+    Map_manager.load_level_state map_manager
   in
 
-  (* Position player at stairs_down in previous level *)
-  new_dungeon.Tilemap.stairs_down
-  |> Option.value_map ~default:{ state with map_manager } ~f:(fun stairs_pos ->
-         let player_id = Entity.get_id (get_player_entity state) in
-         let state = move_entity player_id stairs_pos state in
-         { state with map_manager })
+  let new_state =
+    {
+      state with
+      map_manager;
+      entities;
+      actor_manager;
+      turn_queue;
+      mode = Types.CtrlMode.Normal;
+    }
+  in
+
+  Option.value_map new_dungeon.stairs_down ~default:new_state
+    ~f:(fun stairs_pos -> move_entity new_state.player_id stairs_pos new_state)
 
 (* ////////////////////////////// *)
 (* ACTION HANDLING *)
 (* ////////////////////////////// *)
 
-let schedule_turn_now (id : Types.Entity.id) (state : t) : t =
+(* let schedule_turn_now (id : Types.Entity.id) (state : t) : t =
   let turn_queue = Turn_queue.schedule_now (get_turn_queue state) id in
-  set_turn_queue turn_queue state
+  set_turn_queue turn_queue state *)
 
 let spawn_creature_entity (state : t) ~pos ~direction ~species ~health ~glyph
-    ~name ~description ~faction : t * int =
-  let entities, creature_actor_id, _new_entity =
-    EntityManager.spawn_creature
-      (get_entities_manager state)
-      ~pos ~direction ~species ~health ~glyph ~name ~description ~faction
-  in
-  (set_entities_manager state entities, creature_actor_id)
+    ~name ~description ~faction : t =
+  EntityManager.spawn_creature state.entities ~pos ~direction ~species ~health
+    ~glyph ~name ~description ~faction
+  |> set_entities_manager state

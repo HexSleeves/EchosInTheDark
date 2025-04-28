@@ -7,17 +7,11 @@ module Actor = struct
   type actor_id = int [@@deriving yojson, show]
 
   (* TurnActor type *)
-  type t = {
-    speed : int;
-    alive : bool;
-    next_turn_time : int;
-    next_action : Action.t option;
-  }
+  type t = { speed : int; alive : bool; next_action : Action.t option }
   [@@deriving yojson, show]
 
   (* Constructor *)
-  let create ~next_turn_time ~speed =
-    { speed; alive = true; next_turn_time; next_action = None }
+  let create ~speed = { speed; alive = true; next_action = None }
 
   (* Queue an action and return new actor *)
   let queue_action t (action : Action.t) = { t with next_action = Some action }
@@ -70,7 +64,6 @@ let create_rat_actor = Actor.create ~speed:110
 (* Create a goblin actor *)
 let create_goblin_actor = Actor.create ~speed:150
 let copy (t : t) : t = t (* Map is persistent, so this is just identity *)
-let restore (_t : t) (src : t) : t = src (* Just return the source *)
 
 let print_actor_manager (manager : t) : unit =
   Map.iteri manager ~f:(fun ~key ~data ->

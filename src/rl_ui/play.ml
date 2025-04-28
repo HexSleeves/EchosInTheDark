@@ -52,6 +52,7 @@ let render (state : t) : t option =
   let entities = Backend.get_entities backend in
   let entity_positions = Render_utils.occupied_positions entities in
   let current_map = Backend.get_current_map backend in
+
   let map_origin =
     Raylib.Vector2.create
       (Float.of_int (Int.of_float (Raylib.Rectangle.x map_rect)))

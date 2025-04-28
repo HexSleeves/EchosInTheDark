@@ -69,7 +69,8 @@ let place_monsters ~grid ~width ~height ~rng entity_manager =
           Some (Types.Loc.make x y)
         else None)
   in
-  let num_monsters = Int.max 1 (width * height / 120) in
+  (* let num_monsters = Int.max 1 (width * height / 120) in *)
+  let num_monsters = 2 in
   let shuffled = List.permute floor_positions ~random_state:rng in
   let monster_positions = List.take shuffled num_monsters in
   Core_log.info (fun m -> m "Placing %d monsters..." num_monsters);

@@ -11,7 +11,7 @@ type t = {
 let create () = { current_time = 0; turn_queue = [] }
 let current_time t = t.current_time
 
-let print_queue t =
+let print_turn_queue t =
   let queue_str =
     List.map t.turn_queue ~f:(fun (time, actor) ->
         Printf.sprintf "(time: %d, actor: %d)" time actor)
@@ -20,17 +20,23 @@ let print_queue t =
   Log.info (fun m ->
       m "Current time: %d, Turn queue: [%s]" t.current_time queue_str)
 
-let rec insert_sorted queue (time, entity) =
+(* let rec insert_sorted queue (time, entity) =
   match queue with
   | [] -> [ (time, entity) ]
   | (t, _) :: _ when time < t -> (time, entity) :: queue
-  | (t, e) :: rest -> (t, e) :: insert_sorted rest (time, entity)
+  | (t, e) :: rest -> (t, e) :: insert_sorted rest (time, entity) *)
 
 let schedule_turn t (entity : Entity.id) (next_time : int) =
-  { t with turn_queue = insert_sorted t.turn_queue (next_time, entity) }
+  let new_queue = List.append t.turn_queue [ (next_time, entity) ] in
+  {
+    t with
+    turn_queue =
+      List.sort new_queue ~compare:(fun (t1, _) (t2, _) -> Int.compare t1 t2);
+  }
 
+(* Prepend the turn to the front of the queue *)
 let schedule_now t (entity : Entity.id) =
-  schedule_turn t entity (current_time t)
+  { t with turn_queue = List.cons (current_time t, entity) t.turn_queue }
 
 let remove_actor t (entity : Entity.id) =
   {
@@ -60,4 +66,3 @@ let is_before t (time_a : int) (time_b : int) : bool =
 
 let to_list t = t.turn_queue
 let copy (t : t) : t = t (* Already persistent *)
-let restore (_t : t) (src : t) : t = src (* Just return the source *)
