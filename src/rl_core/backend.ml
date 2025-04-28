@@ -31,7 +31,7 @@ let queue_actor_action (state : t) (actor_id : Actor.actor_id)
 
 (* Map *)
 let get_current_map (state : t) : Tilemap.t = State.get_current_map state
-let process_turns (state : t) : t = Turn_system.process_turns state
+let process_turns (state : t) : t = Systems.Turn_system.process_turns state
 
 let run_ai_step (state : t) : t =
   let open Types in

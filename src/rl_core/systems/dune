@@ -2,7 +2,7 @@
 
 (library
  (name systems)
- (modules movement_system)
+ (modules movement_system turn_system action_handler)
  (libraries
   base
   core_kernel

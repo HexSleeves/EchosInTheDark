@@ -102,8 +102,7 @@ let handle_move ~(state : State.t) ~(id : Entity.id) ~(dir : Direction.t)
               ~default:
                 (if in_bounds && walkable then
                    let state =
-                     Systems.Movement_system.move_entity ~id ~to_pos:new_pos
-                       state
+                     Movement_system.move_entity ~id ~to_pos:new_pos state
                    in
                    (state, Ok 100)
                  else

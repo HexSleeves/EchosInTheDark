@@ -2,7 +2,6 @@
 open Base
 open Entities
 open Dungeon
-open Tile
 
 (* Algorithm type for map generation *)
 type algorithm =

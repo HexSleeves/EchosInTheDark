@@ -2,7 +2,7 @@
 
 (library
  (name rl_core)
- (modules ai backend turn_system action_handler input)
+ (modules ai backend input)
  (libraries
   actors
   base
