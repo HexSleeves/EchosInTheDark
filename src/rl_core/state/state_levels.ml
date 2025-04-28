@@ -1,4 +1,6 @@
 open Base
+open Entities
+open Actors
 
 let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
   Entity_manager.to_list entities

@@ -1,7 +1,5 @@
 type action_result = (int, exn) Result.t
 
-val get_entity_stats : Types.Entity.t -> Types.Stats.t option
-
 val calculate_damage :
   attacker_stats:Types.Stats.t -> defender_stats:Types.Stats.t -> int
 

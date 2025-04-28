@@ -1,4 +1,7 @@
 (* State type definition extracted from state.ml *)
+open Entities
+open Actors
+
 type t = {
   debug : bool;
   player_id : Types.Entity.id;

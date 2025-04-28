@@ -1,5 +1,4 @@
 module Tilemap = Dungeon.Tilemap
-module Actor = Actor_manager.Actor
 module Entity = Types.Entity
 
 type t = State.t
@@ -17,7 +16,7 @@ val get_entities : t -> Types.Entity.t list
 
 (* Entity actions *)
 val move_entity : int -> Types.Loc.t -> t -> t
-val queue_actor_action : t -> Actor.actor_id -> Types.Action.t -> t
+val queue_actor_action : t -> Actors.Actor.actor_id -> Types.Action.t -> t
 
 (* Map *)
 val get_current_map : t -> Tilemap.t

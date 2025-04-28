@@ -1,14 +1,3 @@
-module Actor : sig
-  type actor_id = int
-  type t = { speed : int; alive : bool; next_action : Types.Action.t option }
-
-  val create : speed:int -> t
-  val queue_action : t -> Types.Action.t -> t
-  val next_action : t -> Types.Action.t option * t
-  val peek_next_action : t -> Types.Action.t option
-  val is_alive : t -> bool
-end
-
 type t
 
 val create : unit -> t

@@ -1,4 +1,5 @@
 open Base
+open Entities
 
 let get_entities_manager (state : State_types.t) : Entity_manager.t =
   state.entities
@@ -40,19 +41,8 @@ let get_creatures (state : State_types.t) :
        | _ -> None)
 
 let move_entity (id : Types.Entity.id) (loc : Types.Loc.t)
-    (state : State_types.t) : State_types.t =
-  let open Types.Entity in
-  let new_entities =
-    Entity_manager.update id
-      (fun ent ->
-        match ent with
-        | Player (base, data) -> Player ({ base with pos = loc }, data)
-        | Creature (base, data) -> Creature ({ base with pos = loc }, data)
-        | Item (base, data) -> Item ({ base with pos = loc }, data)
-        | Corpse base -> Corpse { base with pos = loc })
-      state.entities
-  in
-  set_entities_manager state new_entities
+    (state : State_types.t) =
+  Components.Position.set id loc |> fun _ -> state
 
 let remove_entity (id : Types.Entity.id) (state : State_types.t) : State_types.t
     =
@@ -60,6 +50,6 @@ let remove_entity (id : Types.Entity.id) (state : State_types.t) : State_types.t
 
 let spawn_creature_entity (state : State_types.t) ~pos ~direction ~species
     ~health ~glyph ~name ~description ~faction : State_types.t =
-  Entity_manager.spawn_creature state.entities ~pos ~direction ~species ~health
-    ~glyph ~name ~description ~faction
+  Spawner.spawn_creature state.entities ~pos ~direction ~species ~health ~glyph
+    ~name ~description ~faction
   |> set_entities_manager state

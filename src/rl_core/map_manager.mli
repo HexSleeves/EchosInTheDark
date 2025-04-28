@@ -1,5 +1,7 @@
 type t
 
+open Entities
+
 val create : config:Mapgen.Config.t -> current_level:int -> t
 val get_current_map : t -> Dungeon.Tilemap.t
 val get_current_level : t -> int
@@ -14,9 +16,9 @@ val save_level_state :
   t ->
   int ->
   entities:Entity_manager.t ->
-  actor_manager:Actor_manager.t ->
+  actor_manager:Actors.Actor_manager.t ->
   turn_queue:Turn_queue.t ->
   t
 
 val load_level_state :
-  t -> t * Entity_manager.t * Actor_manager.t * Turn_queue.t
+  t -> t * Entity_manager.t * Actors.Actor_manager.t * Turn_queue.t

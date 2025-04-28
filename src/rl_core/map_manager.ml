@@ -1,4 +1,6 @@
 open Base
+open Entities
+open Actors
 
 type t = {
   current_level : int;

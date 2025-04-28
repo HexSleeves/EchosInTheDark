@@ -1,6 +1,6 @@
 open Base
+open Actors
 module Tilemap = Dungeon.Tilemap
-module Actor = Actor_manager.Actor
 module Entity = Types.Entity
 
 type t = State.t
@@ -39,8 +39,7 @@ let run_ai_step (state : t) : t =
   List.fold creatures ~init:state ~f:(fun st (base, data) ->
       let id = base.id in
       match State.get_actor st id with
-      | Some actor
-        when Option.is_none (Actor_manager.Actor.peek_next_action actor) ->
+      | Some actor when Option.is_none (Actor.peek_next_action actor) ->
           let action = Ai.Wander.decide (Entity.Creature (base, data)) st in
           queue_actor_action st id action
       | _ -> st)

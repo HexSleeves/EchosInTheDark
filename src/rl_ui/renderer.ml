@@ -1,4 +1,5 @@
 open Base
+open Rl_core.Components
 module Loc = Rl_core.Types.Loc
 module Entity = Rl_core.Types.Entity
 module Tile = Rl_core.Dungeon.Tile
@@ -201,6 +202,7 @@ let render_entities ~entities ~origin ~ctx =
   List.iter
     ~f:(fun entity ->
       let base = Rl_core.Types.Entity.get_base entity in
+      let pos = Position.get_exn base.id in
       match (ctx.render_mode, ctx.tileset_config) with
       | Constants.Tiles, Some t_cfg ->
           let col, row = Render_utils.entity_to_sprite_coords entity in
@@ -213,9 +215,10 @@ let render_entities ~entities ~origin ~ctx =
               (Float.of_int tile_width) (Float.of_int tile_height)
           in
           let dest =
-            let base_pos = grid_to_screen base.pos in
+            let base_pos = grid_to_screen pos in
             Raylib.Vector2.add base_pos origin
           in
+
           let dest_rect =
             Raylib.Rectangle.create (Raylib.Vector2.x dest)
               (Raylib.Vector2.y dest)
@@ -228,7 +231,7 @@ let render_entities ~entities ~origin ~ctx =
             rotation Raylib.Color.white
       | _ ->
           let glyph, color = entity_glyph_and_color entity in
-          render_cell ~glyph ~color ~fc:font_config ~loc:base.pos ~origin)
+          render_cell ~glyph ~color ~fc:font_config ~loc:pos ~origin)
     entities
 
 (* Draw the vertical player stats bar *)
@@ -242,7 +245,7 @@ let draw_stats_bar_vertical ~player ~rect =
   match player with
   | Rl_core.Types.Entity.Player (_, pdata) ->
       let stats = pdata.stats in
-      let pos = Entity.get_pos player in
+      let pos = Position.get_exn (Entity.get_id player) in
       let pos_x = pos.x in
       let pos_y = pos.y in
       let lines =

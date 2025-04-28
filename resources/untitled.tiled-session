@@ -1,14 +1,20 @@
 {
-    "activeFile": "",
+    "activeFile": "classic_roguelike_pico8.tsx",
     "expandedProjectPaths": [
     ],
     "fileStates": {
+        "classic_roguelike_pico8.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 5.08
+        }
     },
     "last.imagePath": "/Users/lecoqjacob/Projects/ocaml_projects/rl2023_ocaml/resources/tiles",
     "openFiles": [
+        "classic_roguelike_pico8.tsx"
     ],
     "project": "untitled.tiled-project",
     "recentFiles": [
+        "classic_roguelike_pico8.tsx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.tileSize": {

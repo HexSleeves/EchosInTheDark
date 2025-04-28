@@ -1,7 +1,6 @@
 open Base
 open Types
-module EntityManager = Entity_manager
-module Actor = Actor_manager.Actor
+module Actor = Actors.Actor
 module Log = (val Core_log.make_logger "turn_system" : Logs.LOG)
 
 let monster_reschedule_delay = 100

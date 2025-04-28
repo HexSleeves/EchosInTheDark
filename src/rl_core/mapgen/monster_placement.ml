@@ -5,10 +5,8 @@
 
 open Base
 open Types
-open Entities.Entity_manager
-open Dungeon
 open Util
-module Tilemap = Tilemap
+open Entities
 
 (* Represents a monster to be placed *)
 type monster_spec = {
@@ -25,9 +23,9 @@ let place_monster_band ~entity_manager ~positions ~direction
   List.zip_exn positions specs
   |> List.fold_left ~init:entity_manager ~f:(fun mgr (pos, spec) ->
          let faction = faction_of_species spec.species in
-         spawn_creature mgr ~pos ~direction ~species:spec.species
+         Spawner.spawn_creature ~pos ~direction ~species:spec.species
            ~health:spec.health ~glyph:spec.glyph ~name:spec.name
-           ~description:spec.description ~faction)
+           ~description:(Some spec.description) ~faction mgr)
 
 (* Monster templates by species *)
 let monster_templates =
@@ -157,9 +155,9 @@ let place_band_in_room ~entity_manager ~room_positions ~depth ~rng =
 let place_monster ~entity_manager ~pos ~direction (spec : monster_spec) :
     Entity_manager.t =
   let faction = faction_of_species spec.species in
-  spawn_creature entity_manager ~pos ~direction ~species:spec.species
+  Spawner.spawn_creature entity_manager ~pos ~direction ~species:spec.species
     ~health:spec.health ~glyph:spec.glyph ~name:spec.name
-    ~description:spec.description ~faction
+    ~description:(Some spec.description) ~faction
 
 (* Utility: Generate a list of monster specs for a band *)
 let make_band ~species ~count ~health ~glyph ~name ~description =

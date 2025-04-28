@@ -5,14 +5,11 @@
 
 open Base
 open Types
+open Entities
+open Events.Event_bus
 module Log = (val Core_log.make_logger "action_handler" : Logs.LOG)
 
 type action_result = (int, exn) Result.t
-
-let get_entity_stats = function
-  | Entity.Player (_, { stats }) | Entity.Creature (_, { stats; _ }) ->
-      Some stats
-  | _ -> None
 
 (* Calculate damage based on attacker and defender stats *)
 let calculate_damage ~attacker_stats ~defender_stats =
@@ -23,21 +20,25 @@ let calculate_damage ~attacker_stats ~defender_stats =
   max 1 base_damage
 
 let is_entity_dead (id : Types.Entity.id) (backend : State.t) : bool =
-  Base.Option.bind (State.get_entity id backend) ~f:get_entity_stats
+  Base.Option.bind (State.get_entity id backend) ~f:Entity.get_entity_stats
   |> Base.Option.value_map ~default:false ~f:(fun stats -> stats.Stats.hp <= 0)
 
 let can_use_stairs_down state id =
   State.get_entity id state
   |> Base.Option.value_map ~default:false ~f:(fun entity ->
          let base = Entity.get_base entity in
-         Dungeon.Tilemap.get_tile base.pos (State.get_current_map state)
+         Dungeon.Tilemap.get_tile
+           (Components.Position.get_exn base.id)
+           (State.get_current_map state)
          |> Dungeon.Tile.equal Dungeon.Tile.Stairs_down)
 
 let can_use_stairs_up state id =
   State.get_entity id state
   |> Base.Option.value_map ~default:false ~f:(fun entity ->
          let base = Entity.get_base entity in
-         Dungeon.Tilemap.get_tile base.pos (State.get_current_map state)
+         Dungeon.Tilemap.get_tile
+           (Components.Position.get_exn base.id)
+           (State.get_current_map state)
          |> Dungeon.Tile.equal Dungeon.Tile.Stairs_up)
 
 (* ////////////////////////////// *)
@@ -64,7 +65,7 @@ let handle_entity_death (id : Types.Entity.id) (state : State.t) : State.t =
            Some
              (State.remove_entity id state
              |> State.get_entities_manager
-             |> Entity_manager.spawn_corpse base.pos
+             |> Spawner.spawn_corpse ~pos:(Components.Position.get_exn base.id)
              |> State.set_entities_manager state
              |> State.remove_actor base.id
              |> State.set_turn_queue
@@ -73,14 +74,13 @@ let handle_entity_death (id : Types.Entity.id) (state : State.t) : State.t =
   |> Option.value ~default:state
 
 let handle_move ~(state : State.t) ~(id : Entity.id) ~(dir : Direction.t)
-    ~(handle_action :
-       State.t -> Entity.id -> Action.t -> State.t * action_result) :
-    State.t * action_result =
+    ~handle_action : State.t * action_result =
   State.get_entity id state
   |> Option.map ~f:(fun entity ->
          let base = Entity.get_base entity in
          let delta = Direction.to_point dir in
-         let new_pos = Loc.(base.pos + delta) in
+         let pos = Components.Position.get_exn base.id in
+         let new_pos = Loc.(pos + delta) in
 
          let dungeon = State.get_current_map state in
          let in_bounds = Dungeon.Tilemap.in_bounds new_pos dungeon in
@@ -90,7 +90,7 @@ let handle_move ~(state : State.t) ~(id : Entity.id) ~(dir : Direction.t)
 
          State.get_blocking_entity_at_pos new_pos state
          |> Option.map ~f:(fun target_entity ->
-                get_entity_stats target_entity
+                Entity.get_entity_stats target_entity
                 |> Option.map ~f:(fun _ ->
                        handle_action state id
                          (Action.Attack (Entity.get_base target_entity).id))
@@ -101,7 +101,10 @@ let handle_move ~(state : State.t) ~(id : Entity.id) ~(dir : Direction.t)
          |> Option.value
               ~default:
                 (if in_bounds && walkable then
-                   let state = State.move_entity id new_pos state in
+                   let state =
+                     Systems.Movement_system.move_entity ~id ~to_pos:new_pos
+                       state
+                   in
                    (state, Ok 100)
                  else
                    (state, Error (Failure "Cannot move here: terrain blocked"))))
@@ -117,7 +120,8 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
       |> Result.of_option ~error:(Failure "Entity not found")
       |> Result.bind ~f:(fun entity ->
              let tile =
-               Dungeon.Tilemap.get_tile (Entity.get_pos entity)
+               Dungeon.Tilemap.get_tile
+                 (Components.Position.get_exn (Entity.get_base entity).id)
                  (State.get_current_map state)
              in
              if Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up then
@@ -131,7 +135,8 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
       |> Result.of_option ~error:(Failure "Entity not found")
       |> Result.bind ~f:(fun entity ->
              State.get_current_map state
-             |> Dungeon.Tilemap.get_tile (Entity.get_pos entity)
+             |> Dungeon.Tilemap.get_tile
+                  (Components.Position.get_exn (Entity.get_base entity).id)
              |> Dungeon.Tile.equal Dungeon.Tile.Stairs_down
              |> fun is_equal ->
              if is_equal then Ok (State.transition_to_next_level state, -1)
@@ -144,9 +149,9 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
       |> Option.bind ~f:(fun attacker ->
              State.get_entity target_id state
              |> Option.bind ~f:(fun defender ->
-                    get_entity_stats attacker
+                    Entity.get_entity_stats attacker
                     |> Option.bind ~f:(fun attacker_stats ->
-                           get_entity_stats defender
+                           Entity.get_entity_stats defender
                            |> Option.map ~f:(fun defender_stats ->
                                   ( attacker,
                                     defender,
@@ -155,6 +160,10 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
       |> Option.map
            ~f:(fun (_attacker, _defender, attacker_stats, defender_stats) ->
              let damage = calculate_damage ~attacker_stats ~defender_stats in
+
+             publish
+               (EntityAttacked
+                  { attacker_id = id; defender_id = target_id; damage });
 
              let state =
                update_entity_stats target_id state (fun stats ->

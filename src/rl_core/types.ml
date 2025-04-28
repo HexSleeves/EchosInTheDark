@@ -134,7 +134,6 @@ module Entity = struct
 
   type base_entity = {
     id : id;
-    pos : Loc.t;
     name : string;
     glyph : string;
     blocking : bool;
@@ -157,9 +156,11 @@ module Entity = struct
     | Corpse of base_entity
   [@@deriving yojson, show]
 
-  let make_base_entity ?(blocking = true) ~id ~pos ~name ~glyph ~description
-      ~direction () =
-    { id; pos; name; glyph; blocking; description; direction }
+  let make_base_entity ~id ~name ~glyph ~description ~direction
+      ?(blocking = true) () =
+    { id; name; glyph; blocking; description; direction }
+
+  let is_player = function Player _ -> true | _ -> false
 
   let get_id = function
     | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
@@ -175,11 +176,11 @@ module Entity = struct
     | Item (base, _) -> base
     | Corpse base -> base
 
-  let get_pos = function
-    | Player (base, _) | Creature (base, _) | Item (base, _) | Corpse base ->
-        base.pos
-
-  let is_player = function Player _ -> true | _ -> false
+  let get_entity_stats = function
+    | Player (_, { stats }) -> Some stats
+    | Creature (_, { stats; _ }) -> Some stats
+    | Item _ -> None
+    | Corpse _ -> None
 end
 
 module Action = struct

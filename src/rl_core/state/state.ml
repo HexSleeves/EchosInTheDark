@@ -1,8 +1,4 @@
 open Base
-open State_types
-open Entities.Types
-open Entities.Entity_manager
-open Actors.Actor_manager
 
 (* Delegate to split modules *)
 let get_entities_manager = State_entities.get_entities_manager

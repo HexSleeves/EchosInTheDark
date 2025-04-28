@@ -1,8 +1,7 @@
 (* Mapgen modules *)
 open Base
-module Tile = Dungeon.Tile
-module Config = Config
-module Tilemap = Dungeon.Tilemap
+open Entities
+open Dungeon
 
 (* Algorithm type for map generation *)
 type algorithm =
@@ -149,7 +148,7 @@ let generate ~(config : Config.t) ~(level : int) =
   let entity_manager =
     match level with
     | 1 ->
-        Entity_manager.spawn_player entity_manager ~pos:player_start
+        Spawner.spawn_player entity_manager ~pos:player_start
           ~direction:Types.Direction.North
     | _ -> entity_manager
   in
