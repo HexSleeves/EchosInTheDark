@@ -10,7 +10,6 @@ let () =
         Stdio.printf "Actor %d took %d damage\n" actor_id amount
     | TrapTriggered { entity_id; trap_id } ->
         Stdio.printf "Entity %d triggered trap %d\n" entity_id trap_id
-    | EntityAttacked { attacker_id; defender_id; damage } ->
-        Stdio.printf "Entity %d attacked %d for %d damage\n" attacker_id
-          defender_id damage
+    | EntityAttacked { attacker_id; defender_id } ->
+        Stdio.printf "Entity %d attacked %d\n" attacker_id defender_id
     | EntityDied { entity_id } -> Stdio.printf "Entity %d died\n" entity_id)

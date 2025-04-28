@@ -11,14 +11,6 @@ module Log = (val Core_log.make_logger "action_handler" : Logs.LOG)
 
 type action_result = (int, exn) Result.t
 
-(* Calculate damage based on attacker and defender stats *)
-let calculate_damage ~attacker_stats ~defender_stats =
-  let base_damage =
-    attacker_stats.Stats.attack - defender_stats.Stats.defense
-  in
-  (* Ensure at least 1 damage *)
-  max 1 base_damage
-
 let is_entity_dead (id : Types.Entity.id) : bool =
   Components.Stats.get id
   |> Base.Option.value_map ~default:false ~f:(fun stats -> stats.Stats.hp <= 0)
@@ -177,8 +169,7 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
              |> Option.map ~f:(fun _defender -> ()))
       |> Option.map ~f:(fun () ->
              publish
-               (EntityAttacked
-                  { attacker_id = id; defender_id = target_id; damage = 0 });
+               (EntityAttacked { attacker_id = id; defender_id = target_id });
              (state, Ok 100))
       |> Option.value
            ~default:

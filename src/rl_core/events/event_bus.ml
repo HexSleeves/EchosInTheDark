@@ -5,7 +5,7 @@ type event =
   | EntityMoved of { entity_id : int; from_pos : Loc.t; to_pos : Loc.t }
   | ActorDamaged of { actor_id : int; amount : int }
   | TrapTriggered of { entity_id : int; trap_id : int }
-  | EntityAttacked of { attacker_id : int; defender_id : int; damage : int }
+  | EntityAttacked of { attacker_id : int; defender_id : int }
   | EntityDied of { entity_id : int }
 (* Add more events as needed *)
 

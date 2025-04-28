@@ -35,13 +35,3 @@ let copy (t : t) : t = t (* Map is persistent, so this is just identity *)
 let print_actor_manager (manager : t) : unit =
   Map.iteri manager ~f:(fun ~key ~data ->
       Core_log.info (fun m -> m "Actor %d: %s" key (Actor.show data)))
-
-let log_attack_event (event : Events.Event_bus.event) =
-  match event with
-  | EntityAttacked { attacker_id; defender_id; damage } ->
-      Core_log.info (fun m ->
-          m "Entity %d attacked entity %d for %d damage" attacker_id defender_id
-            damage)
-  | _ -> ()
-
-let () = Events.Event_bus.subscribe log_attack_event
