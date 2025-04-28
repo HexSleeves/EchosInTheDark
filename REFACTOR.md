@@ -96,13 +96,14 @@ This document tracks the architectural review, refactor plan, and rationale for 
 
 ## 5. Task Table
 
+**Current Status:**
+
+- We are actively working on Task #3 (Adopt ECS/event-driven) and continuing to refactor code to use maps for all lookups (Task #4).
+
 | Step | Action | Why/Impact | Status |
 |------|--------|------------|--------|
-| 1 | Add `.mli` files for all managers | Enforces boundaries, improves testability | TODO |
-| 2 | Split `state.ml` by responsibility | Smaller, focused modules, easier to test/extend | TODO |
-| 3 | Adopt ECS/event-driven | Decouples logic, easier to add features | TODO |
+| 3 | Adopt ECS/event-driven | Decouples logic, easier to add features | IN PROGRESS |
 | 4 | Use maps for all lookups | Performance, clarity | IN PROGRESS |
-| 5 | Add unit tests | Reliability, regression safety | TODO |
 | 6 | Document architecture | Onboarding, future-proofing | TODO |
 | 7 | Refactor example | Concrete path to improvement | TODO |
 | 8 | Directory structure | Discoverability, modularity | TODO |
@@ -112,6 +113,6 @@ This document tracks the architectural review, refactor plan, and rationale for 
 
 ## 6. Next Steps
 
-- Prioritize `.mli` creation and `state.ml` split.
-- Begin modularizing systems and event handling.
+- Continue modularizing systems and implementing event-driven (ECS) patterns.
+- Refactor all entity/actor lookups to use maps instead of lists.
 - Update this file as tasks are completed or new issues are discovered.

@@ -2,8 +2,7 @@ open Base
 open Ppx_yojson_conv_lib.Yojson_conv
 
 module CtrlMode = struct
-  type t = Normal | WaitInput | AI | Died of float
-  (* [@@deriving yojson] *)
+  type t = Normal | WaitInput | AI | Died of float [@@deriving yojson]
 end
 
 module Loc = struct

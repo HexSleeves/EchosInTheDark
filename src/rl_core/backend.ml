@@ -8,11 +8,11 @@ type t = State.t
 let make ~debug ~w ~h ~seed ~current_level : t =
   State.make ~debug ~w ~h ~seed ~current_level
 
-(* Mode *)
-let get_mode (state : t) : Types.CtrlMode.t = State.get_mode state
+let get_debug (state : t) : bool = State.get_debug state
 
-let set_mode (mode : Types.CtrlMode.t) (state : t) : t =
-  State.set_mode mode state
+(* Mode *)
+let get_mode (state : t) = State.get_mode state
+let set_mode mode (state : t) : t = State.set_mode mode state
 
 (* Entity *)
 let get_player_id (state : t) : Types.Entity.id = State.get_player_id state
@@ -43,4 +43,4 @@ let run_ai_step (state : t) : t =
           let action = Ai.Wander.decide (Entity.Creature (base, data)) st in
           queue_actor_action st id action
       | _ -> st)
-  |> fun state -> State.set_mode Types.CtrlMode.Normal state
+  |> fun state -> State.set_normal_mode state

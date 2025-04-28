@@ -1,6 +1,6 @@
-open Ppx_yojson_conv_lib.Yojson_conv
 open Base
 open Types
+open Ppx_yojson_conv_lib.Yojson_conv
 
 let map_width_default = 80
 let map_height_default = 50

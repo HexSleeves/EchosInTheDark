@@ -1,6 +1,6 @@
 open Base
 open Types
-module Actor = Actors.Actor
+open Actors
 module Log = (val Core_log.make_logger "turn_system" : Logs.LOG)
 
 let monster_reschedule_delay = 100
@@ -88,8 +88,10 @@ let process_actor_event (state : State.t) (tq : Turn_queue.t) (id : Entity.id)
          match
            (Actor.is_alive actor, should_wait_for_player_input entity actor)
          with
-         | false, _ -> State.set_turn_queue (remove_dead_actor tq id) state
-         | true, true -> State.set_mode CtrlMode.WaitInput state
+         | false, _ ->
+             State.set_turn_queue (remove_dead_actor tq id) state
+             |> fun state -> state
+         | true, true -> State.set_wait_input_mode state
          | true, false ->
              let ctx = { state; tq; actor; id; entity; time } in
              handle_actor_event ctx)
@@ -100,7 +102,7 @@ let process_actor_event (state : State.t) (tq : Turn_queue.t) (id : Entity.id)
 let process_turns (backend : State.t) : State.t =
   let rec process_loop current_backend =
     match State.get_mode current_backend with
-    | CtrlMode.WaitInput -> current_backend
+    | Types.CtrlMode.WaitInput -> current_backend
     | _ ->
         Turn_queue.get_next_actor (State.get_turn_queue current_backend)
         |> fun (result, next_tq) ->

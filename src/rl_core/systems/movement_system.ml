@@ -11,7 +11,6 @@ let move_entity ~(id : int) ~(to_pos : Loc.t) (state : State.t) : State.t =
     |> Option.value ~default:to_pos
   in
 
-
   (* Update the Position component table *)
   let state = State.move_entity id to_pos state in
   publish (EntityMoved { entity_id = id; from_pos; to_pos });

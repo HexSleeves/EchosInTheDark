@@ -1,8 +1,8 @@
 open Base
-open Rl_core.Components
-module Loc = Rl_core.Types.Loc
-module Entity = Rl_core.Types.Entity
-module Tile = Rl_core.Dungeon.Tile
+open Components
+module Loc = Types.Loc
+module Entity = Types.Entity
+module Tile = Dungeon.Tile
 
 (* Font configuration for grid rendering *)
 type font_config = { font : Raylib.Font.t; font_size : int; font_path : string }
@@ -185,7 +185,7 @@ let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx =
   Array.iteri tiles ~f:(fun i t ->
       let x, y = Rl_utils.Utils.index_to_xy i width in
       if not (Set.mem skip_positions (x, y)) then
-        let loc = Rl_core.Types.Loc.make x y in
+        let loc = Types.Loc.make x y in
         match (ctx.render_mode, ctx.tileset_config) with
         | Constants.Tiles, Some t_cfg ->
             render_tile ~texture:t_cfg.texture ~tile:t ~loc ~origin
@@ -201,7 +201,7 @@ let render_entities ~entities ~origin ~ctx =
 
   List.iter
     ~f:(fun entity ->
-      let base = Rl_core.Types.Entity.get_base entity in
+      let base = Types.Entity.get_base entity in
       let pos = Position.get_exn base.id in
       match (ctx.render_mode, ctx.tileset_config) with
       | Constants.Tiles, Some t_cfg ->
@@ -243,7 +243,7 @@ let draw_stats_bar_vertical ~player ~rect =
   let y = Int.of_float (Rectangle.y rect) + padding in
 
   match player with
-  | Rl_core.Types.Entity.Player base ->
+  | Types.Entity.Player base ->
       let stats = Stats.get_exn base.id in
       let pos = Position.get_exn (Entity.get_id player) in
       let pos_x = pos.x in

@@ -1,4 +1,7 @@
 open Base
+open State_types
+
+type t = State_types.t
 
 (* Delegate to split modules *)
 let get_entities_manager = State_entities.get_entities_manager
@@ -73,19 +76,20 @@ let make ~debug ~w ~h ~seed ~current_level =
   in
   state
 
-type t = State_types.t
+let get_debug (state : t) : bool = state.debug
+let get_mode (state : t) : Types.CtrlMode.t = state.mode
+let set_mode (mode : Types.CtrlMode.t) (state : t) : t = { state with mode }
 
-let get_debug (state : t) : bool = (state : State_types.t).debug
-let get_mode (state : t) : Types.CtrlMode.t = (state : State_types.t).mode
+let set_normal_mode (state : t) : t =
+  { state with mode = Types.CtrlMode.Normal }
 
-let set_mode (mode : Types.CtrlMode.t) (state : t) : t =
-  { (state : State_types.t) with mode }
+let set_wait_input_mode (state : t) : t =
+  { state with mode = Types.CtrlMode.WaitInput }
 
-let get_turn_queue (state : t) : Turn_queue.t =
-  (state : State_types.t).turn_queue
+let get_turn_queue (state : t) : Turn_queue.t = state.turn_queue
 
 let set_turn_queue (turn_queue : Turn_queue.t) (state : t) : t =
-  { (state : State_types.t) with turn_queue }
+  { state with turn_queue }
 
 let get_current_map (state : t) : Dungeon.Tilemap.t =
-  Map_manager.get_current_map (state : State_types.t).map_manager
+  Map_manager.get_current_map state.map_manager

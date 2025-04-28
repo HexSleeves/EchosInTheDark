@@ -94,6 +94,7 @@ let update_entity_stats (mgr : t) (id : Entity.id) (f : Stats.t -> Stats.t) : t
     (fun entity ->
       match entity with
       | Entity.Player base -> Entity.Player { base with id }
-      | Entity.Creature (base, data) -> Entity.Creature ({ base with id }, data)
+      | Entity.Creature (base, data) ->
+          Entity.Creature (base, { data with stats = f data.stats })
       | _ -> entity)
     mgr

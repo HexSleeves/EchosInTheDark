@@ -1,0 +1,6 @@
+(include_subdirs no)
+
+(library
+ (name entities)
+ (modules entity_manager queries spawner)
+ (libraries base core_kernel containers logs types core_log components))

@@ -1,3 +1,5 @@
+module Backend = Rl_core.Backend
+
 module Input_context = struct
   type t = {
     held_key : Raylib.Key.t option;
@@ -12,7 +14,7 @@ end
 type t = {
   quitting : bool;
   screen : Modules_d.screen;
-  backend : Rl_core.State.t;
+  backend : Backend.t;
   render_ctx : Renderer.render_context;
   input_ctx : Input_context.t;
 }

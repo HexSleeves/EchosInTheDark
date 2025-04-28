@@ -9,9 +9,8 @@
     as needed. *)
 
 open Base
-open State
 module R = Renderer
-module T = Rl_core.Types
+module T = Types
 module Backend = Rl_core.Backend
 
 module PosSet = struct
@@ -23,7 +22,7 @@ module PosSet = struct
   include Comparator.Make (T)
 end
 
-let render (state : t) : t option =
+let render (state : State.t) : State.t option =
   let backend = state.backend in
   let ctx = state.render_ctx in
 
@@ -74,10 +73,10 @@ let render (state : t) : t option =
   in
   R.draw_message_log ~messages ~rect:log_rect;
 
-  if Rl_core.State.get_debug backend then R.render_fps_overlay ctx.font_config;
+  if Backend.get_debug backend then R.render_fps_overlay ctx.font_config;
   None
 
-let handle_mouse (state : t) =
+let handle_mouse (state : State.t) =
   let open Raylib in
   if is_mouse_button_pressed MouseButton.Left then
     let mouse_pos = get_mouse_position () in
@@ -87,7 +86,7 @@ let handle_mouse (state : t) =
     { state with backend = b }
   else state
 
-let handle_player_input (state : t) : t =
+let handle_player_input (state : State.t) : State.t =
   let state = handle_mouse state in
   let action_opt = Input.get_current_action () in
 
@@ -116,7 +115,7 @@ let handle_player_input (state : t) : t =
       { state with backend = Backend.set_mode T.CtrlMode.AI backend }
   | _ -> state
 
-let handle_tick (state : t) : t =
+let handle_tick (state : State.t) : State.t =
   let open Rl_core in
   let backend = state.backend in
   match Backend.get_mode backend with

@@ -1,0 +1,6 @@
+(include_subdirs no)
+
+(library
+ (name components)
+ (modules position stats)
+ (libraries base core_kernel containers logs types))

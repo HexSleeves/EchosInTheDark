@@ -1,0 +1,17 @@
+(include_subdirs no)
+
+(library
+ (name systems)
+ (modules movement_system)
+ (libraries
+  base
+  core_kernel
+  containers
+  logs
+  types
+  entities
+  actors
+  components
+  events
+  core_log
+  state))

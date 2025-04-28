@@ -1,0 +1,20 @@
+(include_subdirs no)
+
+(library
+ (name state)
+ (modules state state_types state_entities state_actors state_levels)
+ (libraries
+  base
+  core_kernel
+  containers
+  logs
+  types
+  entities
+  actors
+  components
+  mapgen
+  dungeon
+  core_log
+  events
+  map_manager
+  turn_queue))

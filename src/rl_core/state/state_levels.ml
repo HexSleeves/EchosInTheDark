@@ -1,6 +1,8 @@
 open Base
 open Entities
 open Actors
+open State_types
+open Types
 
 let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
   Entity_manager.to_list entities
@@ -47,7 +49,7 @@ let transition_to_next_level (state : State_types.t) : State_types.t =
       map_manager;
       turn_queue;
       actor_manager;
-      mode = Types.CtrlMode.Normal;
+      mode = CtrlMode.Normal;
     }
   in
   let new_dungeon = Map_manager.get_current_map map_manager in
@@ -74,7 +76,7 @@ let transition_to_previous_level (state : State_types.t) : State_types.t =
       entities;
       actor_manager;
       turn_queue;
-      mode = Types.CtrlMode.Normal;
+      mode = CtrlMode.Normal;
     }
   in
   Option.value_map new_dungeon.stairs_down ~default:new_state

@@ -1,8 +1,8 @@
 open Base
 
 (* Import backend action type and direction type *)
-module BackendAction = Rl_core.Types.Action
-module Direction = Rl_core.Types.Direction
+module BackendAction = Types.Action
+module Direction = Types.Direction
 
 (* Define UI action type, wrapping backend and frontend actions *)
 type ui_action =

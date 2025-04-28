@@ -3,7 +3,7 @@ open Actors
 
 type t = {
   debug : bool;
-  player_id : Types.Entity.id;
+  player_id : int;
   mode : Types.CtrlMode.t;
   entities : Entity_manager.t;
   actor_manager : Actor_manager.t;

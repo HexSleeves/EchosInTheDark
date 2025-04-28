@@ -1,0 +1,18 @@
+(include_subdirs no)
+
+(library
+ (name actors)
+ (modules actor_manager actor)
+ (libraries base core_kernel containers logs types core_log entities events)
+ (preprocess
+  (staged_pps
+   ppx_yojson_conv
+   ppx_deriving.enum
+   ppx_deriving.eq
+   ppx_deriving.ord
+   ppx_deriving.show
+   ppx_compare
+   ppx_sexp_conv
+   ppx_hash
+   ppx_import
+   ppx_inline_test)))
