@@ -1,10 +1,33 @@
 # Project Structure and Module Dependency Overview
 
-This document provides a high-level overview of the architecture and module dependencies for the project, using Mermaid diagrams for clarity.
+This document provides an up-to-date overview of the architecture and module dependencies for Echoes in the Dark, including directory/module descriptions and diagrams. For a high-level system view, see [architecture.md](architecture.md). For chunking details, see [chunking_design.md](chunking_design.md).
 
 ---
 
-## 1. Core Module Dependency Flow
+## 1. Directory & Module Overview
+
+- **src/** — Main source code
+  - **bin/** — Game entry point(s)
+  - **rl_core/** — Core game logic (ECS, systems, map/chunk management, etc.)
+    - **actors/** — Actor/AI logic
+    - **components/** — ECS components (position, stats, etc.)
+    - **dungeon/** — Chunking, mapgen, tile types
+    - **entities/** — Entity spawning and management
+    - **events/** — Event system
+    - **mapgen/** — Procedural map/chunk generation
+    - **state/** — Game state, save/load
+    - **systems/** — ECS systems (movement, combat, etc.)
+  - **rl_loader/** — Resource and prefab loading
+  - **rl_ui/** — UI, rendering, input (Raylib integration)
+  - **rl_utils/** — Shared utilities and helpers
+- **test/** — Tests
+- **media/** — Screenshots and assets
+- **resources/** — Game resources (fonts, images, prefabs, tiles)
+- **docs/** — Documentation
+
+---
+
+## 2. Core Module Dependency Flow
 
 ```mermaid
 flowchart TD
@@ -12,66 +35,52 @@ flowchart TD
     RLCore['rl_core']
     Raylib['Raylib']
     RLUtils['rl_utils']
+    RLLoader['rl_loader']
     RLCoreMap['rl_core.map/rl_core.mapgen']
-    RLCoreActions['rl_core.action/actions/input']
-    RLCoreBackend['rl_core.backend']
-    RLCoreTurn['rl_core.turn_system/turn_queue']
-    RLCoreActor['rl_core.actor/actor_manager']
-    RLCoreEntity['rl_core.entity']
+    RLCoreChunk['rl_core.dungeon/chunk_manager']
+    RLCoreActors['rl_core.actors']
+    RLCoreEntities['rl_core.entities']
+    RLCoreComponents['rl_core.components']
+    RLCoreSystems['rl_core.systems']
     RLCoreState['rl_core.state']
     RLCoreTypes['rl_core.types']
-    RLCoreSpawner['rl_core.spawner']
 
     UI --> RLCore
     UI --> Raylib
-    RLCore --> RLCoreActions
-    RLCore --> RLCoreBackend
-    RLCore --> RLCoreTurn
-    RLCore --> RLCoreActor
-    RLCore --> RLCoreEntity
+    RLCore --> RLCoreActors
+    RLCore --> RLCoreEntities
+    RLCore --> RLCoreComponents
+    RLCore --> RLCoreSystems
+    RLCore --> RLCoreMap
+    RLCore --> RLCoreChunk
     RLCore --> RLCoreState
     RLCore --> RLCoreTypes
-    RLCore --> RLCoreSpawner
-    RLCore --> RLCoreMap
-    RLCore --> RLUtils
-    RLCoreActions --> RLCoreTypes
-    RLCoreActions --> RLCoreEntity
-    RLCoreBackend --> RLCoreActor
-    RLCoreBackend --> RLCoreEntity
-    RLCoreBackend --> RLCoreTurn
-    RLCoreBackend --> RLCoreMap
-    RLCoreBackend --> RLCoreTypes
-    RLCoreTurn --> RLCoreActor
-    RLCoreTurn --> RLCoreTurn
-    RLCoreTurn --> RLCoreEntity
-    RLCoreTurn --> RLCoreBackend
-    RLCoreActor --> RLCoreTypes
-    RLCoreActor --> RLCoreEntity
-    RLCoreActor --> RLCoreActions
-    RLCoreEntity --> RLCoreTypes
-    RLCoreSpawner --> RLCoreEntity
-    RLCoreSpawner --> RLCoreActor
-    RLCoreSpawner --> RLCoreTypes
-    RLCoreMap --> RLCoreTypes
-    RLCoreMap --> RLUtils
-    RLCoreState --> RLCoreBackend
-    RLCoreState --> RLCoreTypes
-    RLCoreInput[rl_core.input]
-    UI --> RLCoreInput
-    RLCoreInput --> RLCoreActions
-    RLCoreInput --> RLCoreTypes
-    RLCoreInput --> Raylib
+    RLCore --> RLLoader
+    RLCoreMap --> RLCoreChunk
+    RLCoreChunk --> RLCoreEntities
+    RLCoreChunk --> RLCoreComponents
+    RLCoreActors --> RLCoreEntities
+    RLCoreActors --> RLCoreComponents
+    RLCoreEntities --> RLCoreComponents
+    RLCoreSystems --> RLCoreEntities
+    RLCoreSystems --> RLCoreComponents
+    RLCoreState --> RLCoreEntities
+    RLCoreState --> RLCoreComponents
+    RLCoreState --> RLCoreChunk
+    RLCoreState --> RLCoreMap
+    RLLoader --> RLCore
+    RLUtils --> RLCore
 ```
 
 **Explanation:**
 
-- Shows the main modules and their dependencies.
 - UI depends on both rl_core and Raylib.
 - rl_core is composed of several submodules, each with their own dependencies.
+- The chunking system (dungeon/chunk_manager) is central to world management.
 
 ---
 
-## 2. Game Loop and Data Flow
+## 3. Game Loop and Data Flow
 
 ```mermaid
 flowchart TD
@@ -94,6 +103,7 @@ flowchart TD
 
     subgraph Data
         Map[map/mapgen]
+        ChunkManager[chunk_manager.ml]
         Spawner[spawner.ml]
     end
 
@@ -107,6 +117,7 @@ flowchart TD
     Backend -- "updates" --> State
     Backend -- "reads/writes" --> Map
     Backend -- "spawns" --> Spawner
+    Backend -- "loads/unloads" --> ChunkManager
     Actor -- "references" --> Types
     Entity -- "references" --> Types
     Actions -- "references" --> Types
@@ -115,12 +126,12 @@ flowchart TD
 
 **Explanation:**
 
-- Illustrates the flow of data and control through the main game loop.
-- Shows how input is processed, actions are queued, and the backend updates the game state.
+- Shows the flow of data and control through the main game loop.
+- Input is processed, actions are queued, backend updates state, and chunking is managed dynamically.
 
 ---
 
-## 3. Input Handling Flow
+## 4. Input Handling Flow
 
 ```mermaid
 flowchart TD
@@ -140,4 +151,8 @@ flowchart TD
 
 ---
 
-This structure is modular, testable, and easy to extend. Update this document as the architecture evolves.
+## 5. Cross-References
+
+- For high-level architecture: [architecture.md](architecture.md)
+- For chunking system: [chunking_design.md](chunking_design.md)
+- For workflow/coding policies: [workflow_policies.md](workflow_policies.md)

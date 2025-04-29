@@ -1,72 +1,80 @@
-# OCaml Project Workflow Policies
+# OCaml Project Workflow & Coding Policies
 
-This document formalizes key workflow policies for this project. All contributors and LLMs should follow these guidelines to ensure code quality, maintainability, and idiomatic OCaml practices.
-
----
-
-## 1. Always Run `dune build` After Each Code Change
-
-**Policy:**
-After every code change, you must run `dune build` to verify that the project builds successfully.
-
-**Rationale:**
-Running the build immediately after changes ensures that errors are caught early, prevents broken builds from being committed, and maintains project stability.
-
-**Example:**
-```sh
-# After editing any .ml or .mli file
-dune build
-```
+This document formalizes the workflow, coding style, and contribution policies for Echoes in the Dark. All contributors and LLMs must follow these guidelines to ensure code quality, maintainability, and idiomatic OCaml practices.
 
 ---
 
-## 2. Always Use the `base` Library in New Code and Refactoring
+## 1. Build & Test Discipline
 
-**Policy:**
-All new code and refactoring must use the [`base`](https://github.com/janestreet/base) library for standard utilities, data structures, and functional patterns.
-
-**Rationale:**
-`base` provides a modern, consistent, and well-maintained standard library for OCaml. It encourages best practices and improves code readability and reliability.
-
-**Example:**
-```ocaml
-open Base
-
-let numbers = [1; 2; 3]
-let incremented = List.map ~f:(fun x -> x + 1) numbers
-```
+- **Always run `dune build` after each code change.**
+  - Catch errors early, prevent broken builds, and keep the project stable.
+- **Run tests before pushing.**
+  - Use `dune runtest` if tests exist. Add tests for new features/bugfixes.
 
 ---
 
-## 3. Prefer Functional and OCaml-Idiomatic Patterns
+## 2. OCaml Functional & Idiomatic Style
 
-**Policy:**
-Always use the most functional and OCaml-idiomatic approach to problem solving. This includes, but is not limited to, using types and combinators such as `Result.t`, `Option.value`, `Option.bind`, and other patterns from the OCaml ecosystem.
-
-**Rationale:**
-Functional and idiomatic code is more robust, composable, and easier to reason about. Leveraging OCaml’s type system and functional patterns reduces bugs and improves maintainability.
+- **Use the [Base](https://github.com/janestreet/base) library** for standard types and utilities.
+- **Error handling:** Use `Option.t` and `Result.t` instead of exceptions.
+- **Functional patterns:**
+  - Use combinators like `Option.bind`, `Option.value`, `Result.map`, etc.
+  - Prefer pure functions and avoid side effects except for IO.
+- **Explicit imports:** Open modules locally (e.g., `let open Base in ...`).
+- **Explicit types:** Add type annotations for public functions and module interfaces.
+- **Consistent naming:**
+  - `snake_case` for values/functions
+  - `PascalCase` for types/modules
+- **Short, focused functions:** Each function should do one thing well.
+- **No Pervasives:** Avoid OCaml's shadowed standard library unless necessary.
 
 **Examples:**
 
-- **Using `Result.t` for error handling:**
-  ```ocaml
-  let divide x y =
-    if y = 0 then Error "Division by zero"
-    else Ok (x / y)
-  ```
+```ocaml
+let sum_positive (xs : int list) : int =
+  List.filter xs ~f:(fun x -> x > 0)
+  |> List.fold ~init:0 ~f:(+)
 
-- **Chaining with `Option.bind`:**
-  ```ocaml
-  let find_and_double tbl key =
-    Hashtbl.find tbl key
-    |> Option.bind ~f:(fun v -> Some (v * 2))
-  ```
+let divide x y =
+  if y = 0 then Error "Division by zero"
+  else Ok (x / y)
 
-- **Providing defaults with `Option.value`:**
-  ```ocaml
-  let port = Option.value ~default:8080 maybe_port
-  ```
+let find_and_double tbl key =
+  Hashtbl.find tbl key
+  |> Option.bind ~f:(fun v -> Some (v * 2))
+```
 
 ---
 
-**Adherence to these policies is required for all code contributions.**
+## 3. Code Review & Documentation
+
+- **All PRs must be reviewed** by at least one other contributor.
+- **Document major modules, types, and functions.**
+- **Update docs** (in `docs/`) when architecture, workflow, or major features change.
+- **Cross-link**: Reference related docs (see [architecture.md](architecture.md), [project_structure.md](project_structure.md)).
+
+---
+
+## 4. Memory/Core Files Workflow
+
+- **Project memory files** (see [Memory Files Structure](architecture.md)) must be kept up to date:
+  - `docs/architecture.md`: System/component relationships
+  - `docs/project_structure.md`: Directory/module structure
+  - `docs/chunking_design.md`: Chunking system design
+  - `docs/story_line.md`: Narrative and world design
+  - `tasks/active_context.md`, `tasks/tasks_plan.md`: Current work focus and backlog
+- **Update memory files** after significant changes, discoveries, or fixes.
+- **Log errors/lessons** in `.cursor/rules/error-documentation.mdc` and `.cursor/rules/lessons-learned.mdc`.
+
+---
+
+## 5. Contributing & Onboarding
+
+- **Fork, branch, and PR:** Standard GitHub workflow.
+- **Follow these policies** for all code, docs, and reviews.
+- **Ask for clarification** if requirements are unclear.
+- **Be functional, be idiomatic, be kind.**
+
+---
+
+*For more, see [architecture.md](architecture.md), [project_structure.md](project_structure.md), [chunking_design.md](chunking_design.md).*

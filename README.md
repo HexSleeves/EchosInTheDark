@@ -1,27 +1,26 @@
 # Echoes in the Dark
 
-Welcome to Echoes in the Dark, an experimental roguelike game project built in OCaml! This project is designed for learning, experimentation, and fun with game design and functional programming.
+Welcome to **Echoes in the Dark** — a modern, modular roguelike engine and game demo built in OCaml. This project is all about learning, experimentation, and pushing the boundaries of functional game development.
 
 ---
 
-## 🚀 Project Overview
+## 🚀 What is Echoes in the Dark?
 
-Echoes in the Dark is a turn-based, entity-driven game engine and demo, using OCaml's strong type system and modern tooling. The project is structured for extensibility, maintainability, and clarity, making it a great starting point for both new and experienced OCaml developers interested in games.
-
-- **Entity-Component System**: All game objects are managed via a flexible entity system.
-- **Raylib Integration**: Uses Raylib (via OCaml bindings) for graphics, input, and audio.
-- **Modular Architecture**: Clean separation of game logic, rendering, and resources.
+- **Turn-based, entity-driven roguelike** with a focus on extensibility and clarity.
+- **Entity-Component System (ECS):** All game objects are entities with flexible, composable components.
+- **Infinite/Procedural World:** Powered by a dynamic chunking system for seamless exploration.
+- **Modern OCaml:** Uses the [Base](https://github.com/janestreet/base) library, functional patterns, and Raylib bindings for graphics/input/audio.
+- **Modular Architecture:** Clean separation of UI, core logic, resources, and utilities.
 
 ---
 
-## 📚 Documentation
+## 🧩 Architecture & Docs
 
-- **[Project Memory Docs](.docs/memory/)**: In-depth architecture, guidelines, and roadmap
-  - [Project Overview](.docs/memory/00_project_overview.md)
-  - [Technical Architecture](.docs/memory/01_technical_architecture.md)
-  - [Development Guidelines](.docs/memory/02_development_guidelines.md)
-  - [Project Roadmap](.docs/memory/03_project_roadmap.md)
-- [Project Structure and Module Dependency Overview](docs/project_structure.md): Mermaid charts and explanations of the architecture and module dependencies.
+- **[System Architecture](docs/architecture.md):** High-level overview, major modules, and how everything fits together.
+- **[Project Structure](docs/project_structure.md):** Directory/module breakdown, dependency diagrams, and data flow.
+- **[Chunking System](docs/chunking_design.md):** How the world is split into 32x32 chunks for infinite/procedural generation.
+- **[Workflow & Coding Policies](docs/workflow_policies.md):** How we work, code, and contribute (OCaml functional style, memory files, reviews, etc.).
+- **[Story & Lore](docs/story_line.md):** The narrative, world, and monster/item lists.
 
 ---
 
@@ -29,7 +28,7 @@ Echoes in the Dark is a turn-based, entity-driven game engine and demo, using OC
 
 ### Prerequisites
 
-- [OCaml](https://ocaml.org/) (recommended via [opam](https://opam.ocaml.org/))
+- [OCaml](https://ocaml.org/) (via [opam](https://opam.ocaml.org/))
 - [Dune](https://dune.build/)
 - [Raylib](https://www.raylib.com/) (and OCaml bindings)
 
@@ -48,27 +47,37 @@ dune exec echoes_dark
 
 ---
 
-## ��️ Project Structure
+## 🗂️ Project Structure (Quick View)
 
-- `src/` — Main source code
-- `lib/` — Shared libraries
+- `src/` — Main source code (ECS, systems, chunking, UI, etc.)
 - `test/` — Tests
 - `media/` — Screenshots and assets
-- `resources/` — Game resources
-- `static/` — Static files
-- `.docs/memory/` — Project documentation
+- `resources/` — Game resources (fonts, images, prefabs, tiles)
+- `docs/` — All project documentation (see above)
+
+See [project_structure.md](docs/project_structure.md) for full details and diagrams.
+
+---
+
+## 👾 Features
+
+- **Entity-Component System:** Flexible, extensible, and easy to hack on.
+- **Dynamic Chunking:** Infinite/procedural world, loaded in 32x32 tile chunks around the player.
+- **Functional OCaml:** Modern, idiomatic code using Base and best practices.
+- **Raylib Integration:** Fast graphics, input, and audio.
+- **Clear Docs:** Everything you need to understand, extend, or contribute.
 
 ---
 
 ## 🧑‍💻 Contributing
 
-We welcome contributions! To get started:
+We welcome all contributors — whether you're new to OCaml, games, or just want to help!
 
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-Please read our [Development Guidelines](.docs/memory/02_development_guidelines.md) before contributing.
+- **Read the [Workflow & Coding Policies](docs/workflow_policies.md)** before starting.
+- Fork the repo, create a feature branch, and open a pull request.
+- All code is reviewed for clarity, style, and function.
+- Update docs and memory files as you go.
+- Be functional, be idiomatic, be kind.
 
 ---
 
@@ -97,8 +106,8 @@ MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
-## 💡 More Info
+## 💡 More Info & Help
 
-- For technical details, see the [Technical Architecture](.docs/memory/01_technical_architecture.md).
-- For project goals and roadmap, see the [Project Roadmap](.docs/memory/03_project_roadmap.md).
+- For technical details, see [architecture.md](docs/architecture.md) and [chunking_design.md](docs/chunking_design.md).
+- For project goals and roadmap, see the memory files in `docs/` and `tasks/`.
 - For help or questions, open an issue or discussion!
