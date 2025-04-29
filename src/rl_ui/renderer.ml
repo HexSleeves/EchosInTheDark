@@ -232,18 +232,13 @@ let draw_equipment_slots ~ctx ~start_y ~start_x equipment =
 
       (* DRAW ITEM SPRITE IF ITEM EXISTS *)
       match item_opt with
-      | Some item -> (
-          match (ctx.render_mode, ctx.tileset_config) with
+      | None -> draw_text "-" (slot_x + 10) (slot_y + 2) 30 Color.gray
+      | Some item ->
+          (match (ctx.render_mode, ctx.tileset_config) with
           | Constants.Tiles, Some t_cfg ->
               let col, row =
                 item_type_to_sprite_coords item.Types.Item.item_type
               in
-
-              (* let pos = Types.Loc.make slot_x slot_y in
-              let origin = Vector2.create 0. 0. in
-
-              Render_utils.draw_texture_ex ~texture:t_cfg.texture ~pos ~origin
-                ~tile_render_size:slot_size ~col ~row; *)
               let tile_width = Constants.tile_width in
               let tile_height = Constants.tile_height in
               let src =
@@ -263,13 +258,18 @@ let draw_equipment_slots ~ctx ~start_y ~start_x equipment =
               let glyph, color = item_type_to_glyph item.Types.Item.item_type in
               draw_font_text ~font:font_config.font ~font_size:20.0 ~color
                 ~text:glyph ~pos_x:(Float.of_int slot_x)
-                ~pos_y:(Float.of_int slot_y))
-      | None ->
-          (* Keep this for now *)
-          (* draw_font_text ~font:font_config.font ~font_size:40.0
-			~color:Color.gray ~text:"-" ~pos_x:(Float.of_int slot_x)
-			~pos_y:(Float.of_int slot_y)) *)
-          draw_text "-" (slot_x + 10) (slot_y + 2) 30 Color.gray)
+                ~pos_y:(Float.of_int slot_y));
+          (* Draw tooltip below the slot *)
+          let stat_summary = Inventory.item_stat_summary item in
+          let corruption = Inventory.item_corruption_status item in
+          let tooltip_y = slot_y + slot_size + 4 in
+          let tooltip_lines =
+            match corruption with
+            | Some c -> [ stat_summary; c ]
+            | None -> [ stat_summary ]
+          in
+          List.iteri tooltip_lines ~f:(fun j line ->
+              draw_text line slot_x (tooltip_y + (j * 18)) 14 Color.lightgray))
 
 let rounded_radius = 0.18
 let rounded_segments = 12

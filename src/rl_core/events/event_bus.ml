@@ -7,7 +7,11 @@ type event =
   | TrapTriggered of { entity_id : int; trap_id : int }
   | EntityAttacked of { attacker_id : int; defender_id : int }
   | EntityDied of { entity_id : int }
+  | ItemPickedUp of { player_id : int; entity : Entity.t }
+  | ItemDropped of { player_id : int; entity : Entity.t }
 (* Add more events as needed *)
+
+type t = event
 
 (* Handler type: takes an event and returns unit *)
 type handler = event -> State_types.t -> State_types.t

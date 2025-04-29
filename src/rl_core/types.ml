@@ -43,8 +43,30 @@ module Stats = struct
     { max_hp; hp; attack; defense; speed }
 end
 
+module StatModifiers = struct
+  type t = {
+    attack : int;
+    defense : int;
+    speed : int;
+    max_hp : int; (* Add more as needed *)
+  }
+  [@@deriving yojson, show]
+
+  let empty = { attack = 0; defense = 0; speed = 0; max_hp = 0 }
+end
+
 module Item = struct
   type item_type = Potion | Sword | Scroll | Gold | Key
+  [@@deriving yojson, eq, enum, show]
+
+  type slot_type =
+    | Head
+    | Chest
+    | Legs
+    | Weapon
+    | Shield
+    | Accessory
+    | NoneSlot
   [@@deriving yojson, eq, enum, show]
 
   type t = {
@@ -53,15 +75,32 @@ module Item = struct
     quantity : int; (* Stack count, if stackable *)
     name : string; (* Display name *)
     description : string option; (* Optional description *)
+    slot_type : slot_type;
+        (* What slot this item can be equipped in, or NoneSlot *)
+    stat_modifiers : StatModifiers.t; (* Stat changes when equipped *)
+    is_corrupted : bool; (* Is this item corrupted? *)
+    corruption_effects : string option; (* Description of corruption effects *)
   }
   [@@deriving yojson, show]
 
-  let create ~item_type ~quantity ~name ?(description = None) () =
-    { id = 0; item_type; quantity; name; description }
+  let create ~item_type ~quantity ~name ?(description = None)
+      ?(slot_type = NoneSlot) ?(stat_modifiers = StatModifiers.empty)
+      ?(is_corrupted = false) ?(corruption_effects = None) () =
+    {
+      id = 0;
+      item_type;
+      quantity;
+      name;
+      description;
+      slot_type;
+      stat_modifiers;
+      is_corrupted;
+      corruption_effects;
+    }
 end
 
 module Inventory = struct
-  type t = Item.t list [@@deriving yojson, show]
+  type t = { items : Item.t list; max_slots : int } [@@deriving yojson, show]
 end
 
 (* //////////////////////// *)
@@ -129,18 +168,27 @@ let are_factions_hostile (f1 : faction) (f2 : faction) : bool =
 (* ENTITY TYPES *)
 
 module Equipment = struct
-  type slot = Weapon | Armor | Trinket1 | Trinket2
+  type slot = Head | Chest | Legs | Weapon | Shield | Accessory1 | Accessory2
   [@@deriving yojson, show, eq, enum]
 
   type t = (slot * Item.t option) list [@@deriving yojson, show]
 
   let empty =
-    [ (Weapon, None); (Armor, None); (Trinket1, None); (Trinket2, None) ]
+    [
+      (Head, None);
+      (Chest, None);
+      (Legs, None);
+      (Weapon, None);
+      (Shield, None);
+      (Accessory1, None);
+      (Accessory2, None);
+    ]
 end
 
 (* Add player_data for player-specific fields *)
 type player_data = {
   equipment : Equipment.t; (* Add more player-specific fields here if needed *)
+  inventory : Inventory.t; (* Player's inventory *)
 }
 [@@deriving yojson, show]
 

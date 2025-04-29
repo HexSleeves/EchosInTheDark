@@ -170,5 +170,28 @@ let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
                Error (Failure "Attacker or defender not found or missing stats")
              )
   | Action.Interact _ -> (state, Error (Failure "Interact not implemented yet"))
-  | Action.Pickup _ -> (state, Error (Failure "Pickup not implemented yet"))
-  | Action.Drop _ -> (state, Error (Failure "Drop not implemented yet"))
+  | Action.Pickup item_id -> (
+      match (State.get_entity id state, State.get_entity item_id state) with
+      | Some (Entity.Player _), Some item_entity ->
+          ( Events.Event_bus.publish
+              (Events.Event_bus.ItemPickedUp
+                 { player_id = id; entity = item_entity })
+              state,
+            Ok 100 )
+      | _ -> (state, Error (Failure "Pickup failed: invalid entity")))
+  | Action.Drop item_id -> (
+      match State.get_entity id state with
+      | Some (Entity.Player (_, pdata)) -> (
+          let item_entity_opt =
+            List.find_map pdata.inventory.items ~f:(fun i ->
+                if i.id = item_id then State.get_entity i.id state else None)
+          in
+
+          match item_entity_opt with
+          | Some entity ->
+              ( Events.Event_bus.publish
+                  (Events.Event_bus.ItemDropped { player_id = id; entity })
+                  state,
+                Ok 100 )
+          | None -> (state, Error (Failure "Item not found in inventory!")))
+      | _ -> (state, Error (Failure "Drop failed: invalid entity")))
