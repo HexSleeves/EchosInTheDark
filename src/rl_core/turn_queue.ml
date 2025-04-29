@@ -5,7 +5,7 @@ module Log = (val Core_log.make_logger "turn_queue" : Logs.LOG)
 (* Persistent min-heap of (time, id) using a sorted list *)
 type t = {
   current_time : int;
-  turn_queue : (int * Entity.id) list; (* Sorted by time ascending *)
+  turn_queue : (int * entity_id) list; (* Sorted by time ascending *)
 }
 
 let create () : t = { current_time = 0; turn_queue = [] }

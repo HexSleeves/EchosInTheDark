@@ -1,23 +1,28 @@
 open Base
 open Types
+open Item
 
-let is_full (inv : Inventory.t) : bool = List.length inv.items >= inv.max_slots
-let can_add_item (inv : Inventory.t) : bool = not (is_full inv)
+type t = { items : Item_data.t list; max_slots : int } [@@deriving yojson, show]
 
-let add_item (inv : Inventory.t) (item : Item.t) :
-    (Inventory.t, string) Result.t =
+let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+let get id = Hashtbl.find table id
+let set id data = Hashtbl.set table ~key:id ~data
+let remove id = Hashtbl.remove table id
+let is_full (inv : t) : bool = List.length inv.items >= inv.max_slots
+let can_add_item (inv : t) : bool = not (is_full inv)
+
+let add_item (inv : t) (item : Item_data.t) : (t, string) Result.t =
   if is_full inv then Error "Inventory is full!"
   else Ok { inv with items = item :: inv.items }
 
-let remove_item (inv : Inventory.t) (item : Item.t) :
-    (Inventory.t, string) Result.t =
+let remove_item (inv : t) (item : Item_data.t) : (t, string) Result.t =
   match List.findi inv.items ~f:(fun _ i -> i.id = item.id) with
   | None -> Error "Item not found in inventory!"
   | Some (idx, _) ->
       let new_items = List.filteri inv.items ~f:(fun i _ -> i <> idx) in
       Ok { inv with items = new_items }
 
-let item_stat_summary (item : Item.t) : string =
+let item_stat_summary (item : Item_data.t) : string =
   let m = item.stat_modifiers in
   let parts =
     [
@@ -34,7 +39,7 @@ let item_stat_summary (item : Item.t) : string =
   if List.is_empty parts then "No stat modifiers"
   else String.concat ~sep:", " parts
 
-let item_corruption_status (item : Item.t) : string option =
+let item_corruption_status (item : Item_data.t) : string option =
   if item.is_corrupted then
     Some
       (match item.corruption_effects with

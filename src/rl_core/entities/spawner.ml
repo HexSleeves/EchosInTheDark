@@ -3,60 +3,57 @@ open Entity_manager
 
 type t = Entity_manager.t
 
-let create_base ~name ~glyph ~description ~direction ~pos ?(blocking = true)
-    (em : t) =
-  let id = next_id em in
+let create_base ~name ~glyph ~pos ~description ?(blocking = true) (em : t) =
+  let id, em = Entity_manager.spawn em in
+
+  (* Here we set all the components *)
   Components.Position.set id pos;
+  Components.Name.set id { name };
+  Components.Renderable.set id { glyph };
+  Components.Blocking.set id blocking;
 
-  ( id,
-    Entity.make_base_entity ~id ~name ~glyph ~description ~direction ~blocking
-      () )
+  (match description with
+  | Some desc -> Components.Description.set id desc
+  | None -> ());
 
-let spawn_player ~pos ~direction (em : t) =
-  let id, base =
-    create_base ~name:"Player" ~glyph:"@" ~description:(Some "This is you!")
-      ~direction ~pos em
-  in
-  let pdata : Types.player_data =
-    {
-      equipment = Types.Equipment.empty;
-      inventory = { Types.Inventory.items = []; max_slots = 20 };
-    }
-  in
-  Components.Stats.set id Stats.default;
-  add_entity (Entity.Player (base, pdata)) em
+  (id, em)
 
-let spawn_creature ~pos ~direction ~species ~health ~glyph ~name ~description
-    ~faction (em : t) =
-  let id, base =
-    create_base ~name ~glyph ~description ~direction ~pos ~blocking:true em
+let spawn_player ~pos (em : t) =
+  let id, em =
+    create_base ~name:"Player" ~glyph:'@' ~pos
+      ~description:(Some "This is you!") em
   in
 
-  let creature_data : Entity.creature_data =
-    {
-      species;
-      stats =
-        Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5 ~speed:100;
-      faction;
-    }
-  in
+  Components.Stats.default id;
+  Components.Inventory.set id { items = []; max_slots = 20 };
+  Components.Equipment.default id;
+  Components.Kind.set id Components.Kind.Player;
+  (em, id)
 
-  Components.Stats.set id creature_data.stats;
-  add_entity (Entity.Creature (base, creature_data)) em
+let spawn_creature ~pos ~species ~health ~glyph ~name ~description ~faction
+    (em : t) =
+  let id, em = create_base ~name ~glyph ~pos ~description em in
 
-let spawn_item ~pos ~direction ~item_type ~quantity ~name ~glyph
-    ?(description = None) (em : t) =
-  let _id, base =
-    create_base ~name ~glyph ~description ~direction ~pos ~blocking:false em
-  in
-  let item = Item.create ~item_type ~quantity ~name ~description:None () in
-  add_entity (Entity.Item (base, { item })) em
+  Components.Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5
+    ~speed:100
+  |> Components.Stats.set id;
+
+  (* Set species, faction, etc. as components if you have them *)
+  Components.Kind.set id Components.Kind.Creature;
+  (em, id)
+
+let spawn_item ~pos ~item_type ~quantity ~name ~glyph ?(description = None)
+    (em : t) =
+  let id, em = create_base ~name ~glyph ~pos ~description ~blocking:false em in
+  let item = Item.create ~item_type ~quantity ~name ~description () in
+  Components.Item_data.set id item;
+  Components.Kind.set id Components.Kind.Item;
+  (em, id)
 
 let spawn_corpse ~pos (em : t) =
-  let id, base =
-    create_base ~name:"Corpse" ~glyph:"%" ~description:(Some "A dead creature")
-      ~direction:Direction.North ~pos ~blocking:false em
+  let id, em =
+    create_base ~name:"Corpse" ~glyph:'%' ~pos
+      ~description:(Some "A dead creature") ~blocking:false em
   in
-
-  Components.Position.set id pos;
-  add (Entity.Corpse base) em
+  Components.Kind.set id Components.Kind.Corpse;
+  (em, id)

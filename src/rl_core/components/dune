@@ -1,6 +1,6 @@
-(include_subdirs no)
+(include_subdirs unqualified)
 
 (library
  (name components)
- ; (modules position stats equipment inventory)
+ ; (modules stats equipment inventory)
  (libraries base core_kernel containers logs types))
