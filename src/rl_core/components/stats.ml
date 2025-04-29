@@ -1,5 +1,6 @@
 open Base
 open Item
+open Ppx_yojson_conv_lib.Yojson_conv
 
 module Stats_data = struct
   type t = { max_hp : int; hp : int; attack : int; defense : int; speed : int }

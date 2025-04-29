@@ -2,7 +2,6 @@
 
 (library
  (name mapgen)
- ; (modules config generator prefab ca rooms monster_placement util)
  (libraries
   base
   core_kernel

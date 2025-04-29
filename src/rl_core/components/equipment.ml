@@ -1,6 +1,7 @@
 open Base
 open Types
 open Item
+open Ppx_yojson_conv_lib.Yojson_conv
 
 module Equipment_data = struct
   type slot = Head | Chest | Legs | Weapon | Shield | Accessory1 | Accessory2

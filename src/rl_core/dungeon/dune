@@ -2,7 +2,6 @@
 
 (library
  (name dungeon)
- (modules tile tilemap)
  (libraries
   base
   core_kernel
@@ -14,7 +13,8 @@
   raylib
   rl_utils)
  (preprocess
-  (staged_pps
+  (pps
+   ppx_jane
    ppx_yojson_conv
    ppx_deriving.enum
    ppx_deriving.eq

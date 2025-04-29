@@ -1,5 +1,10 @@
 (include_subdirs qualified)
 
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A -w -30))))
+
 (library
  (name rl_core)
  (modules ai backend input)
@@ -19,14 +24,7 @@
   rl_utils
   state
   systems
-  types)
- (preprocess
-  (pps ppx_jane ppx_enumerate)))
-
-(env
- (dev
-  (flags
-   (:standard -warn-error -A -w -30))))
+  types))
 
 (library
  (name core_log)
@@ -37,11 +35,6 @@
  (name core_utils)
  (modules util)
  (libraries base core_kernel containers logs types components))
-
-(library
- (name turn_queue)
- (modules turn_queue)
- (libraries base core_kernel containers logs types core_log))
 
 (library
  (name map_manager)
@@ -56,6 +49,11 @@
   mapgen
   turn_queue
   types))
+
+(library
+ (name turn_queue)
+ (modules turn_queue)
+ (libraries base core_kernel containers logs types core_log))
 
 (library
  (name types)

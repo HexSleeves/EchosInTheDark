@@ -4,4 +4,4 @@
  (name rl_utils)
  (libraries base containers core_kernel logs logs.fmt raylib)
  (preprocess
-  (staged_pps ppx_yojson_conv)))
+  (pps ppx_yojson_conv)))

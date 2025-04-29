@@ -1,5 +1,6 @@
 open Base
 open Types
+open Ppx_yojson_conv_lib.Yojson_conv
 
 module Faction_data = struct
   type t =

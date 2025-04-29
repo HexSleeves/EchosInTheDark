@@ -2,5 +2,12 @@
 
 (library
  (name components)
- ; (modules stats equipment inventory)
- (libraries base core_kernel containers logs types))
+ (libraries base core_kernel containers logs types)
+ (preprocess
+  (pps
+   ppx_jane
+   ppx_yojson_conv
+   ppx_deriving.enum
+   ppx_deriving.show
+   ppx_deriving.eq
+   ppx_deriving.ord)))

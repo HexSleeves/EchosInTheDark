@@ -2,13 +2,6 @@
 
 (library
  (name systems)
- (modules
-  movement_system
-  turn_system
-  action_handler
-  combat_system
-  log_system
-  item_system)
  (libraries
   base
   core_kernel

@@ -1,6 +1,7 @@
 open Base
 open Types
 open Item
+open Ppx_yojson_conv_lib.Yojson_conv
 
 type t = { items : Item_data.t list; max_slots : int } [@@deriving yojson, show]
 
