@@ -1,5 +1,6 @@
 open Base
 open Entities
+open Types
 
 let get_entities_manager (state : State_types.t) : Entity_manager.t =
   state.entities
@@ -8,77 +9,76 @@ let set_entities_manager (entities : Entity_manager.t) (state : State_types.t) :
     State_types.t =
   { state with entities }
 
-let get_player_id (state : State_types.t) : Types.Entity.id = state.player_id
+let get_player_id (state : State_types.t) : entity_id = state.player_id
 
-let get_player_entity (state : State_types.t) : Types.Entity.t option =
-  Entity_manager.find state.player_id state.entities
+(* Equipment helpers *)
+let get_equipment (id : entity_id) : Components.Equipment.t option =
+  Components.Equipment.get id
 
-let get_entity (id : Types.Entity.id) (state : State_types.t) :
-    Types.Entity.t option =
-  Entity_manager.find id state.entities
+let set_equipment (id : entity_id) (eq : Components.Equipment.t) : unit =
+  Components.Equipment.set id eq
 
-let get_base_entity (id : Types.Entity.id) (state : State_types.t) :
-    Types.Entity.base_entity option =
-  Entity_manager.find id state.entities |> Option.map ~f:Types.Entity.get_base
+(* Entity helpers *)
+
+let move_entity (id : entity_id) (loc : Types.Loc.t) (state : State_types.t) =
+  let old_pos = Components.Position.get id in
+  Components.Position.set id loc |> fun _ ->
+  (match old_pos with
+  | Some pos -> Hashtbl.remove state.position_index pos
+  | None -> ());
+  Hashtbl.set state.position_index ~key:loc ~data:id;
+  state
 
 let get_entity_at_pos (pos : Types.Loc.t) (state : State_types.t) :
-    Types.Entity.t option =
-  match Base.Hashtbl.find state.position_index pos with
-  | Some id -> Entity_manager.find id state.entities
+    entity_id option =
+  match Hashtbl.find state.position_index pos with
+  | Some id -> Some id
   | None -> None
 
 let get_blocking_entity_at_pos (pos : Types.Loc.t) (state : State_types.t) :
-    Types.Entity.t option =
-  Entity_manager.find_by_pos pos state.entities
-  |> Option.filter ~f:Types.Entity.get_blocking
+    entity_id option =
+  Entity_manager.to_list state.entities
+  |> List.find ~f:(fun id ->
+         match Components.Position.get id with
+         | Some pos' when Poly.(pos = pos') ->
+             Option.value ~default:false (Components.Blocking.get id)
+         | _ -> false)
 
-let get_entities (state : State_types.t) : Types.Entity.t list =
+let get_entities (state : State_types.t) : entity_id list =
   Entity_manager.to_list state.entities
 
-let get_creatures (state : State_types.t) :
-    (Types.Entity.base_entity * Types.Entity.creature_data) list =
+let get_creatures (state : State_types.t) : entity_id list =
   Entity_manager.to_list state.entities
-  |> List.filter_map ~f:(function
-       | Types.Entity.Creature (base, data) -> Some (base, data)
-       | _ -> None)
+  |> List.filter ~f:(fun id ->
+         match Components.Kind.get id with
+         | Some Components.Kind.Creature -> true
+         | _ -> false)
 
 (* Helper: Add an entity's position to the index if it has one *)
-let add_entity_to_index (entity : Types.Entity.t) (state : State_types.t) :
+let add_entity_to_index (entity_id : entity_id) (state : State_types.t) :
     State_types.t =
-  let id = Types.Entity.get_id entity in
-  match Components.Position.get id with
+  match Components.Position.get entity_id with
   | Some pos ->
-      Base.Hashtbl.set state.position_index ~key:pos ~data:id;
+      Hashtbl.set state.position_index ~key:pos ~data:entity_id;
       state
   | None -> state
 
 (* Helper: Remove an entity's position from the index if it has one *)
-let remove_entity_from_index (id : Types.Entity.id) (state : State_types.t) :
+let remove_entity_from_index (entity_id : entity_id) (state : State_types.t) :
     State_types.t =
-  match Components.Position.get id with
+  match Components.Position.get entity_id with
   | Some pos ->
-      Base.Hashtbl.remove state.position_index pos;
+      Hashtbl.remove state.position_index pos;
       state
   | None -> state
 
 let rebuild_position_index (state : State_types.t) : State_types.t =
-  Base.Hashtbl.clear state.position_index;
+  Hashtbl.clear state.position_index;
   Entity_manager.to_list state.entities
-  |> List.iter ~f:(fun entity ->
-         let id = Types.Entity.get_id entity in
-         match Components.Position.get id with
-         | Some pos -> Base.Hashtbl.set state.position_index ~key:pos ~data:id
+  |> List.iter ~f:(fun entity_id ->
+         match Components.Position.get entity_id with
+         | Some pos -> Hashtbl.set state.position_index ~key:pos ~data:entity_id
          | None -> ());
-  state
-
-let move_entity (id : Types.Entity.id) (loc : Types.Loc.t)
-    (state : State_types.t) =
-  let old_pos = Components.Position.get id in
-  Components.Position.set id loc |> fun _ ->
-  (match old_pos with
-  | Some pos -> Base.Hashtbl.remove state.position_index pos
-  | None -> ());
-  Base.Hashtbl.set state.position_index ~key:loc ~data:id;
   state
 
 let spawn_corpse_entity ~pos (state : State_types.t) : State_types.t =
@@ -87,8 +87,11 @@ let spawn_corpse_entity ~pos (state : State_types.t) : State_types.t =
   |> List.fold_left ~init:state ~f:(fun state e -> add_entity_to_index e state)
   |> set_entities_manager new_entities
 
-let remove_entity (id : Types.Entity.id) (state : State_types.t) : State_types.t
-    =
+let add_entity (entity_id : entity_id) (state : State_types.t) : State_types.t =
+  add_entity_to_index entity_id state
+  |> set_entities_manager (Entity_manager.add entity_id state.entities)
+
+let remove_entity (id : entity_id) (state : State_types.t) : State_types.t =
   remove_entity_from_index id state |> fun state ->
   {
     state with
@@ -99,15 +102,3 @@ let remove_entity (id : Types.Entity.id) (state : State_types.t) : State_types.t
   match Components.Position.get id with
   | Some pos -> spawn_corpse_entity ~pos state
   | None -> state
-
-let spawn_entity (state : State_types.t) (entity : Types.Entity.t) :
-    State_types.t =
-  add_entity_to_index entity state
-  |> set_entities_manager (Entity_manager.add entity state.entities)
-
-(* Equipment helpers *)
-let get_equipment (id : Types.Entity.id) : Types.Equipment.t option =
-  Components.Equipment.get id
-
-let set_equipment (id : Types.Entity.id) (eq : Types.Equipment.t) : unit =
-  Components.Equipment.set id eq

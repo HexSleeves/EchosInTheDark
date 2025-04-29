@@ -37,6 +37,7 @@ module Blocking = struct
 
   let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
   let set id data = Hashtbl.set table ~key:id ~data
+  let get id = Hashtbl.find table id
 end
 
 module Position = struct
@@ -51,6 +52,7 @@ module Position = struct
 
   let set id pos = Hashtbl.set table ~key:id ~data:pos
   let remove id = Hashtbl.remove table id
+  let show t = Types.Loc.show t
 end
 
 module Kind = struct
@@ -58,5 +60,46 @@ module Kind = struct
 
   let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
   let set id data = Hashtbl.set table ~key:id ~data
+  let get id = Hashtbl.find table id
+end
+[@@deriving show]
+
+module Species = struct
+  type t =
+    [ `Bat
+    | `Bloated_Bat
+    | `Cave_Beetle
+    | `Copper_Slime
+    | `Crystalline_Horror
+    | `Deep_Worm
+    | `Elemental_Guardian
+    | `FriendlyBug
+    | `Giant_Cave_Rat
+    | `Giant_Spider
+    | `Glowbug
+    | `Goblin
+    | `Goblin_Sapper
+    | `Goblin_Shaman
+    | `Grumbling_Kobold
+    | `Illithid
+    | `Iron_Slime
+    | `Kobold
+    | `Kobold_Mage
+    | `Kobold_Sapper
+    | `Kobold_Shaman
+    | `Kobold_Warrior
+    | `Mind_Flayer
+    | `Mutated_Abomination
+    | `Ore_Slime
+    | `Player
+    | `Rat
+    | `Rock_Golem
+    | `Shadow_Creeper
+    | `Spider
+    | `Undead_Miner ]
+  [@@deriving yojson, show, eq, compare, hash, sexp]
+
+  let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+  let set id species = Hashtbl.set table ~key:id ~data:species
   let get id = Hashtbl.find table id
 end

@@ -1,30 +1,26 @@
-open Types
-
 type t = Entity_manager.t
 
-val spawn_player : pos:Loc.t -> direction:Direction.t -> t -> t
+val spawn_player : pos:Types.Loc.t -> t -> Entity_manager.t
 
 val spawn_creature :
-  pos:Loc.t ->
-  direction:Direction.t ->
-  species:string ->
+  pos:Types.Loc.t ->
+  species:Components.Species.t ->
   health:int ->
-  glyph:string ->
+  glyph:char ->
   name:string ->
   description:string option ->
-  faction:faction ->
+  faction:Components.Faction.t ->
   t ->
-  t
+  Entity_manager.t
 
 val spawn_item :
-  pos:Loc.t ->
-  direction:Direction.t ->
-  item_type:Item.item_type ->
+  pos:Types.Loc.t ->
+  item_type:Components.Item.Item_data.item_type ->
   quantity:int ->
   name:string ->
-  glyph:string ->
+  glyph:char ->
   ?description:string option ->
   t ->
-  t
+  Entity_manager.t
 
-val spawn_corpse : pos:Loc.t -> t -> t
+val spawn_corpse : pos:Types.Loc.t -> t -> Entity_manager.t

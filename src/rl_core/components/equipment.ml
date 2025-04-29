@@ -20,7 +20,9 @@ module Equipment_data = struct
     ]
 end
 
-let table : (int, Equipment_data.t) Hashtbl.t = Hashtbl.Poly.create ()
+type t = Equipment_data.t
+
+let table : (int, t) Hashtbl.t = Hashtbl.Poly.create ()
 let get id = Hashtbl.find table id
 
 let get_exn id =
@@ -28,8 +30,8 @@ let get_exn id =
     ~message:(Printf.sprintf "No equipment for entity id %d" id)
 
 let set id equipment = Hashtbl.set table ~key:id ~data:equipment
-let default id = set id Equipment_data.empty
 let remove id = Hashtbl.remove table id
+let empty = Equipment_data.empty
 
 let slot_of_item_slot_type (s : Item_data.slot_type) :
     Equipment_data.slot option =

@@ -11,12 +11,16 @@ let remove id = Hashtbl.remove table id
 let is_full (inv : t) : bool = List.length inv.items >= inv.max_slots
 let can_add_item (inv : t) : bool = not (is_full inv)
 
-let add_item (inv : t) (item : Item_data.t) : (t, string) Result.t =
+let add_item (inv : t) (item_id : entity_id) : (t, string) Result.t =
   if is_full inv then Error "Inventory is full!"
-  else Ok { inv with items = item :: inv.items }
+  else
+    let item = Item.get item_id in
+    match item with
+    | Some item -> Ok { inv with items = item :: inv.items }
+    | None -> Error "Item not found!"
 
-let remove_item (inv : t) (item : Item_data.t) : (t, string) Result.t =
-  match List.findi inv.items ~f:(fun _ i -> i.id = item.id) with
+let remove_item (inv : t) (item_id : entity_id) : (t, string) Result.t =
+  match List.findi inv.items ~f:(fun _ i -> i.id = item_id) with
   | None -> Error "Item not found in inventory!"
   | Some (idx, _) ->
       let new_items = List.filteri inv.items ~f:(fun i _ -> i <> idx) in

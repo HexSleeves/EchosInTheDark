@@ -1,8 +1,10 @@
 open Base
 open Raylib
-open Components
+
+(* open Components *)
 open Dungeon
 open Constants
+open Types
 
 (* Map grid (tile) position to screen position using FontConfig *)
 let grid_to_screen (loc : Types.Loc.t) =
@@ -25,12 +27,11 @@ module PosSet = struct
   include Comparator.Make (T)
 end
 
-let occupied_positions (entities : Types.Entity.t list) : Set.M(PosSet).t =
+let occupied_positions (entities : entity_id list) : Set.M(PosSet).t =
   List.fold entities
     ~init:(Set.empty (module PosSet))
     ~f:(fun acc entity ->
-      let base = Types.Entity.get_base entity in
-      let pos = Position.get_exn base.id in
+      let pos = Components.Position.get_exn entity in
       Set.add acc (pos.x, pos.y))
 
 (* Get glyph and color for a tile *)
@@ -39,29 +40,41 @@ let[@warning "-11"] tile_glyph_and_color (tile : Tile.t) : string * Color.t =
   (String.make 1 (Tile.tile_to_glyph tile), color)
 
 (* Get glyph for an entity *)
-let entity_glyph_and_color (entity : Types.Entity.t) : string * Color.t =
-  let base = Types.Entity.get_base entity in
-  let color =
-    match entity with
-    | Types.Entity.Player _ -> Color.white
-    | Types.Entity.Creature _ -> Color.red
-    | Types.Entity.Item _ -> Color.yellow
-    | Types.Entity.Corpse _ -> Color.gray
+let entity_glyph_and_color (entity : entity_id) : string * Color.t =
+  let glyph, color =
+    ( (match Components.Kind.get entity with
+      | Some Player -> '@'
+      | Some Creature -> 'C'
+      | Some Item -> 'I'
+      | Some Corpse -> 'X'
+      | None -> failwith "Entity has no kind")
+      |> String.make 1,
+      match Components.Kind.get entity with
+      | Some Player -> Color.white
+      | Some Creature -> Color.red
+      | Some Item -> Color.yellow
+      | Some Corpse -> Color.gray
+      | None -> failwith "Entity has no kind" )
   in
-  (base.glyph, color)
 
-let entity_to_sprite_coords (entity : Types.Entity.t) =
-  match entity with
-  | Types.Entity.Player _ -> (0, 3) (* Example: player tile *)
-  | Types.Entity.Creature (_, data) -> (
-      match String.lowercase data.species with
-      | "rat" -> (5, 3)
-      | "goblin" -> (2, 0)
-      | "kobold" -> (3, 0)
-      | "giant spider" -> (4, 0)
-      | _ -> (20, 5))
-  | Types.Entity.Item _ -> (5, 0)
-  | Types.Entity.Corpse _ -> (6, 0)
+  (glyph, color)
+
+let entity_to_sprite_coords (entity_id : entity_id) =
+  match Components.Kind.get entity_id with
+  | Some Item -> (5, 0)
+  | Some Corpse -> (6, 0)
+  | Some Player -> (0, 3) (* Example: player tile *)
+  | Some Creature -> (
+      match Components.Species.get entity_id with
+      | Some species -> (
+          match species with
+          | `Rat -> (5, 3)
+          | `Goblin -> (2, 0)
+          | `Kobold -> (3, 0)
+          | `Spider -> (4, 0)
+          | _ -> Constants.unknown_tile_sprite_coords)
+      | None -> Constants.unknown_tile_sprite_coords)
+  | None -> failwith "Entity has no kind"
 
 let draw_font_text ~font ~font_size ~color ~text ~pos_x ~pos_y =
   Raylib.draw_text_ex font text

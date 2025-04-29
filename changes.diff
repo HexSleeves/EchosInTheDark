@@ -1,0 +1,2367 @@
+diff --git a/src/rl_core/ai.ml b/src/rl_core/ai.ml
+index d554f9d..d2df95a 100644
+--- a/src/rl_core/ai.ml
++++ b/src/rl_core/ai.ml
+@@ -2,20 +2,18 @@ open Base
+ open Types
+ 
+ module type S = sig
+-  val decide : Types.Entity.t -> State.t -> Types.Action.t
++  val decide : entity_id -> State.t -> Action.t
+ end
+ 
+ module Wander : sig
+-  val decide : Types.Entity.t -> State.t -> Types.Action.t
++  val decide : entity_id -> State.t -> Action.t
+ end = struct
+-  let decide _entity _state =
+-    let dirs =
+-      [ Direction.North; Direction.South; Direction.East; Direction.West ]
+-    in
+-
++  let decide _entity_id _state =
+     let dir =
+       match
+-        List.random_element ~random_state:(Random.State.make_self_init ()) dirs
++        List.random_element
++          ~random_state:(Random.State.make_self_init ())
++          Direction.all
+       with
+       | Some d -> d
+       | None -> Direction.North
+diff --git a/src/rl_core/ai.mli b/src/rl_core/ai.mli
+deleted file mode 100644
+index 4767fba..0000000
+--- a/src/rl_core/ai.mli
++++ /dev/null
+@@ -1,8 +0,0 @@
+-(** AI interface for creatures. *)
+-module type S = sig
+-  val decide : Types.Entity.t -> State.t -> Types.Action.t
+-  (** [decide entity state] returns the next action for [entity] given the
+-      current [state]. *)
+-end
+-
+-module Wander : S
+diff --git a/src/rl_core/backend.ml b/src/rl_core/backend.ml
+index 4e90df9..c892398 100644
+--- a/src/rl_core/backend.ml
++++ b/src/rl_core/backend.ml
+@@ -1,7 +1,7 @@
+ open Base
+ open Actors
++open Types
+ module Tilemap = Dungeon.Tilemap
+-module Entity = Types.Entity
+ 
+ type t = State.t
+ 
+@@ -18,37 +18,31 @@ let get_mode (state : t) = State.get_mode state
+ let set_mode mode (state : t) : t = State.set_mode mode state
+ 
+ (* Entity *)
+-let get_player_id (state : t) : Types.Entity.id = State.get_player_id state
+-
+-let get_player_entity (state : t) : Types.Entity.t option =
+-  State.get_player_entity state
+-
+-let get_entities (state : t) : Types.Entity.t list = State.get_entities state
+-
+-let move_entity (id : Types.Entity.id) (loc : Types.Loc.t) (state : t) : t =
+-  State.move_entity id loc state
++let get_player_id (state : t) : entity_id = State.get_player_id state
++let get_entities (state : t) : entity_id list = State.get_entities state
+ 
+ let queue_actor_action (state : t) (actor_id : Actor.actor_id)
+-    (action : Types.Action.t) : t =
++    (action : Action.t) : t =
+   State.queue_actor_action state actor_id action
+ 
+ (* Map *)
+ let get_current_map (state : t) : Tilemap.t option = State.get_current_map state
++let get_equipment (id : entity_id) = State.get_equipment id
++
++let set_equipment (id : entity_id) (eq : Components.Equipment.t) =
++  State.set_equipment id eq
++
++let move_entity (id : entity_id) (loc : Loc.t) (state : t) : t =
++  State.move_entity id loc state
++
+ let process_turns (state : t) : t = Systems.Turn_system.process_turns state
+ 
+ let run_ai_step (state : t) : t =
+-  let open Types in
+-  let creatures = State.get_creatures state in
+-  List.fold creatures ~init:state ~f:(fun st (base, data) ->
+-      let id = base.id in
+-      match State.get_actor st id with
++  List.fold (State.get_creatures state) ~init:state
++    ~f:(fun state' creature_id ->
++      match State.get_actor state' creature_id with
+       | Some actor when Option.is_none (Actor.peek_next_action actor) ->
+-          let action = Ai.Wander.decide (Entity.Creature (base, data)) st in
+-          queue_actor_action st id action
+-      | _ -> st)
++          Ai.Wander.decide creature_id state'
++          |> queue_actor_action state' creature_id
++      | _ -> state')
+   |> fun state -> State.set_normal_mode state
+-
+-let get_equipment (id : Types.Entity.id) = State.get_equipment id
+-
+-let set_equipment (id : Types.Entity.id) (eq : Types.Equipment.t) =
+-  State.set_equipment id eq
+diff --git a/src/rl_core/components/components.ml b/src/rl_core/components/components.ml
+index c39b790..eadc874 100644
+--- a/src/rl_core/components/components.ml
++++ b/src/rl_core/components/components.ml
+@@ -37,6 +37,7 @@ module Blocking = struct
+ 
+   let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+   let set id data = Hashtbl.set table ~key:id ~data
++  let get id = Hashtbl.find table id
+ end
+ 
+ module Position = struct
+@@ -51,6 +52,7 @@ module Position = struct
+ 
+   let set id pos = Hashtbl.set table ~key:id ~data:pos
+   let remove id = Hashtbl.remove table id
++  let show t = Types.Loc.show t
+ end
+ 
+ module Kind = struct
+@@ -60,3 +62,44 @@ module Kind = struct
+   let set id data = Hashtbl.set table ~key:id ~data
+   let get id = Hashtbl.find table id
+ end
++[@@deriving show]
++
++module Species = struct
++  type t =
++    [ `Bat
++    | `Bloated_Bat
++    | `Cave_Beetle
++    | `Copper_Slime
++    | `Crystalline_Horror
++    | `Deep_Worm
++    | `Elemental_Guardian
++    | `FriendlyBug
++    | `Giant_Cave_Rat
++    | `Giant_Spider
++    | `Glowbug
++    | `Goblin
++    | `Goblin_Sapper
++    | `Goblin_Shaman
++    | `Grumbling_Kobold
++    | `Illithid
++    | `Iron_Slime
++    | `Kobold
++    | `Kobold_Mage
++    | `Kobold_Sapper
++    | `Kobold_Shaman
++    | `Kobold_Warrior
++    | `Mind_Flayer
++    | `Mutated_Abomination
++    | `Ore_Slime
++    | `Player
++    | `Rat
++    | `Rock_Golem
++    | `Shadow_Creeper
++    | `Spider
++    | `Undead_Miner ]
++  [@@deriving yojson, show, eq, compare, hash, sexp]
++
++  let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
++  let set id species = Hashtbl.set table ~key:id ~data:species
++  let get id = Hashtbl.find table id
++end
+diff --git a/src/rl_core/components/equipment.ml b/src/rl_core/components/equipment.ml
+index 93c5589..acac32d 100644
+--- a/src/rl_core/components/equipment.ml
++++ b/src/rl_core/components/equipment.ml
+@@ -20,7 +20,9 @@ module Equipment_data = struct
+     ]
+ end
+ 
+-let table : (int, Equipment_data.t) Hashtbl.t = Hashtbl.Poly.create ()
++type t = Equipment_data.t
++
++let table : (int, t) Hashtbl.t = Hashtbl.Poly.create ()
+ let get id = Hashtbl.find table id
+ 
+ let get_exn id =
+@@ -28,8 +30,8 @@ let get_exn id =
+     ~message:(Printf.sprintf "No equipment for entity id %d" id)
+ 
+ let set id equipment = Hashtbl.set table ~key:id ~data:equipment
+-let default id = set id Equipment_data.empty
+ let remove id = Hashtbl.remove table id
++let empty = Equipment_data.empty
+ 
+ let slot_of_item_slot_type (s : Item_data.slot_type) :
+     Equipment_data.slot option =
+diff --git a/src/rl_core/components/faction.ml b/src/rl_core/components/faction.ml
+index 5ef38ad..517d656 100644
+--- a/src/rl_core/components/faction.ml
++++ b/src/rl_core/components/faction.ml
+@@ -15,56 +15,10 @@ module Faction_data = struct
+     | `Other of string ]
+   [@@deriving yojson, show, eq]
+   (** Faction type for entities. Expand as needed. *)
+-
+-  (** Map a species string to a default faction. Expand as needed. *)
+-  let faction_of_species (species : string) : t =
+-    match String.lowercase species with
+-    | "rat" | "giant cave rat" | "bat" | "bloated bat" | "ore slime"
+-    | "copper slime" | "iron slime" ->
+-        `Vermin
+-    | "kobold" | "grumbling kobold" -> `Kobold
+-    | "goblin" | "goblin sapper" -> `Goblin
+-    | "rock golem" -> `Elemental
+-    | "giant spider" -> `Vermin
+-    | "shadow creeper" -> `Abomination
+-    | "undead miner" -> `Undead
+-    | "deep worm" -> `Abomination
+-    | "crystalline horror" -> `Elemental
+-    | "mind flayer" | "illithid" -> `Abomination
+-    | "elemental guardian" -> `Elemental
+-    | "mutated abomination" -> `Abomination
+-    | "glowbug" | "cave beetle" -> `FriendlyBug
+-    | _ -> `Neutral
+-
+-  (** Determine if two factions are hostile to each other. *)
+-  let are_factions_hostile (f1 : t) (f2 : t) : bool =
+-    match (f1, f2) with
+-    | `Player, `Player -> false
+-    | `Player, (`FriendlyBug | `Neutral) -> false
+-    | (`FriendlyBug | `Neutral), `Player -> false
+-    | `FriendlyBug, `FriendlyBug -> false
+-    | `Vermin, `Vermin -> false
+-    | `Kobold, `Kobold -> false
+-    | `Goblin, `Goblin -> false
+-    | `Elemental, `Elemental -> false
+-    | `Undead, `Undead -> false
+-    | `Abomination, `Abomination -> false
+-    | `Player, _ | _, `Player -> true
+-    | `Vermin, _ | _, `Vermin -> true
+-    | `Kobold, _ | _, `Kobold -> true
+-    | `Goblin, _ | _, `Goblin -> true
+-    | `Elemental, _ | _, `Elemental -> true
+-    | `Undead, _ | _, `Undead -> true
+-    | `Abomination, _ | _, `Abomination -> true
+-    | `FriendlyBug, _ | _, `FriendlyBug -> false
+-    | `Neutral, _ | _, `Neutral -> false
+-    | `Other a, `Other b -> String.equal a b
+ end
+ 
+-module Faction = struct
+-  type t = Faction_data.t
++type t = Faction_data.t
+ 
+-  let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+-  let set id data = Hashtbl.set table ~key:id ~data
+-  let get id = Hashtbl.find table id
+-end
++let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
++let set id data = Hashtbl.set table ~key:id ~data
++let get id = Hashtbl.find table id
+diff --git a/src/rl_core/components/inventory.ml b/src/rl_core/components/inventory.ml
+index cd35650..efea070 100644
+--- a/src/rl_core/components/inventory.ml
++++ b/src/rl_core/components/inventory.ml
+@@ -11,12 +11,16 @@ let remove id = Hashtbl.remove table id
+ let is_full (inv : t) : bool = List.length inv.items >= inv.max_slots
+ let can_add_item (inv : t) : bool = not (is_full inv)
+ 
+-let add_item (inv : t) (item : Item_data.t) : (t, string) Result.t =
++let add_item (inv : t) (item_id : entity_id) : (t, string) Result.t =
+   if is_full inv then Error "Inventory is full!"
+-  else Ok { inv with items = item :: inv.items }
++  else
++    let item = Item.get item_id in
++    match item with
++    | Some item -> Ok { inv with items = item :: inv.items }
++    | None -> Error "Item not found!"
+ 
+-let remove_item (inv : t) (item : Item_data.t) : (t, string) Result.t =
+-  match List.findi inv.items ~f:(fun _ i -> i.id = item.id) with
++let remove_item (inv : t) (item_id : entity_id) : (t, string) Result.t =
++  match List.findi inv.items ~f:(fun _ i -> i.id = item_id) with
+   | None -> Error "Item not found in inventory!"
+   | Some (idx, _) ->
+       let new_items = List.filteri inv.items ~f:(fun i _ -> i <> idx) in
+diff --git a/src/rl_core/components/item.ml b/src/rl_core/components/item.ml
+index 3e09d5f..5e68e5b 100644
+--- a/src/rl_core/components/item.ml
++++ b/src/rl_core/components/item.ml
+@@ -63,3 +63,12 @@ let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+ let set id data = Hashtbl.set table ~key:id ~data
+ let get id = Hashtbl.find table id
+ let remove id = Hashtbl.remove table id
++
++let create_item ~item_type ~quantity ~name ?(description = None)
++    ?(slot_type = Item_data.NoneSlot) ?(stat_modifiers = StatModifiers.empty)
++    ?(is_corrupted = false) ?(corruption_effects = None) () =
++  let item =
++    Item_data.create ~item_type ~quantity ~name ?description ~slot_type
++      ~stat_modifiers ~is_corrupted ~corruption_effects ()
++  in
++  set item.id item
+diff --git a/src/rl_core/components/stats.ml b/src/rl_core/components/stats.ml
+index 5955867..b4a0896 100644
+--- a/src/rl_core/components/stats.ml
++++ b/src/rl_core/components/stats.ml
+@@ -5,13 +5,22 @@ module Stats_data = struct
+   type t = { max_hp : int; hp : int; attack : int; defense : int; speed : int }
+   [@@deriving yojson, show]
+ 
+-  let default = { max_hp = 30; hp = 30; attack = 10; defense = 5; speed = 100 }
++  let default () =
++    { max_hp = 30; hp = 30; attack = 10; defense = 5; speed = 100 }
+ 
+   let create ~max_hp ~hp ~attack ~defense ~speed =
+     { max_hp; hp; attack; defense; speed }
++
++  let get_hp t = t.hp
++  let get_max_hp t = t.max_hp
++  let get_attack t = t.attack
++  let get_defense t = t.defense
++  let get_speed t = t.speed
+ end
+ 
+-let table : (int, Stats_data.t) Hashtbl.t = Hashtbl.Poly.create ()
++type t = Stats_data.t
++
++let table : (int, t) Hashtbl.t = Hashtbl.Poly.create ()
+ let get id = Hashtbl.find table id
+ 
+ let get_exn id =
+@@ -20,13 +29,12 @@ let get_exn id =
+ 
+ let set id stats = Hashtbl.set table ~key:id ~data:stats
+ let remove id = Hashtbl.remove table id
+-let default id = set id Stats_data.default
++let create_default () = Stats_data.default ()
+ 
+ let create ~max_hp ~hp ~attack ~defense ~speed =
+   Stats_data.create ~max_hp ~hp ~attack ~defense ~speed
+ 
+-let apply_equipment_modifiers (base : Stats_data.t) (items : Item.t list) :
+-    Stats_data.t =
++let apply_equipment_modifiers (base : t) (items : Item.t list) : t =
+   let total_mods =
+     List.fold items ~init:StatModifiers.empty ~f:(fun acc item ->
+         let m = item.stat_modifiers in
+diff --git a/src/rl_core/dune b/src/rl_core/dune
+index df272c0..874798d 100644
+--- a/src/rl_core/dune
++++ b/src/rl_core/dune
+@@ -21,17 +21,7 @@
+   systems
+   types)
+  (preprocess
+-  (staged_pps
+-   ppx_compare
+-   ppx_deriving.enum
+-   ppx_deriving.eq
+-   ppx_deriving.ord
+-   ppx_deriving.show
+-   ppx_hash
+-   ppx_import
+-   ppx_inline_test
+-   ppx_sexp_conv
+-   ppx_yojson_conv)))
++  (pps ppx_jane ppx_enumerate)))
+ 
+ (env
+  (dev
+@@ -43,6 +33,11 @@
+  (modules core_log)
+  (libraries base core_kernel containers logs))
+ 
++(library
++ (name core_utils)
++ (modules util)
++ (libraries base core_kernel containers logs types components))
++
+ (library
+  (name turn_queue)
+  (modules turn_queue)
+@@ -67,14 +62,10 @@
+  (modules types)
+  (libraries base core_kernel containers logs)
+  (preprocess
+-  (staged_pps
+-   ppx_compare
+-   ppx_deriving.enum
+-   ppx_deriving.eq
+-   ppx_deriving.ord
++  (pps
++   ppx_jane
++   ppx_enumerate
++   ppx_yojson_conv
+    ppx_deriving.show
+-   ppx_hash
+-   ppx_import
+-   ppx_inline_test
+-   ppx_sexp_conv
+-   ppx_yojson_conv)))
++   ppx_deriving.eq
++   ppx_deriving.ord)))
+diff --git a/src/rl_core/entities/entity_manager.ml b/src/rl_core/entities/entity_manager.ml
+index 405d090..8269429 100644
+--- a/src/rl_core/entities/entity_manager.ml
++++ b/src/rl_core/entities/entity_manager.ml
+@@ -5,14 +5,30 @@ type t = { next_id : int; alive : Set.M(Int).t }
+ 
+ let create () : t = { next_id = 0; alive = Set.empty (module Int) }
+ 
++let add (id : entity_id) (mgr : t) : t =
++  { mgr with alive = Set.add mgr.alive id }
++
+ let spawn (mgr : t) : entity_id * t =
+   let id = mgr.next_id in
+   (id, { next_id = id + 1; alive = Set.add mgr.alive id })
+ 
+-let remove (mgr : t) (id : entity_id) : t =
++let remove (id : entity_id) (mgr : t) : t =
+   { mgr with alive = Set.remove mgr.alive id }
+ 
+-let is_alive (mgr : t) (id : entity_id) : bool = Set.mem mgr.alive id
++let is_alive (id : entity_id) (mgr : t) : bool = Set.mem mgr.alive id
+ let to_list (mgr : t) : entity_id list = Set.to_list mgr.alive
+ let length (mgr : t) : int = Set.length mgr.alive
+-let next_id (mgr : t) : int = mgr.next_id
++
++let find_player_id (mgr : t) : entity_id option =
++  to_list mgr
++  |> List.find ~f:(fun id ->
++         match Components.Kind.get id with
++         | Some Components.Kind.Player -> true
++         | _ -> false)
++
++let get_player_id_exn (mgr : t) : entity_id =
++  to_list mgr
++  |> List.find_exn ~f:(fun id ->
++         match Components.Kind.get id with
++         | Some Components.Kind.Player -> true
++         | _ -> false)
+diff --git a/src/rl_core/entities/entity_manager.mli b/src/rl_core/entities/entity_manager.mli
+deleted file mode 100644
+index 373a8e2..0000000
+--- a/src/rl_core/entities/entity_manager.mli
++++ /dev/null
+@@ -1,11 +0,0 @@
+-open Types
+-
+-type t = { next_id : int; alive : Base.Set.M(Base.Int).t }
+-
+-val create : unit -> t
+-val spawn : t -> entity_id * t
+-val remove : t -> int -> t
+-val is_alive : t -> int -> bool
+-val to_list : t -> int list
+-val length : t -> int
+-(* val next_id : t -> int *)
+diff --git a/src/rl_core/entities/queries.ml b/src/rl_core/entities/queries.ml
+index 2738ed5..89bb860 100644
+--- a/src/rl_core/entities/queries.ml
++++ b/src/rl_core/entities/queries.ml
+@@ -15,8 +15,6 @@ let with_position_and_health () : (int * Loc.t * int) list =
+       | None -> acc)
+ 
+ (* Returns (id, pos) for all player entities with a position *)
+-let players_with_position (em : Entity_manager.t) : (int * Loc.t) list =
++let players_with_position () : (int * Loc.t) list =
+   Hashtbl.fold Position.table ~init:[] ~f:(fun ~key:id ~data:pos acc ->
+-      match Entity_manager.find id em with
+-      | Some (Entity.Player _) -> (id, pos) :: acc
+-      | _ -> acc)
++      match Kind.get id with Some Kind.Player -> (id, pos) :: acc | _ -> acc)
+diff --git a/src/rl_core/entities/spawner.ml b/src/rl_core/entities/spawner.ml
+index 6c860c3..ee27792 100644
+--- a/src/rl_core/entities/spawner.ml
++++ b/src/rl_core/entities/spawner.ml
+@@ -1,5 +1,4 @@
+-open Types
+-open Entity_manager
++open Components
+ 
+ type t = Entity_manager.t
+ 
+@@ -7,14 +6,12 @@ let create_base ~name ~glyph ~pos ~description ?(blocking = true) (em : t) =
+   let id, em = Entity_manager.spawn em in
+ 
+   (* Here we set all the components *)
+-  Components.Position.set id pos;
+-  Components.Name.set id { name };
+-  Components.Renderable.set id { glyph };
+-  Components.Blocking.set id blocking;
++  Position.set id pos;
++  Name.set id { name };
++  Renderable.set id { glyph };
++  Blocking.set id blocking;
+ 
+-  (match description with
+-  | Some desc -> Components.Description.set id desc
+-  | None -> ());
++  (match description with Some desc -> Description.set id desc | None -> ());
+ 
+   (id, em)
+ 
+@@ -24,36 +21,37 @@ let spawn_player ~pos (em : t) =
+       ~description:(Some "This is you!") em
+   in
+ 
+-  Components.Stats.default id;
+-  Components.Inventory.set id { items = []; max_slots = 20 };
+-  Components.Equipment.default id;
+-  Components.Kind.set id Components.Kind.Player;
+-  (em, id)
++  Stats.set id (Stats.create_default ());
++  Inventory.set id { items = []; max_slots = 20 };
++  Equipment.set id Equipment.empty;
++  Kind.set id Kind.Player;
++  em
+ 
+ let spawn_creature ~pos ~species ~health ~glyph ~name ~description ~faction
+     (em : t) =
+   let id, em = create_base ~name ~glyph ~pos ~description em in
+ 
+-  Components.Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5
+-    ~speed:100
+-  |> Components.Stats.set id;
++  Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5 ~speed:100
++  |> Stats.set id |> ignore;
+ 
+   (* Set species, faction, etc. as components if you have them *)
+-  Components.Kind.set id Components.Kind.Creature;
+-  (em, id)
++  Kind.set id Kind.Creature;
++  Species.set id species;
++  Faction.set id faction;
++  em
+ 
+ let spawn_item ~pos ~item_type ~quantity ~name ~glyph ?(description = None)
+     (em : t) =
+   let id, em = create_base ~name ~glyph ~pos ~description ~blocking:false em in
+-  let item = Item.create ~item_type ~quantity ~name ~description () in
+-  Components.Item_data.set id item;
+-  Components.Kind.set id Components.Kind.Item;
+-  (em, id)
++  let item = Item.Item_data.create ~item_type ~quantity ~name ~description () in
++  Item.set id item;
++  Kind.set id Kind.Item;
++  em
+ 
+ let spawn_corpse ~pos (em : t) =
+   let id, em =
+     create_base ~name:"Corpse" ~glyph:'%' ~pos
+       ~description:(Some "A dead creature") ~blocking:false em
+   in
+-  Components.Kind.set id Components.Kind.Corpse;
+-  (em, id)
++  Kind.set id Kind.Corpse;
++  em
+diff --git a/src/rl_core/entities/spawner.mli b/src/rl_core/entities/spawner.mli
+index 5aff9f2..148681c 100644
+--- a/src/rl_core/entities/spawner.mli
++++ b/src/rl_core/entities/spawner.mli
+@@ -1,30 +1,26 @@
+-open Types
+-
+ type t = Entity_manager.t
+ 
+-val spawn_player : pos:Loc.t -> direction:Direction.t -> t -> t
++val spawn_player : pos:Types.Loc.t -> t -> Entity_manager.t
+ 
+ val spawn_creature :
+-  pos:Loc.t ->
+-  direction:Direction.t ->
+-  species:string ->
++  pos:Types.Loc.t ->
++  species:Components.Species.t ->
+   health:int ->
+-  glyph:string ->
++  glyph:char ->
+   name:string ->
+   description:string option ->
+-  faction:faction ->
++  faction:Components.Faction.t ->
+   t ->
+-  t
++  Entity_manager.t
+ 
+ val spawn_item :
+-  pos:Loc.t ->
+-  direction:Direction.t ->
+-  item_type:Item.item_type ->
++  pos:Types.Loc.t ->
++  item_type:Components.Item.Item_data.item_type ->
+   quantity:int ->
+   name:string ->
+-  glyph:string ->
++  glyph:char ->
+   ?description:string option ->
+   t ->
+-  t
++  Entity_manager.t
+ 
+-val spawn_corpse : pos:Loc.t -> t -> t
++val spawn_corpse : pos:Types.Loc.t -> t -> Entity_manager.t
+diff --git a/src/rl_core/events/event_bus.ml b/src/rl_core/events/event_bus.ml
+index bd5143d..6b87b17 100644
+--- a/src/rl_core/events/event_bus.ml
++++ b/src/rl_core/events/event_bus.ml
+@@ -7,8 +7,8 @@ type event =
+   | TrapTriggered of { entity_id : int; trap_id : int }
+   | EntityAttacked of { attacker_id : int; defender_id : int }
+   | EntityDied of { entity_id : int }
+-  | ItemPickedUp of { player_id : int; entity : Entity.t }
+-  | ItemDropped of { player_id : int; entity : Entity.t }
++  | ItemPickedUp of { player_id : int; item_id : entity_id }
++  | ItemDropped of { player_id : int; item_id : entity_id }
+ (* Add more events as needed *)
+ 
+ type t = event
+diff --git a/src/rl_core/map_manager.ml b/src/rl_core/map_manager.ml
+index 7f9aca6..e2f3884 100644
+--- a/src/rl_core/map_manager.ml
++++ b/src/rl_core/map_manager.ml
+@@ -78,8 +78,7 @@ let go_to_next_level t =
+ let save_level_state t ~entities ~actor_manager ~turn_queue =
+   let current_level = get_current_level t in
+ 
+-  Hashtbl.set t.entities_by_level ~key:current_level
+-    ~data:(Entity_manager.copy entities);
++  Hashtbl.set t.entities_by_level ~key:current_level ~data:entities;
+   Hashtbl.set t.actor_manager_by_level ~key:current_level
+     ~data:(Actor_manager.copy actor_manager);
+   Hashtbl.set t.turn_queue_by_level ~key:current_level
+diff --git a/src/rl_core/mapgen/ca.ml b/src/rl_core/mapgen/ca.ml
+index e6ac362..e300c6b 100644
+--- a/src/rl_core/mapgen/ca.ml
++++ b/src/rl_core/mapgen/ca.ml
+@@ -83,5 +83,4 @@ let place_monsters ~grid ~width ~height ~rng entity_manager =
+   Core_log.info (fun m -> m "Placing %d monsters..." num_monsters);
+   List.fold monster_positions ~init:entity_manager ~f:(fun em pos ->
+       let spec = Monster_placement.get_template "Rat" in
+-      Monster_placement.place_monster ~entity_manager:em ~pos
+-        ~direction:Types.Direction.North spec)
++      Monster_placement.place_monster ~entity_manager:em ~pos spec)
+diff --git a/src/rl_core/mapgen/dune b/src/rl_core/mapgen/dune
+index c095791..dbdf8b8 100644
+--- a/src/rl_core/mapgen/dune
++++ b/src/rl_core/mapgen/dune
+@@ -2,5 +2,14 @@
+ 
+ (library
+  (name mapgen)
+- (modules config generator prefab ca rooms monster_placement util)
+- (libraries base core_kernel containers logs types entities dungeon))
++ ; (modules config generator prefab ca rooms monster_placement util)
++ (libraries
++  base
++  core_kernel
++  containers
++  logs
++  types
++  entities
++  dungeon
++  core_utils
++  components))
+diff --git a/src/rl_core/mapgen/generator.ml b/src/rl_core/mapgen/generator.ml
+index 3aa7094..672cce0 100644
+--- a/src/rl_core/mapgen/generator.ml
++++ b/src/rl_core/mapgen/generator.ml
+@@ -175,9 +175,7 @@ let generate ~(config : Config.t) ~(level : int) =
+ 
+   let entity_manager =
+     match level with
+-    | 1 ->
+-        Spawner.spawn_player entity_manager ~pos:player_start
+-          ~direction:Types.Direction.North
++    | 1 -> Spawner.spawn_player entity_manager ~pos:player_start
+     | _ -> entity_manager
+   in
+ 
+diff --git a/src/rl_core/mapgen/monster_placement.ml b/src/rl_core/mapgen/monster_placement.ml
+index 2ce5106..fd9b083 100644
+--- a/src/rl_core/mapgen/monster_placement.ml
++++ b/src/rl_core/mapgen/monster_placement.ml
+@@ -4,27 +4,26 @@
+ *)
+ 
+ open Base
+-open Types
+-open Util
+ open Entities
++open Components
+ 
+ (* Represents a monster to be placed *)
+ type monster_spec = {
+-  species : string;
++  species : Species.t;
+   health : int;
+-  glyph : string;
++  glyph : char;
+   name : string;
+   description : string;
+ }
+ 
+ (* Place a band (group) of monsters in a list of locations *)
+-let place_monster_band ~entity_manager ~positions ~direction
+-    (specs : monster_spec list) : Entity_manager.t =
++let place_monster_band ~entity_manager ~positions (specs : monster_spec list) :
++    Entity_manager.t =
+   List.zip_exn positions specs
+   |> List.fold_left ~init:entity_manager ~f:(fun mgr (pos, spec) ->
+-         let faction = faction_of_species spec.species in
+-         Spawner.spawn_creature ~pos ~direction ~species:spec.species
+-           ~health:spec.health ~glyph:spec.glyph ~name:spec.name
++         let faction = Core_utils.Util.faction_of_species spec.species in
++         Spawner.spawn_creature ~pos ~species:spec.species ~health:spec.health
++           ~glyph:spec.glyph ~name:spec.name
+            ~description:(Some spec.description) ~faction mgr)
+ 
+ (* Monster templates by species *)
+@@ -32,76 +31,76 @@ let monster_templates =
+   [
+     ( "Rat",
+       {
+-        species = "Rat";
++        species = `Rat;
+         health = 10;
+-        glyph = "r";
++        glyph = 'r';
+         name = "Rat";
+         description = "A small, brown rodent.";
+       } );
+     ( "Kobold",
+       {
+-        species = "Kobold";
++        species = `Kobold;
+         health = 16;
+-        glyph = "k";
++        glyph = 'k';
+         name = "Kobold";
+         description = "A sneaky kobold.";
+       } );
+     ( "Goblin",
+       {
+-        species = "Goblin";
++        species = `Goblin;
+         health = 20;
+-        glyph = "g";
++        glyph = 'g';
+         name = "Goblin";
+         description = "A mean goblin.";
+       } );
+     ( "Goblin Shaman",
+       {
+-        species = "Goblin Shaman";
++        species = `Goblin_Shaman;
+         health = 14;
+-        glyph = "G";
++        glyph = 'G';
+         name = "Goblin Shaman";
+         description = "A goblin shaman with magic.";
+       } );
+     ( "Ore Slime",
+       {
+-        species = "Ore Slime";
++        species = `Ore_Slime;
+         health = 18;
+-        glyph = "s";
++        glyph = 's';
+         name = "Ore Slime";
+         description = "A metallic slime.";
+       } );
+-    ( "Undead Miner",
++    (* ( "Undead Miner",
+       {
+-        species = "Undead Miner";
++        species = `Undead_Miner;
+         health = 22;
+-        glyph = "u";
++        glyph = 'u';
+         name = "Undead Miner";
+         description = "A miner, now undead.";
+       } );
+     ( "Rock Golem",
+       {
+-        species = "Rock Golem";
++        species = `Rock_Golem;
+         health = 40;
+-        glyph = "R";
++        glyph = 'R';
+         name = "Rock Golem";
+         description = "A hulking golem of stone.";
+-      } );
+-    ( "Giant Spider",
++      } ); *)
++    (* ( "Giant Spider",
+       {
+-        species = "Giant Spider";
++        species = `Giant_Spider;
+         health = 15;
+-        glyph = "S";
++        glyph = 'S';
+         name = "Giant Spider";
+         description = "A huge, venomous spider.";
+-      } );
+-    ( "Shadow Creeper",
++      } ); *)
++    (* ( "Shadow Creeper",
+       {
+-        species = "Shadow Creeper";
++        species = `Shadow_Creeper;
+         health = 18;
+-        glyph = "C";
++        glyph = 'C';
+         name = "Shadow Creeper";
+         description = "A fast, shadowy creature.";
+-      } );
++      } ); *)
+   ]
+ 
+ let get_template species =
+@@ -136,7 +135,7 @@ let bands_by_depth depth =
+ (* Select a random band composition for a room, based on depth *)
+ let random_band_for_room ~depth ~rng =
+   let bands = bands_by_depth depth in
+-  random_choice bands ~rng
++  Util.random_choice bands ~rng
+ 
+ (* Expand a band spec [(species, count); ...] to a list of monster_specs *)
+ let expand_band band =
+@@ -150,20 +149,19 @@ let place_band_in_room ~entity_manager ~room_positions ~depth ~rng =
+   | Some band_spec ->
+       let band = expand_band band_spec in
+       let positions = List.take room_positions (List.length band) in
+-      place_monster_band ~entity_manager ~positions ~direction:Direction.North
+-        band
++      place_monster_band ~entity_manager ~positions band
+   | None ->
+       Core_log.err (fun m ->
+           m "No band spec could be selected for depth %d" depth);
+       entity_manager
+ 
+ (* Place a single monster at a given location *)
+-let place_monster ~entity_manager ~pos ~direction (spec : monster_spec) :
+-    Entity_manager.t =
+-  let faction = faction_of_species spec.species in
+-  Spawner.spawn_creature ~pos ~direction ~species:spec.species
+-    ~health:spec.health ~glyph:spec.glyph ~name:spec.name
+-    ~description:(Some spec.description) ~faction entity_manager
++let place_monster ~entity_manager ~pos (spec : monster_spec) : Entity_manager.t
++    =
++  let faction = Core_utils.Util.faction_of_species spec.species in
++  Spawner.spawn_creature ~pos ~species:spec.species ~health:spec.health
++    ~glyph:spec.glyph ~name:spec.name ~description:(Some spec.description)
++    ~faction entity_manager
+ 
+ (* Utility: Generate a list of monster specs for a band *)
+ let make_band ~species ~count ~health ~glyph ~name ~description =
+@@ -172,11 +170,10 @@ let make_band ~species ~count ~health ~glyph ~name ~description =
+ (* Example: Place a band of rats in a room *)
+ let place_rat_band_in_room ~entity_manager ~room_positions =
+   let band =
+-    make_band ~species:"Rat"
++    make_band ~species:`Rat
+       ~count:(List.length room_positions)
+-      ~health:10 ~glyph:"r" ~name:"Rat" ~description:"A small, brown rodent."
++      ~health:10 ~glyph:'r' ~name:"Rat" ~description:"A small, brown rodent."
+   in
+-  place_monster_band ~entity_manager ~positions:room_positions
+-    ~direction:Direction.North band
++  place_monster_band ~entity_manager ~positions:room_positions band
+ 
+ (* TODO: Add logic for depth-based species selection, mixed bands, and faction-aware placement. *)
+diff --git a/src/rl_core/state/state.ml b/src/rl_core/state/state.ml
+index 8110b59..9f5fe80 100644
+--- a/src/rl_core/state/state.ml
++++ b/src/rl_core/state/state.ml
+@@ -7,9 +7,6 @@ let add_entity_to_index = State_entities.add_entity_to_index
+ let get_entities_manager = State_entities.get_entities_manager
+ let set_entities_manager = State_entities.set_entities_manager
+ let get_player_id = State_entities.get_player_id
+-let get_player_entity = State_entities.get_player_entity
+-let get_entity = State_entities.get_entity
+-let get_base_entity = State_entities.get_base_entity
+ let get_entity_at_pos = State_entities.get_entity_at_pos
+ let get_blocking_entity_at_pos = State_entities.get_blocking_entity_at_pos
+ let get_entities = State_entities.get_entities
+@@ -43,36 +40,20 @@ let make ~debug ~w ~h ~seed ~current_level =
+   (* Extract player_id from the first level's entity manager *)
+   let entities = Map_manager.get_entities_by_level map_manager current_level in
+   let player_id =
+-    Entities.Entity_manager.to_list entities
+-    |> List.find_map ~f:(function
+-         | Types.Entity.Player (base, _) -> Some base.id
+-         | _ -> None)
++    Entities.Entity_manager.find_player_id entities
+     |> Option.value_exn
+          ~message:"No player entity found in first level entity manager"
+   in
+ 
+   let actor_manager, turn_queue =
+-    Entities.Entity_manager.to_list entities
+-    |> List.fold_left ~init:(actor_manager, turn_queue)
+-         ~f:(fun (am, tq) entity ->
+-           let base = Types.Entity.get_base entity in
+-           let actor =
+-             match entity with
+-             | Types.Entity.Player _ -> Actors.Actor_manager.create_player_actor
+-             | Types.Entity.Creature _ -> Actors.Actor_manager.create_rat_actor
+-             | _ -> Actors.Actor_manager.create_player_actor
+-           in
+-           let am = Actors.Actor_manager.add base.id actor am in
+-           let tq = Turn_queue.schedule_now tq base.id in
+-           (am, tq))
++    setup_entities_for_level ~entities ~actor_manager ~turn_queue
+   in
+ 
+   let position_index = Base.Hashtbl.create (module Types.Loc) in
+   Entities.Entity_manager.to_list entities
+-  |> List.iter ~f:(fun entity ->
+-         let id = Types.Entity.get_id entity in
+-         match Components.Position.get id with
+-         | Some pos -> Base.Hashtbl.set position_index ~key:pos ~data:id
++  |> List.iter ~f:(fun entity_id ->
++         match Components.Position.get entity_id with
++         | Some pos -> Base.Hashtbl.set position_index ~key:pos ~data:entity_id
+          | None -> ());
+ 
+   let state =
+@@ -83,8 +64,8 @@ let make ~debug ~w ~h ~seed ~current_level =
+       turn_queue;
+       map_manager;
+       player_id;
+-      mode = Types.CtrlMode.Normal;
+       position_index;
++      mode = Types.CtrlMode.Normal;
+     }
+   in
+   State_utils.rebuild_position_index state
+diff --git a/src/rl_core/state/state_entities.ml b/src/rl_core/state/state_entities.ml
+index e69eeef..2941960 100644
+--- a/src/rl_core/state/state_entities.ml
++++ b/src/rl_core/state/state_entities.ml
+@@ -1,5 +1,6 @@
+ open Base
+ open Entities
++open Types
+ 
+ let get_entities_manager (state : State_types.t) : Entity_manager.t =
+   state.entities
+@@ -8,87 +9,89 @@ let set_entities_manager (entities : Entity_manager.t) (state : State_types.t) :
+     State_types.t =
+   { state with entities }
+ 
+-let get_player_id (state : State_types.t) : Types.Entity.id = state.player_id
++let get_player_id (state : State_types.t) : entity_id = state.player_id
+ 
+-let get_player_entity (state : State_types.t) : Types.Entity.t option =
+-  Entity_manager.find state.player_id state.entities
++(* Equipment helpers *)
++let get_equipment (id : entity_id) : Components.Equipment.t option =
++  Components.Equipment.get id
++
++let set_equipment (id : entity_id) (eq : Components.Equipment.t) : unit =
++  Components.Equipment.set id eq
+ 
+-let get_entity (id : Types.Entity.id) (state : State_types.t) :
+-    Types.Entity.t option =
+-  Entity_manager.find id state.entities
++(* Entity helpers *)
+ 
+-let get_base_entity (id : Types.Entity.id) (state : State_types.t) :
+-    Types.Entity.base_entity option =
+-  Entity_manager.find id state.entities |> Option.map ~f:Types.Entity.get_base
++let move_entity (id : entity_id) (loc : Types.Loc.t) (state : State_types.t) =
++  let old_pos = Components.Position.get id in
++  Components.Position.set id loc |> fun _ ->
++  (match old_pos with
++  | Some pos -> Hashtbl.remove state.position_index pos
++  | None -> ());
++  Hashtbl.set state.position_index ~key:loc ~data:id;
++  state
+ 
+ let get_entity_at_pos (pos : Types.Loc.t) (state : State_types.t) :
+-    Types.Entity.t option =
+-  match Base.Hashtbl.find state.position_index pos with
+-  | Some id -> Entity_manager.find id state.entities
++    entity_id option =
++  match Hashtbl.find state.position_index pos with
++  | Some id -> Some id
+   | None -> None
+ 
+ let get_blocking_entity_at_pos (pos : Types.Loc.t) (state : State_types.t) :
+-    Types.Entity.t option =
+-  Entity_manager.find_by_pos pos state.entities
+-  |> Option.filter ~f:Types.Entity.get_blocking
++    entity_id option =
++  Entity_manager.to_list state.entities
++  |> List.find ~f:(fun id ->
++         match Components.Position.get id with
++         | Some pos' when Poly.(pos = pos') ->
++             Option.value ~default:false (Components.Blocking.get id)
++         | _ -> false)
+ 
+-let get_entities (state : State_types.t) : Types.Entity.t list =
++let get_entities (state : State_types.t) : entity_id list =
+   Entity_manager.to_list state.entities
+ 
+-let get_creatures (state : State_types.t) :
+-    (Types.Entity.base_entity * Types.Entity.creature_data) list =
++let get_creatures (state : State_types.t) : entity_id list =
+   Entity_manager.to_list state.entities
+-  |> List.filter_map ~f:(function
+-       | Types.Entity.Creature (base, data) -> Some (base, data)
+-       | _ -> None)
++  |> List.filter ~f:(fun id ->
++         match Components.Kind.get id with
++         | Some Components.Kind.Creature -> true
++         | _ -> false)
+ 
+ (* Helper: Add an entity's position to the index if it has one *)
+-let add_entity_to_index (entity : Types.Entity.t) (state : State_types.t) :
++let add_entity_to_index (entity_id : entity_id) (state : State_types.t) :
+     State_types.t =
+-  let id = Types.Entity.get_id entity in
+-  match Components.Position.get id with
++  match Components.Position.get entity_id with
+   | Some pos ->
+-      Base.Hashtbl.set state.position_index ~key:pos ~data:id;
++      Hashtbl.set state.position_index ~key:pos ~data:entity_id;
+       state
+   | None -> state
+ 
+ (* Helper: Remove an entity's position from the index if it has one *)
+-let remove_entity_from_index (id : Types.Entity.id) (state : State_types.t) :
++let remove_entity_from_index (entity_id : entity_id) (state : State_types.t) :
+     State_types.t =
+-  match Components.Position.get id with
++  match Components.Position.get entity_id with
+   | Some pos ->
+-      Base.Hashtbl.remove state.position_index pos;
++      Hashtbl.remove state.position_index pos;
+       state
+   | None -> state
+ 
+ let rebuild_position_index (state : State_types.t) : State_types.t =
+-  Base.Hashtbl.clear state.position_index;
++  Hashtbl.clear state.position_index;
+   Entity_manager.to_list state.entities
+-  |> List.iter ~f:(fun entity ->
+-         let id = Types.Entity.get_id entity in
+-         match Components.Position.get id with
+-         | Some pos -> Base.Hashtbl.set state.position_index ~key:pos ~data:id
++  |> List.iter ~f:(fun entity_id ->
++         match Components.Position.get entity_id with
++         | Some pos -> Hashtbl.set state.position_index ~key:pos ~data:entity_id
+          | None -> ());
+   state
+ 
+-let move_entity (id : Types.Entity.id) (loc : Types.Loc.t)
+-    (state : State_types.t) =
+-  let old_pos = Components.Position.get id in
+-  Components.Position.set id loc |> fun _ ->
+-  (match old_pos with
+-  | Some pos -> Base.Hashtbl.remove state.position_index pos
+-  | None -> ());
+-  Base.Hashtbl.set state.position_index ~key:loc ~data:id;
+-  state
+-
+ let spawn_corpse_entity ~pos (state : State_types.t) : State_types.t =
+   let new_entities = Spawner.spawn_corpse ~pos state.entities in
+   Entity_manager.to_list new_entities
+   |> List.fold_left ~init:state ~f:(fun state e -> add_entity_to_index e state)
+   |> set_entities_manager new_entities
+ 
+-let remove_entity (id : Types.Entity.id) (state : State_types.t) : State_types.t
+-    =
++let add_entity (entity_id : entity_id) (state : State_types.t) : State_types.t =
++  add_entity_to_index entity_id state
++  |> set_entities_manager (Entity_manager.add entity_id state.entities)
++
++let remove_entity (id : entity_id) (state : State_types.t) : State_types.t =
+   remove_entity_from_index id state |> fun state ->
+   {
+     state with
+@@ -99,15 +102,3 @@ let remove_entity (id : Types.Entity.id) (state : State_types.t) : State_types.t
+   match Components.Position.get id with
+   | Some pos -> spawn_corpse_entity ~pos state
+   | None -> state
+-
+-let spawn_entity (state : State_types.t) (entity : Types.Entity.t) :
+-    State_types.t =
+-  add_entity_to_index entity state
+-  |> set_entities_manager (Entity_manager.add entity state.entities)
+-
+-(* Equipment helpers *)
+-let get_equipment (id : Types.Entity.id) : Types.Equipment.t option =
+-  Components.Equipment.get id
+-
+-let set_equipment (id : Types.Entity.id) (eq : Types.Equipment.t) : unit =
+-  Components.Equipment.set id eq
+diff --git a/src/rl_core/state/state_levels.ml b/src/rl_core/state/state_levels.ml
+index 381be61..9a08fe7 100644
+--- a/src/rl_core/state/state_levels.ml
++++ b/src/rl_core/state/state_levels.ml
+@@ -6,19 +6,20 @@ open Types
+ 
+ let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
+   Entity_manager.to_list entities
+-  |> List.fold_left ~init:(actor_manager, turn_queue) ~f:(fun (am, tq) entity ->
+-         let base = Types.Entity.get_base entity in
++  |> List.fold_left ~init:(actor_manager, turn_queue)
++       ~f:(fun (am, tq) entity_id ->
+          let actor =
+-           match entity with
+-           | Types.Entity.Player _ -> Actor_manager.create_player_actor
+-           | Types.Entity.Creature _ -> Actor_manager.create_rat_actor
+-           | _ -> Actor_manager.create_player_actor
++           match Components.Kind.get entity_id with
++           | Some Player -> Actor_manager.create_player_actor
++           | Some Creature -> Actor_manager.create_rat_actor
++           | _ -> failwith "Unknown entity kind"
+          in
+-         match Turn_queue.is_scheduled tq base.id with
+-         | true -> (Actor_manager.add base.id actor am, tq)
++
++         match Turn_queue.is_scheduled tq entity_id with
++         | true -> (Actor_manager.add entity_id actor am, tq)
+          | false ->
+-             ( Actor_manager.add base.id actor am,
+-               Turn_queue.schedule_at tq base.id 0 ))
++             ( Actor_manager.add entity_id actor am,
++               Turn_queue.schedule_at tq entity_id 0 ))
+ 
+ let transition_to_next_level (state : State_types.t) : State_types.t =
+   let map_manager, entities, actor_manager, turn_queue =
+@@ -27,36 +28,20 @@ let transition_to_next_level (state : State_types.t) : State_types.t =
+     |> Map_manager.go_to_next_level |> Map_manager.load_level_state
+   in
+ 
+-  let state =
+-    Option.value_exn
+-      (Entity_manager.find_player state.entities)
+-      ~message:"Player not found (should not happen)"
+-    |> State_entities.spawn_entity { state with entities }
++  let state' =
++    { state with entities } |> State_entities.add_entity state.player_id
+   in
+ 
+-  (* ensure player goes first in turn queue *)
+-  let turn_queue = Turn_queue.schedule_now turn_queue state.player_id in
+-
+-  Turn_queue.print_turn_queue turn_queue;
+-
+   (* schedule all entities including the newly spawned player *)
+   let actor_manager, turn_queue =
+-    setup_entities_for_level ~entities:state.entities ~actor_manager ~turn_queue
+-  in
+-
+-  Turn_queue.print_turn_queue turn_queue;
+-
+-  let player_id =
+-    Option.value_exn
+-      (Entity_manager.find_player_id state.entities)
+-      ~message:"Player not found (should not happen)"
++    setup_entities_for_level ~entities:state'.entities ~actor_manager
++      ~turn_queue:(Turn_queue.schedule_now turn_queue state'.player_id)
+   in
+ 
+   let new_state =
+     State_utils.rebuild_position_index
+       {
+-        state with
+-        player_id;
++        state' with
+         map_manager;
+         turn_queue;
+         actor_manager;
+diff --git a/src/rl_core/state/state_types.ml b/src/rl_core/state/state_types.ml
+index ab85e34..f034102 100644
+--- a/src/rl_core/state/state_types.ml
++++ b/src/rl_core/state/state_types.ml
+@@ -5,12 +5,11 @@ open Types
+ 
+ type t = {
+   debug : bool;
+-  player_id : Types.Entity.id;
++  player_id : entity_id;
+   mode : CtrlMode.t;
+   entities : Entity_manager.t;
+   actor_manager : Actor_manager.t;
+   turn_queue : Turn_queue.t;
+   map_manager : Map_manager.t;
+-  position_index : (Types.Loc.t, Types.Entity.id) Base.Hashtbl.t;
+-      (* Fast position lookup *)
++  position_index : (Loc.t, entity_id) Base.Hashtbl.t; (* Fast position lookup *)
+ }
+diff --git a/src/rl_core/state/state_utils.ml b/src/rl_core/state/state_utils.ml
+index 02a216d..2dea79e 100644
+--- a/src/rl_core/state/state_utils.ml
++++ b/src/rl_core/state/state_utils.ml
+@@ -1,11 +1,10 @@
+ open Base
+ 
+ let rebuild_position_index (state : State_types.t) : State_types.t =
+-  Base.Hashtbl.clear state.position_index;
++  Hashtbl.clear state.position_index;
+   Entities.Entity_manager.to_list state.entities
+-  |> List.iter ~f:(fun entity ->
+-         let id = Types.Entity.get_id entity in
+-         match Components.Position.get id with
+-         | Some pos -> Base.Hashtbl.set state.position_index ~key:pos ~data:id
++  |> List.iter ~f:(fun entity_id ->
++         match Components.Position.get entity_id with
++         | Some pos -> Hashtbl.set state.position_index ~key:pos ~data:entity_id
+          | None -> ());
+   state
+diff --git a/src/rl_core/systems/action_handler.ml b/src/rl_core/systems/action_handler.ml
+index a7b955c..0f9d5e2 100644
+--- a/src/rl_core/systems/action_handler.ml
++++ b/src/rl_core/systems/action_handler.ml
+@@ -5,56 +5,43 @@
+ 
+ open Base
+ open Types
+-open Entities
+ open Events.Event_bus
++open Components
+ module Log = (val Core_log.make_logger "action_handler" : Logs.LOG)
+ 
+ type action_result = (int, exn) Result.t
+ 
+-let is_entity_dead (id : Types.Entity.id) : bool =
+-  Components.Stats.get id
+-  |> Base.Option.value_map ~default:false ~f:(fun stats -> stats.Stats.hp <= 0)
++let is_entity_dead (id : entity_id) : bool =
++  Stats.get id
++  |> Base.Option.value_map ~default:false ~f:(fun stats ->
++         Stats.Stats_data.get_hp stats <= 0)
+ 
+ let can_use_stairs_down state id =
+-  State.get_entity id state
+-  |> Base.Option.value_map ~default:false ~f:(fun entity ->
+-         let base = Entity.get_base entity in
+-         match State.get_current_map state with
+-         | Some dungeon -> (
+-             match
+-               Dungeon.Tilemap.get_tile
+-                 (Components.Position.get_exn base.id)
+-                 dungeon
+-             with
+-             | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down
+-             | None -> false)
+-         | None -> false)
++  match State.get_current_map state with
++  | Some dungeon -> (
++      match Dungeon.Tilemap.get_tile (Position.get_exn id) dungeon with
++      | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down
++      | None -> false)
++  | None -> false
+ 
+ let can_use_stairs_up state id =
+-  State.get_entity id state
+-  |> Base.Option.value_map ~default:false ~f:(fun entity ->
+-         let base = Entity.get_base entity in
+-         match State.get_current_map state with
+-         | Some dungeon -> (
+-             match
+-               Dungeon.Tilemap.get_tile
+-                 (Components.Position.get_exn base.id)
+-                 dungeon
+-             with
+-             | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up
+-             | None -> false)
+-         | None -> false)
++  match State.get_current_map state with
++  | Some dungeon -> (
++      match Dungeon.Tilemap.get_tile (Position.get_exn id) dungeon with
++      | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up
++      | None -> false)
++  | None -> false
+ 
+ (* ////////////////////////////// *)
+ (* ENTITY MANAGEMENT *)
+ (* ////////////////////////////// *)
+ 
+-let update_entity_stats (id : Types.Entity.id) (state : State.t)
+-    (f : Types.Stats.t -> Types.Stats.t) : State.t =
++(* let update_entity_stats (id : entity_id) (state : State.t)
++    (f : Stats.t -> Stats.t) : State.t =
+   Entity_manager.update_entity_stats (State.get_entities_manager state) id f
+-  |> fun entities -> State.set_entities_manager entities state
++  |> fun entities -> State.set_entities_manager entities state *)
+ 
+-(* let handle_entity_death (id : Types.Entity.id) (state : State.t) : State.t =
++(* let handle_entity_death (id : entity_id) (state : State.t) : State.t =
+   State.get_entity id state
+   |> Option.bind ~f:(function
+        | Types.Entity.Player _ ->
+@@ -69,129 +56,86 @@ let update_entity_stats (id : Types.Entity.id) (state : State.t)
+            Some
+              (State.remove_entity id state
+              |> State.spawn_corpse_entity
+-                  ~pos:(Components.Position.get_exn base.id)
++                  ~pos:(Position.get_exn base.id)
+              |> State.remove_actor base.id
+              |> State.set_turn_queue
+                   (Turn_queue.remove_actor (State.get_turn_queue state) id))
+        | _ -> None)
+   |> Option.value ~default:state *)
+ 
+-let handle_move ~(state : State.t) ~(id : Entity.id) ~(dir : Direction.t)
++let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
+     ~handle_action : State.t * action_result =
+-  match State.get_entity id state with
+-  | Some entity -> (
+-      let base = Entity.get_base entity in
+-      let delta = Direction.to_point dir in
+-      let pos = Components.Position.get_exn base.id in
+-      let new_pos = Loc.(pos + delta) in
+-
+-      match State.get_current_map state with
+-      | Some dungeon -> (
+-          match State.get_blocking_entity_at_pos new_pos state with
+-          | Some target_entity -> (
+-              (* Attack, do not move *)
+-              match Components.Stats.get id with
+-              | Some _ ->
+-                  handle_action state id
+-                    (Action.Attack (Entity.get_base target_entity).id)
+-              | None ->
+-                  (state, Error (Failure "Blocked by non-attackable entity")))
+-          | None ->
+-              let in_bounds = Dungeon.Tilemap.in_bounds new_pos dungeon in
+-              let walkable =
+-                match Dungeon.Tilemap.get_tile new_pos dungeon with
+-                | Some tile -> Dungeon.Tile.is_walkable tile
+-                | None -> false
+-              in
+-              if in_bounds && walkable then
+-                (Movement_system.move_entity ~id ~to_pos:new_pos state, Ok 100)
+-              else (state, Error (Failure "Cannot move here: terrain blocked")))
+-      | None -> (state, Error (Failure "No dungeon map loaded")))
+-  | None -> (state, Error (Failure "Entity not found"))
++  let delta = Direction.to_point dir in
++  let pos = Position.get_exn entity_id in
++  let new_pos = Loc.(pos + delta) in
++  match State.get_current_map state with
++  | Some dungeon -> (
++      match State.get_blocking_entity_at_pos new_pos state with
++      | Some target_entity -> (
++          match Stats.get entity_id with
++          | Some _ ->
++              handle_action state entity_id (Action.Attack target_entity)
++          | None -> (state, Error (Failure "Blocked by non-attackable entity")))
++      | None -> (
++          let in_bounds = Dungeon.Tilemap.in_bounds new_pos dungeon in
++          let walkable =
++            match Dungeon.Tilemap.get_tile new_pos dungeon with
++            | Some tile -> Dungeon.Tile.is_walkable tile
++            | None -> false
++          in
++          match in_bounds && walkable with
++          | false -> (state, Error (Failure "Cannot move here: terrain blocked"))
++          | true ->
++              ( Movement_system.move_entity ~entity_id ~to_pos:new_pos state,
++                Ok 100 )))
++  | None -> (state, Error (Failure "No dungeon map loaded"))
+ 
+-let rec handle_action (state : State.t) (id : Entity.id) (action : Action.t) :
+-    State.t * action_result =
++let rec handle_action (state : State.t) (entity_id : entity_id)
++    (action : Action.t) : State.t * action_result =
+   match action with
+   | Action.Wait -> (state, Ok 100)
+-  | Action.Move dir -> handle_move ~state ~id ~dir ~handle_action
++  | Action.Move dir -> handle_move ~state ~entity_id ~dir ~handle_action
+   | Action.StairsUp -> (
+-      State.get_entity id state
+-      |> Result.of_option ~error:(Failure "Entity not found")
+-      |> Result.bind ~f:(fun entity ->
+-             match State.get_current_map state with
+-             | Some dungeon -> (
+-                 match
+-                   Dungeon.Tilemap.get_tile
+-                     (Components.Position.get_exn (Entity.get_base entity).id)
+-                     dungeon
+-                 with
+-                 | Some tile ->
+-                     if Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up then
+-                       Ok (State.transition_to_previous_level state, -1)
+-                     else Error (Failure "Not on stairs up")
+-                 | None -> Error (Failure "Invalid tile position"))
+-             | None -> Error (Failure "No dungeon map loaded"))
+-      |> function
+-      | Ok (state, time) -> (state, Ok time)
+-      | Error e -> (state, Error e))
++      let pos = Position.get_exn entity_id in
++      match State.get_current_map state with
++      | Some dungeon -> (
++          match Dungeon.Tilemap.get_tile pos dungeon with
++          | Some tile when Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up ->
++              (State.transition_to_previous_level state, Ok (-1))
++          | _ -> (state, Error (Failure "Not on stairs up")))
++      | None -> (state, Error (Failure "No dungeon map loaded")))
+   | Action.StairsDown -> (
+-      State.get_entity id state
+-      |> Result.of_option ~error:(Failure "Entity not found")
+-      |> Result.bind ~f:(fun entity ->
+-             match State.get_current_map state with
+-             | Some dungeon -> (
+-                 match
+-                   Dungeon.Tilemap.get_tile
+-                     (Components.Position.get_exn (Entity.get_base entity).id)
+-                     dungeon
+-                 with
+-                 | Some tile ->
+-                     if Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down then
+-                       Ok (State.transition_to_next_level state, -1)
+-                     else Error (Failure "Not on stairs down")
+-                 | None -> Error (Failure "Invalid tile position"))
+-             | None -> Error (Failure "No dungeon map loaded"))
+-      |> function
+-      | Ok (state, time) -> (state, Ok time)
+-      | Error e -> (state, Error e))
+-  | Action.Attack target_id ->
+-      State.get_entity id state
+-      |> Option.bind ~f:(fun _attacker ->
+-             State.get_entity target_id state
+-             |> Option.map ~f:(fun _defender -> ()))
+-      |> Option.map ~f:(fun () ->
+-             ( publish
+-                 (EntityAttacked { attacker_id = id; defender_id = target_id })
+-                 state,
+-               Ok 100 ))
+-      |> Option.value
+-           ~default:
+-             ( state,
+-               Error (Failure "Attacker or defender not found or missing stats")
+-             )
++      let pos = Position.get_exn entity_id in
++      match State.get_current_map state with
++      | Some dungeon -> (
++          match Dungeon.Tilemap.get_tile pos dungeon with
++          | Some tile when Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down ->
++              (State.transition_to_next_level state, Ok (-1))
++          | _ -> (state, Error (Failure "Not on stairs down")))
++      | None -> (state, Error (Failure "No dungeon map loaded")))
++  | Action.Attack target_id -> (
++      let attacker_stats = Stats.get entity_id in
++      let defender_stats = Stats.get target_id in
++      match (attacker_stats, defender_stats) with
++      | Some _, Some _ ->
++          ( publish
++              (EntityAttacked
++                 { attacker_id = entity_id; defender_id = target_id })
++              state,
++            Ok 100 )
++      | _ ->
++          ( state,
++            Error (Failure "Attacker or defender not found or missing stats") ))
+   | Action.Interact _ -> (state, Error (Failure "Interact not implemented yet"))
+   | Action.Pickup item_id -> (
+-      match (State.get_entity id state, State.get_entity item_id state) with
+-      | Some (Entity.Player _), Some item_entity ->
+-          ( Events.Event_bus.publish
+-              (Events.Event_bus.ItemPickedUp
+-                 { player_id = id; entity = item_entity })
+-              state,
++      match Kind.get entity_id with
++      | Some Kind.Player ->
++          ( publish (ItemPickedUp { player_id = entity_id; item_id }) state,
+             Ok 100 )
+       | _ -> (state, Error (Failure "Pickup failed: invalid entity")))
+   | Action.Drop item_id -> (
+-      match State.get_entity id state with
+-      | Some (Entity.Player (_, pdata)) -> (
+-          let item_entity_opt =
+-            List.find_map pdata.inventory.items ~f:(fun i ->
+-                if i.id = item_id then State.get_entity i.id state else None)
+-          in
+-
+-          match item_entity_opt with
+-          | Some entity ->
+-              ( Events.Event_bus.publish
+-                  (Events.Event_bus.ItemDropped { player_id = id; entity })
+-                  state,
+-                Ok 100 )
+-          | None -> (state, Error (Failure "Item not found in inventory!")))
++      match Kind.get entity_id with
++      | Some Kind.Player ->
++          ( publish (ItemDropped { player_id = entity_id; item_id }) state,
++            Ok 100 )
+       | _ -> (state, Error (Failure "Drop failed: invalid entity")))
+diff --git a/src/rl_core/systems/combat_system.ml b/src/rl_core/systems/combat_system.ml
+index a24f607..5541686 100644
+--- a/src/rl_core/systems/combat_system.ml
++++ b/src/rl_core/systems/combat_system.ml
+@@ -3,7 +3,7 @@ open Components
+ open Events.Event_bus
+ 
+ let calculate_damage ~attacker_stats ~defender_stats =
+-  let open Types.Stats in
++  let open Components.Stats.Stats_data in
+   let base_damage = attacker_stats.attack - defender_stats.defense in
+   max 1 base_damage
+ 
+@@ -13,7 +13,6 @@ let init () =
+         fun state ->
+           match (Stats.get attacker_id, Stats.get defender_id) with
+           | Some attacker_stats, Some defender_stats ->
+-              let open Types.Stats in
+               let damage = calculate_damage ~attacker_stats ~defender_stats in
+               let new_hp = defender_stats.hp - damage in
+               Stats.set defender_id { defender_stats with hp = new_hp };
+diff --git a/src/rl_core/systems/item_system.ml b/src/rl_core/systems/item_system.ml
+index 8a6e490..724e2a5 100644
+--- a/src/rl_core/systems/item_system.ml
++++ b/src/rl_core/systems/item_system.ml
+@@ -1,53 +1,60 @@
+ open Base
+-open Types
+ open Entities
+ open Components
+ 
+ let handle_event (event : Events.Event_bus.t) (state : State_types.t) :
+     State_types.t =
+   match event with
+-  | Events.Event_bus.ItemPickedUp { player_id; entity } -> (
+-      match (State.get_entity player_id state, entity) with
+-      | Some (Entity.Player (base, pdata)), Entity.Item (_, { item }) ->
+-          let inv = pdata.inventory in
+-          if not (Inventory.can_add_item inv) then state
+-          else
+-            let inv' =
+-              match Inventory.add_item inv item with
+-              | Ok inv' -> inv'
+-              | Error _ -> inv
+-            in
++  | Events.Event_bus.ItemPickedUp { player_id; item_id } -> (
++      match Kind.get player_id with
++      | Some Kind.Player -> (
++          match Inventory.get player_id with
++          | None -> state
++          | Some inv -> (
++              match Inventory.can_add_item inv with
++              | false -> state
++              | true ->
++                  let inv' =
++                    match Inventory.add_item inv item_id with
++                    | Ok inv' -> inv'
++                    | Error _ -> inv
++                  in
+ 
+-            let entities =
+-              Entity_manager.update player_id
+-                (fun _ -> Entity.Player (base, { pdata with inventory = inv' }))
+-                (State.get_entities_manager state)
+-              |> Entity_manager.remove item.id
+-            in
+-            State.set_entities_manager entities state
++                  Components.Inventory.set player_id inv';
++
++                  let entities =
++                    State.get_entities_manager state
++                    |> Entity_manager.remove item_id
++                  in
++
++                  State.set_entities_manager entities state))
++      | None -> state
+       | _ -> state)
+-  | Events.Event_bus.ItemDropped { player_id; entity } -> (
+-      match[@warning "-8"] (State.get_entity player_id state, entity) with
+-      | Some (Entity.Player (base, pdata)), Entity.Item (item_base, { item })
+-        -> (
+-          match Inventory.remove_item pdata.inventory item with
+-          | Error _ -> state
+-          | Ok inv' ->
+-              let pdata' = { pdata with inventory = inv' } in
+-              let idata' = Entity.Item (item_base, { item }) in
+-              let state' =
+-                State.move_entity item_base.id
+-                  (Components.Position.get_exn player_id)
+-                  state
+-              in
++  | Events.Event_bus.ItemDropped { player_id; item_id } -> (
++      match[@warning "-8"] Kind.get player_id with
++      | Some Kind.Player -> (
++          match Inventory.get player_id with
++          | None -> state
++          | Some inv -> (
++              match Inventory.remove_item inv item_id with
++              | Error _ -> state
++              | Ok inv' -> (
++                  Components.Inventory.set player_id inv';
++
++                  match Item.get item_id with
++                  | Some item ->
++                      let state' =
++                        State.move_entity item.id
++                          (Components.Position.get_exn player_id)
++                          state
++                      in
+ 
+-              let entities =
+-                Entity_manager.update player_id
+-                  (fun _ -> Entity.Player (base, pdata'))
+-                  (State.get_entities_manager state')
+-                |> Entity_manager.add idata'
+-              in
+-              State.set_entities_manager entities state'))
++                      let entities =
++                        State.get_entities_manager state'
++                        |> Entity_manager.add item.id
++                      in
++                      State.set_entities_manager entities state'
++                  | None -> state))))
+   | _ -> state
+ 
+ let () = Events.Event_bus.subscribe handle_event
+diff --git a/src/rl_core/systems/log_system.ml b/src/rl_core/systems/log_system.ml
+index b8c5306..783173a 100644
+--- a/src/rl_core/systems/log_system.ml
++++ b/src/rl_core/systems/log_system.ml
+@@ -23,4 +23,12 @@ let init () =
+     | EntityDied { entity_id } ->
+         fun state ->
+           Stdio.printf "Entity %d died\n" entity_id;
++          state
++    | ItemDropped { player_id; item_id } ->
++        fun state ->
++          Stdio.printf "Entity %d dropped item %d\n" item_id player_id;
++          state
++    | ItemPickedUp { player_id; item_id } ->
++        fun state ->
++          Stdio.printf "Entity %d picked up item %d\n" item_id player_id;
+           state)
+diff --git a/src/rl_core/systems/movement_system.ml b/src/rl_core/systems/movement_system.ml
+index 86c67a4..da70e40 100644
+--- a/src/rl_core/systems/movement_system.ml
++++ b/src/rl_core/systems/movement_system.ml
+@@ -3,15 +3,10 @@ open Events.Event_bus
+ open Components
+ open Types
+ 
+-let move_entity ~(id : int) ~(to_pos : Loc.t) (state : State_types.t) :
+-    State_types.t =
+-  let from_pos =
+-    State.get_entity id state
+-    |> Option.map ~f:Entity.get_id
+-    |> Option.bind ~f:Position.get
+-    |> Option.value ~default:to_pos
+-  in
++let move_entity ~(entity_id : entity_id) ~(to_pos : Loc.t)
++    (state : State_types.t) : State_types.t =
++  let from_pos = entity_id |> Position.get |> Option.value ~default:to_pos in
+ 
+   (* Update the Position component table *)
+-  State.move_entity id to_pos state
+-  |> publish (EntityMoved { entity_id = id; from_pos; to_pos })
++  State.move_entity entity_id to_pos state
++  |> publish (EntityMoved { entity_id; from_pos; to_pos })
+diff --git a/src/rl_core/systems/turn_system.ml b/src/rl_core/systems/turn_system.ml
+index 3aa7e0e..0545b2b 100644
+--- a/src/rl_core/systems/turn_system.ml
++++ b/src/rl_core/systems/turn_system.ml
+@@ -1,6 +1,7 @@
+ open Base
+ open Types
+ open Actors
++open Components
+ module Log = (val Core_log.make_logger "turn_system" : Logs.LOG)
+ 
+ let monster_reschedule_delay = 100
+@@ -8,9 +9,9 @@ let player_retry_delay = 0
+ 
+ (* Helper: Determine if the game should wait for player input.
+    This is true if the entity is the player and has no action queued. *)
+-let should_wait_for_player_input entity actor =
+-  match entity with
+-  | Entity.Player _ -> Option.is_none (Actor.peek_next_action actor)
++let should_wait_for_player_input entity_id actor =
++  match Kind.get entity_id with
++  | Some Kind.Player -> Option.is_none (Actor.peek_next_action actor)
+   | _ -> false
+ 
+ (* Helper: Remove a dead actor from the turn queue. *)
+@@ -20,19 +21,18 @@ let remove_dead_actor turn_queue id =
+ 
+ (* Context record for passing necessary data to handle_actor_event *)
+ type ctx = {
++  time : int;
+   state : State.t;
+   tq : Turn_queue.t;
+   actor : Actor.t;
+-  id : Entity.id;
+-  entity : Entity.t;
+-  time : int;
++  entity_id : entity_id;
+ }
+ 
+ (* Handles the core logic for an actor taking its turn: dequeuing an action,
+    updating the actor manager, and either rescheduling (if no action)
+    or executing the action and rescheduling based on the result. *)
+ let handle_actor_event (ctx : ctx) : State.t =
+-  let { state; tq; actor; id; entity; time } = ctx in
++  let { state; tq; actor; entity_id; time } = ctx in
+ 
+   (* Attempt to get the next action from the actor's internal queue.
+      Also get the actor state *after* dequeuing the action. *)
+@@ -41,7 +41,7 @@ let handle_actor_event (ctx : ctx) : State.t =
+   (* Update the actor manager with the state reflecting the dequeued action. *)
+   let backend =
+     (* Update the actor manager with the state reflecting the dequeued action. *)
+-    State.update_actor state id (fun _ -> updated_actor)
++    State.update_actor state entity_id (fun _ -> updated_actor)
+     (* Set the turn queue to the new turn queue. *)
+     |> State.set_turn_queue tq
+   in
+@@ -49,7 +49,7 @@ let handle_actor_event (ctx : ctx) : State.t =
+   match maybe_action with
+   | Some action -> (
+       let backend_after_action, result =
+-        Action_handler.handle_action backend id action
++        Action_handler.handle_action backend entity_id action
+       in
+ 
+       let tq_after_action = State.get_turn_queue backend_after_action in
+@@ -57,43 +57,47 @@ let handle_actor_event (ctx : ctx) : State.t =
+       match result with
+       | Ok d_time when d_time >= 0 ->
+           State.set_turn_queue
+-            (Turn_queue.schedule_at tq_after_action id (time + d_time))
++            (Turn_queue.schedule_at tq_after_action entity_id (time + d_time))
+             backend_after_action
+       | Ok _ -> backend_after_action
+       | Error e ->
+           Log.err (fun m ->
+-              m "Entity %d failed to perform action: %s" id (Exn.to_string e));
++              m "Entity %d failed to perform action: %s" entity_id
++                (Exn.to_string e));
++
+           let delay =
+-            match entity with
+-            | Entity.Player _ -> player_retry_delay
++            match Kind.get entity_id with
++            | Some Kind.Player -> player_retry_delay
+             | _ -> monster_reschedule_delay
+           in
+-          Turn_queue.schedule_at tq_after_action id (time + delay)
++
++          Turn_queue.schedule_at tq_after_action entity_id (time + delay)
+           |> fun turn_queue ->
+           State.set_turn_queue turn_queue backend_after_action)
+   | None ->
+-      Turn_queue.schedule_at tq id (time + 100) |> fun turn_queue ->
++      Turn_queue.schedule_at tq entity_id (time + 100) |> fun turn_queue ->
+       State.set_turn_queue turn_queue backend
+ 
+ (* Processes a single event from the turn queue for a given id at a specific time.
+    Handles fetching the entity and actor, checking liveness, waiting for player input,
+    and dispatching to handle_actor_event for action execution. *)
+-let process_actor_event (state : State.t) (tq : Turn_queue.t) (id : Entity.id)
+-    (time : int) : State.t =
+-  State.get_entity id state
+-  |> Option.bind ~f:(fun entity ->
+-         State.get_actor state id
+-         |> Option.map ~f:(fun actor -> (entity, actor)))
+-  |> Option.value_map ~default:state ~f:(fun (entity, actor) ->
++let process_actor_event (state : State.t) (tq : Turn_queue.t)
++    (entity_id : entity_id) (time : int) : State.t =
++  State.get_actor state entity_id
++  |> Option.map ~f:(fun actor -> (entity_id, actor))
++  |> Option.value_map ~default:state ~f:(fun (entity_id, actor) ->
+          match
+-           (Actor.is_alive actor, should_wait_for_player_input entity actor)
++           (Actor.is_alive actor, should_wait_for_player_input entity_id actor)
+          with
++         (* Player is waiting for input. *)
++         | true, true -> State.set_wait_input_mode state
++         (* Remove the dead actor from the turn queue. *)
+          | false, _ ->
+-             State.set_turn_queue (remove_dead_actor tq id) state
++             State.set_turn_queue (remove_dead_actor tq entity_id) state
+              |> fun state -> state
+-         | true, true -> State.set_wait_input_mode state
++         (* Player is not waiting for input. *)
+          | true, false ->
+-             let ctx = { state; tq; actor; id; entity; time } in
++             let ctx = { state; tq; actor; entity_id; time } in
+              handle_actor_event ctx)
+ 
+ (* Main turn processing function.
+diff --git a/src/rl_core/turn_queue.ml b/src/rl_core/turn_queue.ml
+index aecb1fb..6b914db 100644
+--- a/src/rl_core/turn_queue.ml
++++ b/src/rl_core/turn_queue.ml
+@@ -26,8 +26,8 @@ let print_turn_queue t =
+   | (t, _) :: _ when time < t -> (time, entity) :: queue
+   | (t, e) :: rest -> (t, e) :: insert_sorted rest (time, entity) *)
+ 
+-let schedule_at t (entity : int) (next_time : int) =
+-  let new_queue = List.append t.turn_queue [ (next_time, entity) ] in
++let schedule_at t (entity_id : entity_id) (next_time : int) =
++  let new_queue = List.append t.turn_queue [ (next_time, entity_id) ] in
+   {
+     t with
+     turn_queue =
+@@ -35,13 +35,13 @@ let schedule_at t (entity : int) (next_time : int) =
+   }
+ 
+ (* Prepend the turn to the front of the queue *)
+-let schedule_now t (entity : int) =
+-  { t with turn_queue = List.cons (current_time t, entity) t.turn_queue }
++let schedule_now t (entity_id : entity_id) =
++  { t with turn_queue = List.cons (current_time t, entity_id) t.turn_queue }
+ 
+-let remove_actor t (entity : int) =
++let remove_actor t (entity_id : entity_id) =
+   {
+     t with
+-    turn_queue = List.filter t.turn_queue ~f:(fun (_, e) -> e <> entity);
++    turn_queue = List.filter t.turn_queue ~f:(fun (_, e) -> e <> entity_id);
+   }
+ 
+ let get_next_actor t : (int * int) option * t =
+@@ -55,8 +55,8 @@ let peek_next t : (int * int) option =
+   | [] -> None
+   | (time, entity) :: _ -> Some (entity, time)
+ 
+-let is_scheduled t (entity : int) : bool =
+-  List.exists t.turn_queue ~f:(fun (_, e) -> e = entity)
++let is_scheduled t (entity_id : entity_id) : bool =
++  List.exists t.turn_queue ~f:(fun (_, e) -> e = entity_id)
+ 
+ let time_until t (time : int) : int =
+   Int.(time - t.current_time) land Int.max_value
+diff --git a/src/rl_core/types.ml b/src/rl_core/types.ml
+index 8acdf51..b575e6f 100644
+--- a/src/rl_core/types.ml
++++ b/src/rl_core/types.ml
+@@ -2,7 +2,7 @@ open Base
+ open Ppx_yojson_conv_lib.Yojson_conv
+ 
+ (* Entity is now just an ID *)
+-type entity_id = int
++type entity_id = int [@@deriving yojson, show]
+ 
+ module CtrlMode = struct
+   type t = Normal | WaitInput | AI | Died of float [@@deriving yojson]
+@@ -18,7 +18,7 @@ module Loc = struct
+ end
+ 
+ module Direction = struct
+-  type t = North | East | South | West [@@deriving yojson, show]
++  type t = North | East | South | West [@@deriving yojson, show, enumerate]
+ 
+   let to_point = function
+     | North -> Loc.make 0 (-1)
+@@ -33,5 +33,41 @@ module Direction = struct
+     | West -> "West"
+ end
+ 
+-(* //////////////////////// *)
+-(* STATS AND ITEMS *)
++module Action = struct
++  (*
++  Enum type for all possible actions an actor can take.
++
++  Action semantics:
++  | Variant         | Description                                      | Parameters         |
++  |-----------------|--------------------------------------------------|--------------------|
++  | Move            | Move the actor in a direction if possible         | direction          |
++  | Interact        | Interact with an entity (door, lever, etc.)       | id          |
++  | Pickup          | Pick up an item from the ground                   | id          |
++  | Drop            | Drop an item from inventory                       | id          |
++  | Attack          | Attack another entity (combat)                    | id          |
++  | StairsUp        | Use stairs to go up a level                       | -                  |
++  | StairsDown      | Use stairs to go down a level                     | -                  |
++  | Wait            | Do nothing for a turn                             | -                  |
++*)
++
++  type t =
++    | Move of Direction.t
++    | Interact of entity_id
++    | Pickup of entity_id
++    | Drop of entity_id
++    | Attack of entity_id
++    | StairsUp
++    | StairsDown
++    | Wait
++  [@@deriving yojson, show]
++
++  let to_string = function
++    | Move dir -> "Move " ^ Direction.to_string dir
++    | Interact id -> "Interact " ^ Int.to_string id
++    | Pickup id -> "Pickup " ^ Int.to_string id
++    | Drop id -> "Drop " ^ Int.to_string id
++    | Attack id -> "Attack " ^ Int.to_string id
++    | StairsUp -> "StairsUp"
++    | StairsDown -> "StairsDown"
++    | Wait -> "Wait"
++end
+diff --git a/src/rl_ui/constants.ml b/src/rl_ui/constants.ml
+index 57caa16..4b1170b 100644
+--- a/src/rl_ui/constants.ml
++++ b/src/rl_ui/constants.ml
+@@ -30,6 +30,8 @@ let toggle_render_mode () =
+ let render_mode_to_string mode =
+   match mode with Ascii -> "ASCII" | Tiles -> "Tiles"
+ 
++let unknown_tile_sprite_coords = (20, 5)
++
+ (* Color palette for dark/gold theme *)
+ let color_dark_bg = Raylib.Color.create 18 18 20 255
+ let color_gold = Raylib.Color.create 212 175 55 255
+diff --git a/src/rl_ui/play.ml b/src/rl_ui/play.ml
+index eacb85b..6a2167b 100644
+--- a/src/rl_ui/play.ml
++++ b/src/rl_ui/play.ml
+@@ -76,9 +76,9 @@ let render (state : State.t) : State.t option =
+   | None -> ());
+ 
+   (* Render stats bar *)
+-  (match Backend.get_player_entity backend with
+-  | Some player -> R.draw_stats_bar_vertical ~player ~rect:stats_rect ~ctx
+-  | None -> ());
++  R.draw_stats_bar_vertical
++    ~player_id:(Backend.get_player_id backend)
++    ~rect:stats_rect ~ctx;
+ 
+   (* Render message log from UI console buffer *)
+   let messages = Ui_log.get_console_messages () in
+@@ -117,15 +117,13 @@ let handle_player_input (state : State.t) : State.t =
+   in
+ 
+   match action_opt with
+-  | Some (Input.Backend action) -> (
+-      match Backend.get_player_entity state.backend with
+-      | Some entity ->
+-          let backend =
+-            Backend.queue_actor_action state.backend
+-              (T.Entity.get_base entity).id action
+-          in
+-          { state with backend = Backend.set_mode T.CtrlMode.AI backend }
+-      | None -> state)
++  | Some (Input.Backend action) ->
++      let backend =
++        Backend.queue_actor_action state.backend
++          (Backend.get_player_id state.backend)
++          action
++      in
++      { state with backend = Backend.set_mode T.CtrlMode.AI backend }
+   | _ -> state
+ 
+ let handle_tick (state : State.t) : State.t =
+diff --git a/src/rl_ui/render_utils.ml b/src/rl_ui/render_utils.ml
+index af527fe..403b1ff 100644
+--- a/src/rl_ui/render_utils.ml
++++ b/src/rl_ui/render_utils.ml
+@@ -1,8 +1,10 @@
+ open Base
+ open Raylib
+-open Components
++
++(* open Components *)
+ open Dungeon
+ open Constants
++open Types
+ 
+ (* Map grid (tile) position to screen position using FontConfig *)
+ let grid_to_screen (loc : Types.Loc.t) =
+@@ -25,12 +27,11 @@ module PosSet = struct
+   include Comparator.Make (T)
+ end
+ 
+-let occupied_positions (entities : Types.Entity.t list) : Set.M(PosSet).t =
++let occupied_positions (entities : entity_id list) : Set.M(PosSet).t =
+   List.fold entities
+     ~init:(Set.empty (module PosSet))
+     ~f:(fun acc entity ->
+-      let base = Types.Entity.get_base entity in
+-      let pos = Position.get_exn base.id in
++      let pos = Components.Position.get_exn entity in
+       Set.add acc (pos.x, pos.y))
+ 
+ (* Get glyph and color for a tile *)
+@@ -39,29 +40,41 @@ let[@warning "-11"] tile_glyph_and_color (tile : Tile.t) : string * Color.t =
+   (String.make 1 (Tile.tile_to_glyph tile), color)
+ 
+ (* Get glyph for an entity *)
+-let entity_glyph_and_color (entity : Types.Entity.t) : string * Color.t =
+-  let base = Types.Entity.get_base entity in
+-  let color =
+-    match entity with
+-    | Types.Entity.Player _ -> Color.white
+-    | Types.Entity.Creature _ -> Color.red
+-    | Types.Entity.Item _ -> Color.yellow
+-    | Types.Entity.Corpse _ -> Color.gray
++let entity_glyph_and_color (entity : entity_id) : string * Color.t =
++  let glyph, color =
++    ( (match Components.Kind.get entity with
++      | Some Player -> '@'
++      | Some Creature -> 'C'
++      | Some Item -> 'I'
++      | Some Corpse -> 'X'
++      | None -> failwith "Entity has no kind")
++      |> String.make 1,
++      match Components.Kind.get entity with
++      | Some Player -> Color.white
++      | Some Creature -> Color.red
++      | Some Item -> Color.yellow
++      | Some Corpse -> Color.gray
++      | None -> failwith "Entity has no kind" )
+   in
+-  (base.glyph, color)
+ 
+-let entity_to_sprite_coords (entity : Types.Entity.t) =
+-  match entity with
+-  | Types.Entity.Player _ -> (0, 3) (* Example: player tile *)
+-  | Types.Entity.Creature (_, data) -> (
+-      match String.lowercase data.species with
+-      | "rat" -> (5, 3)
+-      | "goblin" -> (2, 0)
+-      | "kobold" -> (3, 0)
+-      | "giant spider" -> (4, 0)
+-      | _ -> (20, 5))
+-  | Types.Entity.Item _ -> (5, 0)
+-  | Types.Entity.Corpse _ -> (6, 0)
++  (glyph, color)
++
++let entity_to_sprite_coords (entity_id : entity_id) =
++  match Components.Kind.get entity_id with
++  | Some Item -> (5, 0)
++  | Some Corpse -> (6, 0)
++  | Some Player -> (0, 3) (* Example: player tile *)
++  | Some Creature -> (
++      match Components.Species.get entity_id with
++      | Some species -> (
++          match species with
++          | `Rat -> (5, 3)
++          | `Goblin -> (2, 0)
++          | `Kobold -> (3, 0)
++          | `Spider -> (4, 0)
++          | _ -> Constants.unknown_tile_sprite_coords)
++      | None -> Constants.unknown_tile_sprite_coords)
++  | None -> failwith "Entity has no kind"
+ 
+ let draw_font_text ~font ~font_size ~color ~text ~pos_x ~pos_y =
+   Raylib.draw_text_ex font text
+diff --git a/src/rl_ui/renderer.ml b/src/rl_ui/renderer.ml
+index 003f928..1b3e94f 100644
+--- a/src/rl_ui/renderer.ml
++++ b/src/rl_ui/renderer.ml
+@@ -1,9 +1,7 @@
+ open Base
+ open Components
+ module Loc = Types.Loc
+-module Entity = Types.Entity
+ module Tile = Dungeon.Tile
+-open Rl_core.Backend
+ 
+ (* Font configuration for grid rendering *)
+ type font_config = { font : Raylib.Font.t; font_size : int; font_path : string }
+@@ -23,11 +21,13 @@ type render_context = {
+   font_config : font_config;
+   flags : Raylib.ConfigFlags.t list;
+   render_mode : Constants.render_mode;
+-  tileset_config : tileset_config option;
++  tileset_config : tileset_config;
+ }
+ 
+ let gold = Constants.color_gold
+ let dark_bg = Constants.color_dark_bg
++let tile_width = Constants.tile_width
++let tile_height = Constants.tile_height
+ 
+ (* //////////////////////////////////////////////////////////////// *)
+ (* Init *)
+@@ -85,20 +85,15 @@ let create_render_context ?(title = "Echoes in the Dark")
+   (* Center window on monitor *)
+   set_window_position middle_width middle_height;
+ 
+-  let font_config = init_font_config ~font_path ~font_size in
+-  let tileset_config =
+-    try Some (init_tileset_config ~tileset_path ~tile_width ~tile_height)
+-    with _ -> None
+-  in
+   {
+     title;
+     flags;
+-    font_config;
+     render_mode;
+     window_width;
+     window_height;
+-    tileset_config;
+     tile_render_size;
++    font_config = init_font_config ~font_path ~font_size;
++    tileset_config = init_tileset_config ~tileset_path ~tile_width ~tile_height;
+   }
+ 
+ (** [cleanup font_config] unloads the font and closes the Raylib window. *)
+@@ -153,8 +148,8 @@ let render_tileset_tile ~texture ~tile ~loc ~origin ~tile_render_size =
+   Render_utils.draw_texture_ex ~texture ~pos:loc ~origin ~tile_render_size ~col
+     ~row
+ 
+-let render_tileset_sprite ~entity ~origin ~pos ~texture ~tile_render_size =
+-  let col, row = Render_utils.entity_to_sprite_coords entity in
++let render_tileset_sprite ~entity_id ~origin ~pos ~texture ~tile_render_size =
++  let col, row = Render_utils.entity_to_sprite_coords entity_id in
+   Render_utils.draw_texture_ex ~texture ~pos ~origin ~tile_render_size ~col ~row
+ 
+ (* //////////////////////////////////////////////////////////////// *)
+@@ -166,10 +161,10 @@ let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx =
+       if not (Set.mem skip_positions (x, y)) then
+         let loc = Types.Loc.make x y in
+         match (ctx.render_mode, ctx.tileset_config) with
+-        | Constants.Tiles, Some t_cfg ->
++        | Constants.Tiles, t_cfg ->
+             render_tileset_tile ~texture:t_cfg.texture ~tile:t ~loc ~origin
+               ~tile_render_size:ctx.tile_render_size
+-        | Constants.Tiles, None | Constants.Ascii, _ ->
++        | _ ->
+             let glyph, color = Render_utils.tile_glyph_and_color t in
+             render_ascii_cell ~glyph ~color ~fc:ctx.font_config ~loc ~origin)
+ 
+@@ -179,45 +174,44 @@ let render_entities ~entities ~origin ~ctx =
+   let font_config = ctx.font_config in
+   let drawn = ref (Base.Set.empty (module Int)) in
+ 
+-  List.iter entities ~f:(fun entity ->
+-      let base = Types.Entity.get_base entity in
+-      let pos = Position.get_exn base.id in
++  List.iter entities ~f:(fun entity_id ->
++      let pos = Position.get_exn entity_id in
+       let pos_tuple = (pos.x lsl 16) lor pos.y in
+       if not (Base.Set.mem !drawn pos_tuple) then (
+         drawn := Base.Set.add !drawn pos_tuple;
+ 
+         match (ctx.render_mode, ctx.tileset_config) with
+-        | Constants.Tiles, Some t_cfg ->
+-            render_tileset_sprite ~entity ~origin ~pos ~texture:t_cfg.texture
++        | Constants.Tiles, t_cfg ->
++            render_tileset_sprite ~entity_id ~origin ~pos ~texture:t_cfg.texture
+               ~tile_render_size:ctx.tile_render_size
+         | _ ->
+-            let glyph, color = entity_glyph_and_color entity in
++            let glyph, color = entity_glyph_and_color entity_id in
+             render_ascii_cell ~glyph ~color ~fc:font_config ~loc:pos ~origin))
+ 
+ let item_type_to_glyph = function
+-  | Types.Item.Potion -> ("!", Raylib.Color.skyblue)
+-  | Types.Item.Sword -> ("/", Raylib.Color.lightgray)
+-  | Types.Item.Scroll -> ("?", Raylib.Color.yellow)
+-  | Types.Item.Gold -> ("$", Raylib.Color.gold)
+-  | Types.Item.Key -> ("*", Raylib.Color.orange)
++  | Item.Item_data.Potion -> ("!", Raylib.Color.skyblue)
++  | Item.Item_data.Sword -> ("/", Raylib.Color.lightgray)
++  | Item.Item_data.Scroll -> ("?", Raylib.Color.yellow)
++  | Item.Item_data.Gold -> ("$", Raylib.Color.gold)
++  | Item.Item_data.Key -> ("*", Raylib.Color.orange)
+ 
+ let item_type_to_sprite_coords = function
+-  | Types.Item.Potion -> (0, 0)
+-  | Types.Item.Sword -> (1, 0)
+-  | Types.Item.Scroll -> (2, 0)
+-  | Types.Item.Gold -> (3, 0)
+-  | Types.Item.Key -> (4, 0)
++  | Item.Item_data.Potion -> (0, 0)
++  | Item.Item_data.Sword -> (1, 0)
++  | Item.Item_data.Scroll -> (2, 0)
++  | Item.Item_data.Gold -> (3, 0)
++  | Item.Item_data.Key -> (4, 0)
+ 
+-let draw_equipment_slots ~ctx ~start_y ~start_x equipment =
++let draw_equipment_slots ~ctx ~end_y ~end_x (equipment : Equipment.t) =
+   let open Raylib in
+-  let open Render_utils in
+   let slot_size = 32 in
+   let slot_spacing = 12 in
+-  let font_config = ctx.font_config in
+ 
+-  List.iteri equipment ~f:(fun i (_, item_opt) ->
+-      let sy = start_y in
+-      let sx = start_x + (i * (slot_size + slot_spacing)) in
++  let texture = ctx.tileset_config.texture in
++
++  List.iteri equipment ~f:(fun i (_slot, maybe_item_id) ->
++      let sy = end_y in
++      let sx = end_x + (i * (slot_size + slot_spacing)) in
+       let slot_rect =
+         Rectangle.create (Float.of_int sx) (Float.of_int sy)
+           (Float.of_int slot_size) (Float.of_int slot_size)
+@@ -230,14 +224,42 @@ let draw_equipment_slots ~ctx ~start_y ~start_x equipment =
+       let slot_x = Int.of_float (Rectangle.x slot_rect) in
+       let slot_y = Int.of_float (Rectangle.y slot_rect) in
+ 
++      let draw_empty () =
++        draw_text "-" (slot_x + 10) (slot_y + 2) 30 Color.gray
++      in
++
++      maybe_item_id
++      |> Option.iter ~f:(fun item_id ->
++             match Item.get item_id with
++             | Some item ->
++                 let col, row = item_type_to_sprite_coords item.item_type in
++
++                 let src =
++                   Raylib.Rectangle.create
++                     (Float.of_int (col * tile_width))
++                     (Float.of_int (row * tile_height))
++                     (Float.of_int tile_width) (Float.of_int tile_height)
++                 in
++
++                 let dest =
++                   Raylib.Rectangle.create (Float.of_int sx) (Float.of_int sy)
++                     (Float.of_int slot_size) (Float.of_int slot_size)
++                 in
++
++                 Raylib.draw_texture_pro texture src dest
++                   (Raylib.Vector2.create 0. 0.)
++                   0. Color.white
++             | None -> draw_empty ());
++      if Option.is_none maybe_item_id then draw_empty ())
++(*
+       (* DRAW ITEM SPRITE IF ITEM EXISTS *)
+-      match item_opt with
++      match maybe_item_id with
+       | None -> draw_text "-" (slot_x + 10) (slot_y + 2) 30 Color.gray
+-      | Some item ->
++      | Some item_id ->
+           (match (ctx.render_mode, ctx.tileset_config) with
+           | Constants.Tiles, Some t_cfg ->
+               let col, row =
+-                item_type_to_sprite_coords item.Types.Item.item_type
++                item_type_to_sprite_coords item.Item.Item_data.item_type
+               in
+               let tile_width = Constants.tile_width in
+               let tile_height = Constants.tile_height in
+@@ -255,7 +277,9 @@ let draw_equipment_slots ~ctx ~start_y ~start_x equipment =
+                 (Raylib.Vector2.create 0. 0.)
+                 0. Color.white
+           | _ ->
+-              let glyph, color = item_type_to_glyph item.Types.Item.item_type in
++              let glyph, color =
++                item_type_to_glyph item.Item.Item_data.item_type
++              in
+               draw_font_text ~font:font_config.font ~font_size:20.0 ~color
+                 ~text:glyph ~pos_x:(Float.of_int slot_x)
+                 ~pos_y:(Float.of_int slot_y));
+@@ -269,51 +293,55 @@ let draw_equipment_slots ~ctx ~start_y ~start_x equipment =
+             | None -> [ stat_summary ]
+           in
+           List.iteri tooltip_lines ~f:(fun j line ->
+-              draw_text line slot_x (tooltip_y + (j * 18)) 14 Color.lightgray))
++              draw_text line slot_x (tooltip_y + (j * 18)) 14 Color.lightgray)) *)
+ 
+ let rounded_radius = 0.18
+ let rounded_segments = 12
+ 
+-let draw_stats_bar_vertical ~player ~rect ~ctx =
++let draw_player_stats_box ~player_id ~rect ~ctx ~line_height ~padding =
+   let open Raylib in
+-  let padding = 8 in
+-  let line_height = 24 in
++  let stats = Stats.get_exn player_id in
++  let pos = Position.get_exn player_id in
++
++  let lines =
++    [
++      Printf.sprintf "Location: %s" (Loc.show pos);
++      Printf.sprintf "HP: %d/%d" stats.hp stats.max_hp;
++      Printf.sprintf "ATK: %d" stats.attack;
++      Printf.sprintf "DEF: %d" stats.defense;
++      Printf.sprintf "SPD: %d" stats.speed;
++    ]
++  in
++
++  draw_rectangle_rec rect dark_bg;
++  draw_rectangle_lines_ex rect 2.0 gold;
++
+   let x = Int.of_float (Rectangle.x rect) + padding in
+   let y = Int.of_float (Rectangle.y rect) + padding in
+-  match player with
+-  | Types.Entity.Player (base, _) ->
+-      let stats = Stats.get_exn base.id in
+-      let pos = Position.get_exn (Entity.get_id player) in
+-      let pos_x = pos.x in
+-      let pos_y = pos.y in
+-      let lines =
+-        [
+-          Printf.sprintf "Location: %d %d" pos_x pos_y;
+-          Printf.sprintf "HP: %d/%d" stats.hp stats.max_hp;
+-          Printf.sprintf "ATK: %d" stats.attack;
+-          Printf.sprintf "DEF: %d" stats.defense;
+-          Printf.sprintf "SPD: %d" stats.speed;
+-        ]
+-      in
+-      draw_rectangle_rec rect dark_bg;
+-      draw_rectangle_lines_ex rect 2.0 gold;
+-      List.iteri lines ~f:(fun i line ->
+-          let color = if i = 1 then gold else Color.white in
+-          let fc = ctx.font_config in
+-          let font_size = Float.of_int fc.font_size in
+-          let pos_x = Float.of_int x in
+-          let pos_y = Float.of_int (y + (i * line_height)) in
+-          Raylib.draw_text_ex fc.font line
+-            (Raylib.Vector2.create pos_x pos_y)
+-            font_size 0. color);
+-      let slot_y = y + (List.length lines * line_height) + 16 in
+-      get_equipment base.id
+-      |> Option.value ~default:Types.Equipment.empty
+-      |> draw_equipment_slots ~ctx ~start_y:slot_y ~start_x:x
+-  | _ ->
+-      draw_rectangle_rec rect dark_bg;
+-      draw_rectangle_lines_ex rect 2.0 gold;
+-      draw_text "Not a player" x y 20 Color.red
++
++  List.iteri lines ~f:(fun i line ->
++      let color = if i = 1 then gold else Color.white in
++      let fc = ctx.font_config in
++      let font_size = Float.of_int fc.font_size in
++      let pos_x = Float.of_int x in
++      let pos_y = Float.of_int (y + (i * line_height)) in
++      Raylib.draw_text_ex fc.font line
++        (Raylib.Vector2.create pos_x pos_y)
++        font_size 0. color);
++
++  (x, y + (List.length lines * line_height) + 16)
++
++let draw_stats_bar_vertical ~player_id ~rect ~ctx =
++  let padding = 8 in
++  let line_height = 24 in
++
++  let end_x, end_y =
++    draw_player_stats_box ~ctx ~player_id ~rect ~line_height ~padding
++  in
++
++  match Equipment.get player_id with
++  | Some equipment -> draw_equipment_slots ~ctx ~end_x ~end_y equipment
++  | None -> ()
+ 
+ (* Draw the message log at the bottom *)
+ let draw_message_log ~messages ~rect =
+diff --git a/src/rl_ui/state.ml b/src/rl_ui/state.ml
+index f1367a5..d2d71ab 100644
+--- a/src/rl_ui/state.ml
++++ b/src/rl_ui/state.ml
+@@ -13,8 +13,8 @@ end
+ (* All state *)
+ type t = {
+   quitting : bool;
+-  screen : Modules_d.screen;
+   backend : Backend.t;
+-  render_ctx : Renderer.render_context;
+   input_ctx : Input_context.t;
++  screen : Modules_d.screen;
++  render_ctx : Renderer.render_context;
+ }

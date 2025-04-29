@@ -15,8 +15,6 @@ let with_position_and_health () : (int * Loc.t * int) list =
       | None -> acc)
 
 (* Returns (id, pos) for all player entities with a position *)
-let players_with_position (em : Entity_manager.t) : (int * Loc.t) list =
+let players_with_position () : (int * Loc.t) list =
   Hashtbl.fold Position.table ~init:[] ~f:(fun ~key:id ~data:pos acc ->
-      match Entity_manager.find id em with
-      | Some (Entity.Player _) -> (id, pos) :: acc
-      | _ -> acc)
+      match Kind.get id with Some Kind.Player -> (id, pos) :: acc | _ -> acc)

@@ -13,8 +13,8 @@ end
 (* All state *)
 type t = {
   quitting : bool;
-  screen : Modules_d.screen;
   backend : Backend.t;
-  render_ctx : Renderer.render_context;
   input_ctx : Input_context.t;
+  screen : Modules_d.screen;
+  render_ctx : Renderer.render_context;
 }

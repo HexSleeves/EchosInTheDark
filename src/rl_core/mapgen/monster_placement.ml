@@ -4,27 +4,26 @@
 *)
 
 open Base
-open Types
-open Util
 open Entities
+open Components
 
 (* Represents a monster to be placed *)
 type monster_spec = {
-  species : string;
+  species : Species.t;
   health : int;
-  glyph : string;
+  glyph : char;
   name : string;
   description : string;
 }
 
 (* Place a band (group) of monsters in a list of locations *)
-let place_monster_band ~entity_manager ~positions ~direction
-    (specs : monster_spec list) : Entity_manager.t =
+let place_monster_band ~entity_manager ~positions (specs : monster_spec list) :
+    Entity_manager.t =
   List.zip_exn positions specs
   |> List.fold_left ~init:entity_manager ~f:(fun mgr (pos, spec) ->
-         let faction = faction_of_species spec.species in
-         Spawner.spawn_creature ~pos ~direction ~species:spec.species
-           ~health:spec.health ~glyph:spec.glyph ~name:spec.name
+         let faction = Core_utils.Util.faction_of_species spec.species in
+         Spawner.spawn_creature ~pos ~species:spec.species ~health:spec.health
+           ~glyph:spec.glyph ~name:spec.name
            ~description:(Some spec.description) ~faction mgr)
 
 (* Monster templates by species *)
@@ -32,76 +31,76 @@ let monster_templates =
   [
     ( "Rat",
       {
-        species = "Rat";
+        species = `Rat;
         health = 10;
-        glyph = "r";
+        glyph = 'r';
         name = "Rat";
         description = "A small, brown rodent.";
       } );
     ( "Kobold",
       {
-        species = "Kobold";
+        species = `Kobold;
         health = 16;
-        glyph = "k";
+        glyph = 'k';
         name = "Kobold";
         description = "A sneaky kobold.";
       } );
     ( "Goblin",
       {
-        species = "Goblin";
+        species = `Goblin;
         health = 20;
-        glyph = "g";
+        glyph = 'g';
         name = "Goblin";
         description = "A mean goblin.";
       } );
     ( "Goblin Shaman",
       {
-        species = "Goblin Shaman";
+        species = `Goblin_Shaman;
         health = 14;
-        glyph = "G";
+        glyph = 'G';
         name = "Goblin Shaman";
         description = "A goblin shaman with magic.";
       } );
     ( "Ore Slime",
       {
-        species = "Ore Slime";
+        species = `Ore_Slime;
         health = 18;
-        glyph = "s";
+        glyph = 's';
         name = "Ore Slime";
         description = "A metallic slime.";
       } );
-    ( "Undead Miner",
+    (* ( "Undead Miner",
       {
-        species = "Undead Miner";
+        species = `Undead_Miner;
         health = 22;
-        glyph = "u";
+        glyph = 'u';
         name = "Undead Miner";
         description = "A miner, now undead.";
       } );
     ( "Rock Golem",
       {
-        species = "Rock Golem";
+        species = `Rock_Golem;
         health = 40;
-        glyph = "R";
+        glyph = 'R';
         name = "Rock Golem";
         description = "A hulking golem of stone.";
-      } );
-    ( "Giant Spider",
+      } ); *)
+    (* ( "Giant Spider",
       {
-        species = "Giant Spider";
+        species = `Giant_Spider;
         health = 15;
-        glyph = "S";
+        glyph = 'S';
         name = "Giant Spider";
         description = "A huge, venomous spider.";
-      } );
-    ( "Shadow Creeper",
+      } ); *)
+    (* ( "Shadow Creeper",
       {
-        species = "Shadow Creeper";
+        species = `Shadow_Creeper;
         health = 18;
-        glyph = "C";
+        glyph = 'C';
         name = "Shadow Creeper";
         description = "A fast, shadowy creature.";
-      } );
+      } ); *)
   ]
 
 let get_template species =
@@ -136,7 +135,7 @@ let bands_by_depth depth =
 (* Select a random band composition for a room, based on depth *)
 let random_band_for_room ~depth ~rng =
   let bands = bands_by_depth depth in
-  random_choice bands ~rng
+  Util.random_choice bands ~rng
 
 (* Expand a band spec [(species, count); ...] to a list of monster_specs *)
 let expand_band band =
@@ -150,20 +149,19 @@ let place_band_in_room ~entity_manager ~room_positions ~depth ~rng =
   | Some band_spec ->
       let band = expand_band band_spec in
       let positions = List.take room_positions (List.length band) in
-      place_monster_band ~entity_manager ~positions ~direction:Direction.North
-        band
+      place_monster_band ~entity_manager ~positions band
   | None ->
       Core_log.err (fun m ->
           m "No band spec could be selected for depth %d" depth);
       entity_manager
 
 (* Place a single monster at a given location *)
-let place_monster ~entity_manager ~pos ~direction (spec : monster_spec) :
-    Entity_manager.t =
-  let faction = faction_of_species spec.species in
-  Spawner.spawn_creature ~pos ~direction ~species:spec.species
-    ~health:spec.health ~glyph:spec.glyph ~name:spec.name
-    ~description:(Some spec.description) ~faction entity_manager
+let place_monster ~entity_manager ~pos (spec : monster_spec) : Entity_manager.t
+    =
+  let faction = Core_utils.Util.faction_of_species spec.species in
+  Spawner.spawn_creature ~pos ~species:spec.species ~health:spec.health
+    ~glyph:spec.glyph ~name:spec.name ~description:(Some spec.description)
+    ~faction entity_manager
 
 (* Utility: Generate a list of monster specs for a band *)
 let make_band ~species ~count ~health ~glyph ~name ~description =
@@ -172,11 +170,10 @@ let make_band ~species ~count ~health ~glyph ~name ~description =
 (* Example: Place a band of rats in a room *)
 let place_rat_band_in_room ~entity_manager ~room_positions =
   let band =
-    make_band ~species:"Rat"
+    make_band ~species:`Rat
       ~count:(List.length room_positions)
-      ~health:10 ~glyph:"r" ~name:"Rat" ~description:"A small, brown rodent."
+      ~health:10 ~glyph:'r' ~name:"Rat" ~description:"A small, brown rodent."
   in
-  place_monster_band ~entity_manager ~positions:room_positions
-    ~direction:Direction.North band
+  place_monster_band ~entity_manager ~positions:room_positions band
 
 (* TODO: Add logic for depth-based species selection, mixed bands, and faction-aware placement. *)

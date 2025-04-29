@@ -76,9 +76,9 @@ let render (state : State.t) : State.t option =
   | None -> ());
 
   (* Render stats bar *)
-  (match Backend.get_player_entity backend with
-  | Some player -> R.draw_stats_bar_vertical ~player ~rect:stats_rect ~ctx
-  | None -> ());
+  R.draw_stats_bar_vertical
+    ~player_id:(Backend.get_player_id backend)
+    ~rect:stats_rect ~ctx;
 
   (* Render message log from UI console buffer *)
   let messages = Ui_log.get_console_messages () in
@@ -117,15 +117,13 @@ let handle_player_input (state : State.t) : State.t =
   in
 
   match action_opt with
-  | Some (Input.Backend action) -> (
-      match Backend.get_player_entity state.backend with
-      | Some entity ->
-          let backend =
-            Backend.queue_actor_action state.backend
-              (T.Entity.get_base entity).id action
-          in
-          { state with backend = Backend.set_mode T.CtrlMode.AI backend }
-      | None -> state)
+  | Some (Input.Backend action) ->
+      let backend =
+        Backend.queue_actor_action state.backend
+          (Backend.get_player_id state.backend)
+          action
+      in
+      { state with backend = Backend.set_mode T.CtrlMode.AI backend }
   | _ -> state
 
 let handle_tick (state : State.t) : State.t =

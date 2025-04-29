@@ -21,17 +21,7 @@
   systems
   types)
  (preprocess
-  (staged_pps
-   ppx_compare
-   ppx_deriving.enum
-   ppx_deriving.eq
-   ppx_deriving.ord
-   ppx_deriving.show
-   ppx_hash
-   ppx_import
-   ppx_inline_test
-   ppx_sexp_conv
-   ppx_yojson_conv)))
+  (pps ppx_jane ppx_enumerate)))
 
 (env
  (dev
@@ -42,6 +32,11 @@
  (name core_log)
  (modules core_log)
  (libraries base core_kernel containers logs))
+
+(library
+ (name core_utils)
+ (modules util)
+ (libraries base core_kernel containers logs types components))
 
 (library
  (name turn_queue)
@@ -67,14 +62,10 @@
  (modules types)
  (libraries base core_kernel containers logs)
  (preprocess
-  (staged_pps
-   ppx_compare
-   ppx_deriving.enum
-   ppx_deriving.eq
-   ppx_deriving.ord
+  (pps
+   ppx_jane
+   ppx_enumerate
+   ppx_yojson_conv
    ppx_deriving.show
-   ppx_hash
-   ppx_import
-   ppx_inline_test
-   ppx_sexp_conv
-   ppx_yojson_conv)))
+   ppx_deriving.eq
+   ppx_deriving.ord)))

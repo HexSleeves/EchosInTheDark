@@ -30,6 +30,8 @@ let toggle_render_mode () =
 let render_mode_to_string mode =
   match mode with Ascii -> "ASCII" | Tiles -> "Tiles"
 
+let unknown_tile_sprite_coords = (20, 5)
+
 (* Color palette for dark/gold theme *)
 let color_dark_bg = Raylib.Color.create 18 18 20 255
 let color_gold = Raylib.Color.create 212 175 55 255

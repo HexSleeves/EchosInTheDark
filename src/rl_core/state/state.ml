@@ -7,9 +7,6 @@ let add_entity_to_index = State_entities.add_entity_to_index
 let get_entities_manager = State_entities.get_entities_manager
 let set_entities_manager = State_entities.set_entities_manager
 let get_player_id = State_entities.get_player_id
-let get_player_entity = State_entities.get_player_entity
-let get_entity = State_entities.get_entity
-let get_base_entity = State_entities.get_base_entity
 let get_entity_at_pos = State_entities.get_entity_at_pos
 let get_blocking_entity_at_pos = State_entities.get_blocking_entity_at_pos
 let get_entities = State_entities.get_entities
@@ -43,36 +40,20 @@ let make ~debug ~w ~h ~seed ~current_level =
   (* Extract player_id from the first level's entity manager *)
   let entities = Map_manager.get_entities_by_level map_manager current_level in
   let player_id =
-    Entities.Entity_manager.to_list entities
-    |> List.find_map ~f:(function
-         | Types.Entity.Player (base, _) -> Some base.id
-         | _ -> None)
+    Entities.Entity_manager.find_player_id entities
     |> Option.value_exn
          ~message:"No player entity found in first level entity manager"
   in
 
   let actor_manager, turn_queue =
-    Entities.Entity_manager.to_list entities
-    |> List.fold_left ~init:(actor_manager, turn_queue)
-         ~f:(fun (am, tq) entity ->
-           let base = Types.Entity.get_base entity in
-           let actor =
-             match entity with
-             | Types.Entity.Player _ -> Actors.Actor_manager.create_player_actor
-             | Types.Entity.Creature _ -> Actors.Actor_manager.create_rat_actor
-             | _ -> Actors.Actor_manager.create_player_actor
-           in
-           let am = Actors.Actor_manager.add base.id actor am in
-           let tq = Turn_queue.schedule_now tq base.id in
-           (am, tq))
+    setup_entities_for_level ~entities ~actor_manager ~turn_queue
   in
 
   let position_index = Base.Hashtbl.create (module Types.Loc) in
   Entities.Entity_manager.to_list entities
-  |> List.iter ~f:(fun entity ->
-         let id = Types.Entity.get_id entity in
-         match Components.Position.get id with
-         | Some pos -> Base.Hashtbl.set position_index ~key:pos ~data:id
+  |> List.iter ~f:(fun entity_id ->
+         match Components.Position.get entity_id with
+         | Some pos -> Base.Hashtbl.set position_index ~key:pos ~data:entity_id
          | None -> ());
 
   let state =
@@ -83,8 +64,8 @@ let make ~debug ~w ~h ~seed ~current_level =
       turn_queue;
       map_manager;
       player_id;
-      mode = Types.CtrlMode.Normal;
       position_index;
+      mode = Types.CtrlMode.Normal;
     }
   in
   State_utils.rebuild_position_index state

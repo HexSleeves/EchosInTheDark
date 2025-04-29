@@ -26,8 +26,8 @@ let print_turn_queue t =
   | (t, _) :: _ when time < t -> (time, entity) :: queue
   | (t, e) :: rest -> (t, e) :: insert_sorted rest (time, entity) *)
 
-let schedule_at t (entity : int) (next_time : int) =
-  let new_queue = List.append t.turn_queue [ (next_time, entity) ] in
+let schedule_at t (entity_id : entity_id) (next_time : int) =
+  let new_queue = List.append t.turn_queue [ (next_time, entity_id) ] in
   {
     t with
     turn_queue =
@@ -35,13 +35,13 @@ let schedule_at t (entity : int) (next_time : int) =
   }
 
 (* Prepend the turn to the front of the queue *)
-let schedule_now t (entity : int) =
-  { t with turn_queue = List.cons (current_time t, entity) t.turn_queue }
+let schedule_now t (entity_id : entity_id) =
+  { t with turn_queue = List.cons (current_time t, entity_id) t.turn_queue }
 
-let remove_actor t (entity : int) =
+let remove_actor t (entity_id : entity_id) =
   {
     t with
-    turn_queue = List.filter t.turn_queue ~f:(fun (_, e) -> e <> entity);
+    turn_queue = List.filter t.turn_queue ~f:(fun (_, e) -> e <> entity_id);
   }
 
 let get_next_actor t : (int * int) option * t =
@@ -55,8 +55,8 @@ let peek_next t : (int * int) option =
   | [] -> None
   | (time, entity) :: _ -> Some (entity, time)
 
-let is_scheduled t (entity : int) : bool =
-  List.exists t.turn_queue ~f:(fun (_, e) -> e = entity)
+let is_scheduled t (entity_id : entity_id) : bool =
+  List.exists t.turn_queue ~f:(fun (_, e) -> e = entity_id)
 
 let time_until t (time : int) : int =
   Int.(time - t.current_time) land Int.max_value

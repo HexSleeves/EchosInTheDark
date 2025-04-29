@@ -6,19 +6,20 @@ open Types
 
 let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
   Entity_manager.to_list entities
-  |> List.fold_left ~init:(actor_manager, turn_queue) ~f:(fun (am, tq) entity ->
-         let base = Types.Entity.get_base entity in
+  |> List.fold_left ~init:(actor_manager, turn_queue)
+       ~f:(fun (am, tq) entity_id ->
          let actor =
-           match entity with
-           | Types.Entity.Player _ -> Actor_manager.create_player_actor
-           | Types.Entity.Creature _ -> Actor_manager.create_rat_actor
-           | _ -> Actor_manager.create_player_actor
+           match Components.Kind.get entity_id with
+           | Some Player -> Actor_manager.create_player_actor
+           | Some Creature -> Actor_manager.create_rat_actor
+           | _ -> failwith "Unknown entity kind"
          in
-         match Turn_queue.is_scheduled tq base.id with
-         | true -> (Actor_manager.add base.id actor am, tq)
+
+         match Turn_queue.is_scheduled tq entity_id with
+         | true -> (Actor_manager.add entity_id actor am, tq)
          | false ->
-             ( Actor_manager.add base.id actor am,
-               Turn_queue.schedule_at tq base.id 0 ))
+             ( Actor_manager.add entity_id actor am,
+               Turn_queue.schedule_at tq entity_id 0 ))
 
 let transition_to_next_level (state : State_types.t) : State_types.t =
   let map_manager, entities, actor_manager, turn_queue =
@@ -27,36 +28,20 @@ let transition_to_next_level (state : State_types.t) : State_types.t =
     |> Map_manager.go_to_next_level |> Map_manager.load_level_state
   in
 
-  let state =
-    Option.value_exn
-      (Entity_manager.find_player state.entities)
-      ~message:"Player not found (should not happen)"
-    |> State_entities.spawn_entity { state with entities }
+  let state' =
+    { state with entities } |> State_entities.add_entity state.player_id
   in
-
-  (* ensure player goes first in turn queue *)
-  let turn_queue = Turn_queue.schedule_now turn_queue state.player_id in
-
-  Turn_queue.print_turn_queue turn_queue;
 
   (* schedule all entities including the newly spawned player *)
   let actor_manager, turn_queue =
-    setup_entities_for_level ~entities:state.entities ~actor_manager ~turn_queue
-  in
-
-  Turn_queue.print_turn_queue turn_queue;
-
-  let player_id =
-    Option.value_exn
-      (Entity_manager.find_player_id state.entities)
-      ~message:"Player not found (should not happen)"
+    setup_entities_for_level ~entities:state'.entities ~actor_manager
+      ~turn_queue:(Turn_queue.schedule_now turn_queue state'.player_id)
   in
 
   let new_state =
     State_utils.rebuild_position_index
       {
-        state with
-        player_id;
+        state' with
         map_manager;
         turn_queue;
         actor_manager;

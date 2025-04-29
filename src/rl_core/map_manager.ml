@@ -78,8 +78,7 @@ let go_to_next_level t =
 let save_level_state t ~entities ~actor_manager ~turn_queue =
   let current_level = get_current_level t in
 
-  Hashtbl.set t.entities_by_level ~key:current_level
-    ~data:(Entity_manager.copy entities);
+  Hashtbl.set t.entities_by_level ~key:current_level ~data:entities;
   Hashtbl.set t.actor_manager_by_level ~key:current_level
     ~data:(Actor_manager.copy actor_manager);
   Hashtbl.set t.turn_queue_by_level ~key:current_level

@@ -175,9 +175,7 @@ let generate ~(config : Config.t) ~(level : int) =
 
   let entity_manager =
     match level with
-    | 1 ->
-        Spawner.spawn_player entity_manager ~pos:player_start
-          ~direction:Types.Direction.North
+    | 1 -> Spawner.spawn_player entity_manager ~pos:player_start
     | _ -> entity_manager
   in
 

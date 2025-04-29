@@ -63,3 +63,12 @@ let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
 let set id data = Hashtbl.set table ~key:id ~data
 let get id = Hashtbl.find table id
 let remove id = Hashtbl.remove table id
+
+let create_item ~item_type ~quantity ~name ?(description = None)
+    ?(slot_type = Item_data.NoneSlot) ?(stat_modifiers = StatModifiers.empty)
+    ?(is_corrupted = false) ?(corruption_effects = None) () =
+  let item =
+    Item_data.create ~item_type ~quantity ~name ?description ~slot_type
+      ~stat_modifiers ~is_corrupted ~corruption_effects ()
+  in
+  set item.id item

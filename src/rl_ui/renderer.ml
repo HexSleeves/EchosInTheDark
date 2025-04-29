@@ -1,9 +1,7 @@
 open Base
 open Components
 module Loc = Types.Loc
-module Entity = Types.Entity
 module Tile = Dungeon.Tile
-open Rl_core.Backend
 
 (* Font configuration for grid rendering *)
 type font_config = { font : Raylib.Font.t; font_size : int; font_path : string }
@@ -23,11 +21,13 @@ type render_context = {
   font_config : font_config;
   flags : Raylib.ConfigFlags.t list;
   render_mode : Constants.render_mode;
-  tileset_config : tileset_config option;
+  tileset_config : tileset_config;
 }
 
 let gold = Constants.color_gold
 let dark_bg = Constants.color_dark_bg
+let tile_width = Constants.tile_width
+let tile_height = Constants.tile_height
 
 (* //////////////////////////////////////////////////////////////// *)
 (* Init *)
@@ -85,20 +85,15 @@ let create_render_context ?(title = "Echoes in the Dark")
   (* Center window on monitor *)
   set_window_position middle_width middle_height;
 
-  let font_config = init_font_config ~font_path ~font_size in
-  let tileset_config =
-    try Some (init_tileset_config ~tileset_path ~tile_width ~tile_height)
-    with _ -> None
-  in
   {
     title;
     flags;
-    font_config;
     render_mode;
     window_width;
     window_height;
-    tileset_config;
     tile_render_size;
+    font_config = init_font_config ~font_path ~font_size;
+    tileset_config = init_tileset_config ~tileset_path ~tile_width ~tile_height;
   }
 
 (** [cleanup font_config] unloads the font and closes the Raylib window. *)
@@ -153,8 +148,8 @@ let render_tileset_tile ~texture ~tile ~loc ~origin ~tile_render_size =
   Render_utils.draw_texture_ex ~texture ~pos:loc ~origin ~tile_render_size ~col
     ~row
 
-let render_tileset_sprite ~entity ~origin ~pos ~texture ~tile_render_size =
-  let col, row = Render_utils.entity_to_sprite_coords entity in
+let render_tileset_sprite ~entity_id ~origin ~pos ~texture ~tile_render_size =
+  let col, row = Render_utils.entity_to_sprite_coords entity_id in
   Render_utils.draw_texture_ex ~texture ~pos ~origin ~tile_render_size ~col ~row
 
 (* //////////////////////////////////////////////////////////////// *)
@@ -166,10 +161,10 @@ let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx =
       if not (Set.mem skip_positions (x, y)) then
         let loc = Types.Loc.make x y in
         match (ctx.render_mode, ctx.tileset_config) with
-        | Constants.Tiles, Some t_cfg ->
+        | Constants.Tiles, t_cfg ->
             render_tileset_tile ~texture:t_cfg.texture ~tile:t ~loc ~origin
               ~tile_render_size:ctx.tile_render_size
-        | Constants.Tiles, None | Constants.Ascii, _ ->
+        | _ ->
             let glyph, color = Render_utils.tile_glyph_and_color t in
             render_ascii_cell ~glyph ~color ~fc:ctx.font_config ~loc ~origin)
 
@@ -179,45 +174,44 @@ let render_entities ~entities ~origin ~ctx =
   let font_config = ctx.font_config in
   let drawn = ref (Base.Set.empty (module Int)) in
 
-  List.iter entities ~f:(fun entity ->
-      let base = Types.Entity.get_base entity in
-      let pos = Position.get_exn base.id in
+  List.iter entities ~f:(fun entity_id ->
+      let pos = Position.get_exn entity_id in
       let pos_tuple = (pos.x lsl 16) lor pos.y in
       if not (Base.Set.mem !drawn pos_tuple) then (
         drawn := Base.Set.add !drawn pos_tuple;
 
         match (ctx.render_mode, ctx.tileset_config) with
-        | Constants.Tiles, Some t_cfg ->
-            render_tileset_sprite ~entity ~origin ~pos ~texture:t_cfg.texture
+        | Constants.Tiles, t_cfg ->
+            render_tileset_sprite ~entity_id ~origin ~pos ~texture:t_cfg.texture
               ~tile_render_size:ctx.tile_render_size
         | _ ->
-            let glyph, color = entity_glyph_and_color entity in
+            let glyph, color = entity_glyph_and_color entity_id in
             render_ascii_cell ~glyph ~color ~fc:font_config ~loc:pos ~origin))
 
 let item_type_to_glyph = function
-  | Types.Item.Potion -> ("!", Raylib.Color.skyblue)
-  | Types.Item.Sword -> ("/", Raylib.Color.lightgray)
-  | Types.Item.Scroll -> ("?", Raylib.Color.yellow)
-  | Types.Item.Gold -> ("$", Raylib.Color.gold)
-  | Types.Item.Key -> ("*", Raylib.Color.orange)
+  | Item.Item_data.Potion -> ("!", Raylib.Color.skyblue)
+  | Item.Item_data.Sword -> ("/", Raylib.Color.lightgray)
+  | Item.Item_data.Scroll -> ("?", Raylib.Color.yellow)
+  | Item.Item_data.Gold -> ("$", Raylib.Color.gold)
+  | Item.Item_data.Key -> ("*", Raylib.Color.orange)
 
 let item_type_to_sprite_coords = function
-  | Types.Item.Potion -> (0, 0)
-  | Types.Item.Sword -> (1, 0)
-  | Types.Item.Scroll -> (2, 0)
-  | Types.Item.Gold -> (3, 0)
-  | Types.Item.Key -> (4, 0)
+  | Item.Item_data.Potion -> (0, 0)
+  | Item.Item_data.Sword -> (1, 0)
+  | Item.Item_data.Scroll -> (2, 0)
+  | Item.Item_data.Gold -> (3, 0)
+  | Item.Item_data.Key -> (4, 0)
 
-let draw_equipment_slots ~ctx ~start_y ~start_x equipment =
+let draw_equipment_slots ~ctx ~end_y ~end_x (equipment : Equipment.t) =
   let open Raylib in
-  let open Render_utils in
   let slot_size = 32 in
   let slot_spacing = 12 in
-  let font_config = ctx.font_config in
 
-  List.iteri equipment ~f:(fun i (_, item_opt) ->
-      let sy = start_y in
-      let sx = start_x + (i * (slot_size + slot_spacing)) in
+  let texture = ctx.tileset_config.texture in
+
+  List.iteri equipment ~f:(fun i (_slot, maybe_item_id) ->
+      let sy = end_y in
+      let sx = end_x + (i * (slot_size + slot_spacing)) in
       let slot_rect =
         Rectangle.create (Float.of_int sx) (Float.of_int sy)
           (Float.of_int slot_size) (Float.of_int slot_size)
@@ -230,14 +224,42 @@ let draw_equipment_slots ~ctx ~start_y ~start_x equipment =
       let slot_x = Int.of_float (Rectangle.x slot_rect) in
       let slot_y = Int.of_float (Rectangle.y slot_rect) in
 
+      let draw_empty () =
+        draw_text "-" (slot_x + 10) (slot_y + 2) 30 Color.gray
+      in
+
+      maybe_item_id
+      |> Option.iter ~f:(fun item_id ->
+             match Item.get item_id with
+             | Some item ->
+                 let col, row = item_type_to_sprite_coords item.item_type in
+
+                 let src =
+                   Raylib.Rectangle.create
+                     (Float.of_int (col * tile_width))
+                     (Float.of_int (row * tile_height))
+                     (Float.of_int tile_width) (Float.of_int tile_height)
+                 in
+
+                 let dest =
+                   Raylib.Rectangle.create (Float.of_int sx) (Float.of_int sy)
+                     (Float.of_int slot_size) (Float.of_int slot_size)
+                 in
+
+                 Raylib.draw_texture_pro texture src dest
+                   (Raylib.Vector2.create 0. 0.)
+                   0. Color.white
+             | None -> draw_empty ());
+      if Option.is_none maybe_item_id then draw_empty ())
+(*
       (* DRAW ITEM SPRITE IF ITEM EXISTS *)
-      match item_opt with
+      match maybe_item_id with
       | None -> draw_text "-" (slot_x + 10) (slot_y + 2) 30 Color.gray
-      | Some item ->
+      | Some item_id ->
           (match (ctx.render_mode, ctx.tileset_config) with
           | Constants.Tiles, Some t_cfg ->
               let col, row =
-                item_type_to_sprite_coords item.Types.Item.item_type
+                item_type_to_sprite_coords item.Item.Item_data.item_type
               in
               let tile_width = Constants.tile_width in
               let tile_height = Constants.tile_height in
@@ -255,7 +277,9 @@ let draw_equipment_slots ~ctx ~start_y ~start_x equipment =
                 (Raylib.Vector2.create 0. 0.)
                 0. Color.white
           | _ ->
-              let glyph, color = item_type_to_glyph item.Types.Item.item_type in
+              let glyph, color =
+                item_type_to_glyph item.Item.Item_data.item_type
+              in
               draw_font_text ~font:font_config.font ~font_size:20.0 ~color
                 ~text:glyph ~pos_x:(Float.of_int slot_x)
                 ~pos_y:(Float.of_int slot_y));
@@ -269,51 +293,55 @@ let draw_equipment_slots ~ctx ~start_y ~start_x equipment =
             | None -> [ stat_summary ]
           in
           List.iteri tooltip_lines ~f:(fun j line ->
-              draw_text line slot_x (tooltip_y + (j * 18)) 14 Color.lightgray))
+              draw_text line slot_x (tooltip_y + (j * 18)) 14 Color.lightgray)) *)
 
 let rounded_radius = 0.18
 let rounded_segments = 12
 
-let draw_stats_bar_vertical ~player ~rect ~ctx =
+let draw_player_stats_box ~player_id ~rect ~ctx ~line_height ~padding =
   let open Raylib in
-  let padding = 8 in
-  let line_height = 24 in
+  let stats = Stats.get_exn player_id in
+  let pos = Position.get_exn player_id in
+
+  let lines =
+    [
+      Printf.sprintf "Location: %s" (Loc.show pos);
+      Printf.sprintf "HP: %d/%d" stats.hp stats.max_hp;
+      Printf.sprintf "ATK: %d" stats.attack;
+      Printf.sprintf "DEF: %d" stats.defense;
+      Printf.sprintf "SPD: %d" stats.speed;
+    ]
+  in
+
+  draw_rectangle_rec rect dark_bg;
+  draw_rectangle_lines_ex rect 2.0 gold;
+
   let x = Int.of_float (Rectangle.x rect) + padding in
   let y = Int.of_float (Rectangle.y rect) + padding in
-  match player with
-  | Types.Entity.Player (base, _) ->
-      let stats = Stats.get_exn base.id in
-      let pos = Position.get_exn (Entity.get_id player) in
-      let pos_x = pos.x in
-      let pos_y = pos.y in
-      let lines =
-        [
-          Printf.sprintf "Location: %d %d" pos_x pos_y;
-          Printf.sprintf "HP: %d/%d" stats.hp stats.max_hp;
-          Printf.sprintf "ATK: %d" stats.attack;
-          Printf.sprintf "DEF: %d" stats.defense;
-          Printf.sprintf "SPD: %d" stats.speed;
-        ]
-      in
-      draw_rectangle_rec rect dark_bg;
-      draw_rectangle_lines_ex rect 2.0 gold;
-      List.iteri lines ~f:(fun i line ->
-          let color = if i = 1 then gold else Color.white in
-          let fc = ctx.font_config in
-          let font_size = Float.of_int fc.font_size in
-          let pos_x = Float.of_int x in
-          let pos_y = Float.of_int (y + (i * line_height)) in
-          Raylib.draw_text_ex fc.font line
-            (Raylib.Vector2.create pos_x pos_y)
-            font_size 0. color);
-      let slot_y = y + (List.length lines * line_height) + 16 in
-      get_equipment base.id
-      |> Option.value ~default:Types.Equipment.empty
-      |> draw_equipment_slots ~ctx ~start_y:slot_y ~start_x:x
-  | _ ->
-      draw_rectangle_rec rect dark_bg;
-      draw_rectangle_lines_ex rect 2.0 gold;
-      draw_text "Not a player" x y 20 Color.red
+
+  List.iteri lines ~f:(fun i line ->
+      let color = if i = 1 then gold else Color.white in
+      let fc = ctx.font_config in
+      let font_size = Float.of_int fc.font_size in
+      let pos_x = Float.of_int x in
+      let pos_y = Float.of_int (y + (i * line_height)) in
+      Raylib.draw_text_ex fc.font line
+        (Raylib.Vector2.create pos_x pos_y)
+        font_size 0. color);
+
+  (x, y + (List.length lines * line_height) + 16)
+
+let draw_stats_bar_vertical ~player_id ~rect ~ctx =
+  let padding = 8 in
+  let line_height = 24 in
+
+  let end_x, end_y =
+    draw_player_stats_box ~ctx ~player_id ~rect ~line_height ~padding
+  in
+
+  match Equipment.get player_id with
+  | Some equipment -> draw_equipment_slots ~ctx ~end_x ~end_y equipment
+  | None -> ()
 
 (* Draw the message log at the bottom *)
 let draw_message_log ~messages ~rect =

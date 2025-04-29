@@ -7,8 +7,8 @@ type event =
   | TrapTriggered of { entity_id : int; trap_id : int }
   | EntityAttacked of { attacker_id : int; defender_id : int }
   | EntityDied of { entity_id : int }
-  | ItemPickedUp of { player_id : int; entity : Entity.t }
-  | ItemDropped of { player_id : int; entity : Entity.t }
+  | ItemPickedUp of { player_id : int; item_id : entity_id }
+  | ItemDropped of { player_id : int; item_id : entity_id }
 (* Add more events as needed *)
 
 type t = event

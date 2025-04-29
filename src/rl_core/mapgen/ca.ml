@@ -83,5 +83,4 @@ let place_monsters ~grid ~width ~height ~rng entity_manager =
   Core_log.info (fun m -> m "Placing %d monsters..." num_monsters);
   List.fold monster_positions ~init:entity_manager ~f:(fun em pos ->
       let spec = Monster_placement.get_template "Rat" in
-      Monster_placement.place_monster ~entity_manager:em ~pos
-        ~direction:Types.Direction.North spec)
+      Monster_placement.place_monster ~entity_manager:em ~pos spec)
