@@ -55,6 +55,68 @@ let rec run_algorithm (algo : algorithm) ~width ~height ~rng ~depth ~entities =
                 acc_entities,
                 acc_rooms @ overlay_rooms )))
 
+let generate_water ~width ~height ~rng grid =
+  Util.carve_path ~tile:Tile.Water ~length:(width + height) ~rng ~width ~height
+    grid
+
+let generate_chasm ~width ~height ~rng grid =
+  Util.carve_path ~tile:Tile.Chasm
+    ~length:((width / 2) + (height / 2))
+    ~rng grid ~width ~height
+
+let generate_traps ~width ~height ~rng grid =
+  let trap_count = width * height / 100 in
+  let rec place_traps placed =
+    if placed >= trap_count then ()
+    else
+      let x = 1 + Random.State.int rng (width - 2) in
+      let y = 1 + Random.State.int rng (height - 2) in
+      match Rl_utils.Utils.xy_to_index_opt x y width height with
+      | Some idx when idx >= 0 && idx < Array.length grid -> (
+          match Rl_utils.Utils.array_get_opt grid idx with
+          | Some t when Tile.is_floor t ->
+              grid.(idx) <- Tile.Trap;
+              place_traps (placed + 1)
+          | _ -> place_traps placed)
+      | _ -> place_traps placed
+  in
+
+  place_traps 0
+
+let generate_secret_doors ~width ~height ~rng grid =
+  let secret_door_count = (width + height) / 20 in
+  let rec place_secret_doors placed =
+    if placed >= secret_door_count then ()
+    else
+      let x = 1 + Random.State.int rng (width - 2) in
+      let y = 1 + Random.State.int rng (height - 2) in
+      match Rl_utils.Utils.xy_to_index_opt x y width height with
+      | Some idx when idx >= 0 && idx < Array.length grid -> (
+          match Rl_utils.Utils.array_get_opt grid idx with
+          | Some t when Tile.equal t Tile.Wall ->
+              let neighbors =
+                [ (x - 1, y); (x + 1, y); (x, y - 1); (x, y + 1) ]
+              in
+              let floor_neighbors =
+                List.filter neighbors ~f:(fun (nx, ny) ->
+                    match Rl_utils.Utils.xy_to_index_opt nx ny width height with
+                    | Some nidx -> (
+                        nx >= 0 && nx < width && ny >= 0 && ny < height
+                        &&
+                        match Rl_utils.Utils.array_get_opt grid nidx with
+                        | Some t -> Tile.is_floor t
+                        | None -> false)
+                    | None -> false)
+              in
+              if List.length floor_neighbors >= 2 then (
+                grid.(idx) <- Tile.Secret_door;
+                place_secret_doors (placed + 1))
+              else place_secret_doors placed
+          | _ -> place_secret_doors placed)
+      | _ -> place_secret_doors placed
+  in
+  place_secret_doors 0
+
 (** Generate a map for a specific [level] within [total_levels] using [config].
 *)
 let generate ~(config : Config.t) ~(level : int) =
@@ -82,89 +144,15 @@ let generate ~(config : Config.t) ~(level : int) =
 
   let () =
     if level <> 1 then (
-      let carve_path ~tile ~length ~rng grid ~width ~height =
-        let rec walk n x y =
-          if n = 0 then ()
-          else
-            match Rl_utils.Utils.xy_to_index_opt x y width height with
-            | Some idx when idx >= 0 && idx < Array.length grid ->
-                (match Rl_utils.Utils.array_get_opt grid idx with
-                | Some t when Tile.is_floor t -> grid.(idx) <- tile
-                | _ -> ());
-                let dirs = [ (1, 0); (-1, 0); (0, 1); (0, -1) ] in
-                let dx, dy =
-                  match
-                    Rl_utils.Utils.list_nth_opt dirs (Random.State.int rng 4)
-                  with
-                  | Some (dx, dy) -> (dx, dy)
-                  | None -> (0, 0)
-                in
-                let nx = Int.max 1 (Int.min (x + dx) (width - 2)) in
-                let ny = Int.max 1 (Int.min (y + dy) (height - 2)) in
-                walk (n - 1) nx ny
-            | _ -> ()
-        in
-        let x = 1 + Random.State.int rng (width - 2) in
-        let y = 1 + Random.State.int rng (height - 2) in
-        walk length x y
-      in
-      if Float.compare (Random.State.float rng 1.0) 0.5 < 0 then
-        carve_path ~tile:Tile.River ~length:(width + height) ~rng grid ~width
-          ~height;
-      if Float.compare (Random.State.float rng 1.0) 0.3 < 0 then
-        carve_path ~tile:Tile.Chasm
-          ~length:((width / 2) + (height / 2))
-          ~rng grid ~width ~height;
-      let trap_count = width * height / 100 in
-      let rec place_traps placed =
-        if placed >= trap_count then ()
-        else
-          let x = 1 + Random.State.int rng (width - 2) in
-          let y = 1 + Random.State.int rng (height - 2) in
-          match Rl_utils.Utils.xy_to_index_opt x y width height with
-          | Some idx when idx >= 0 && idx < Array.length grid -> (
-              match Rl_utils.Utils.array_get_opt grid idx with
-              | Some t when Tile.is_floor t ->
-                  grid.(idx) <- Tile.Trap;
-                  place_traps (placed + 1)
-              | _ -> place_traps placed)
-          | _ -> place_traps placed
-      in
-      place_traps 0;
-      let secret_door_count = (width + height) / 20 in
-      let rec place_secret_doors placed =
-        if placed >= secret_door_count then ()
-        else
-          let x = 1 + Random.State.int rng (width - 2) in
-          let y = 1 + Random.State.int rng (height - 2) in
-          match Rl_utils.Utils.xy_to_index_opt x y width height with
-          | Some idx when idx >= 0 && idx < Array.length grid -> (
-              match Rl_utils.Utils.array_get_opt grid idx with
-              | Some t when Tile.equal t Tile.Wall ->
-                  let neighbors =
-                    [ (x - 1, y); (x + 1, y); (x, y - 1); (x, y + 1) ]
-                  in
-                  let floor_neighbors =
-                    List.filter neighbors ~f:(fun (nx, ny) ->
-                        match
-                          Rl_utils.Utils.xy_to_index_opt nx ny width height
-                        with
-                        | Some nidx -> (
-                            nx >= 0 && nx < width && ny >= 0 && ny < height
-                            &&
-                            match Rl_utils.Utils.array_get_opt grid nidx with
-                            | Some t -> Tile.is_floor t
-                            | None -> false)
-                        | None -> false)
-                  in
-                  if List.length floor_neighbors >= 2 then (
-                    grid.(idx) <- Tile.Secret_door;
-                    place_secret_doors (placed + 1))
-                  else place_secret_doors placed
-              | _ -> place_secret_doors placed)
-          | _ -> place_secret_doors placed
-      in
-      place_secret_doors 0)
+      let water_roll = Random.State.float rng 1.0 in
+      let chasm_roll = Random.State.float rng 1.0 in
+
+      if Float.compare water_roll 0.5 < 0 then
+        generate_water ~width ~height ~rng grid;
+      if Float.compare chasm_roll 0.3 < 0 then
+        generate_chasm ~width ~height ~rng grid
+      (* generate_traps ~width ~height ~rng grid; *)
+      (* generate_secret_doors ~width ~height ~rng grid *))
   in
 
   let random_floor = Util.find_random_floor grid ~width ~height ~rng in

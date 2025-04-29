@@ -71,3 +71,27 @@ let bfs_farthest grid ~width ~height ~(start : Types.Loc.t) =
         | None -> ())
   done;
   (!max_dist, !farthest)
+
+let carve_path ~tile ~length ~rng grid ~width ~height =
+  let rec walk n x y =
+    if n = 0 then ()
+    else
+      match Rl_utils.Utils.xy_to_index_opt x y width height with
+      | Some idx when idx >= 0 && idx < Array.length grid ->
+          (match Rl_utils.Utils.array_get_opt grid idx with
+          | Some t when Dungeon.Tile.is_floor t -> grid.(idx) <- tile
+          | _ -> ());
+          let dirs = [ (1, 0); (-1, 0); (0, 1); (0, -1) ] in
+          let dx, dy =
+            match Rl_utils.Utils.list_nth_opt dirs (Random.State.int rng 4) with
+            | Some (dx, dy) -> (dx, dy)
+            | None -> (0, 0)
+          in
+          let nx = Int.max 1 (Int.min (x + dx) (width - 2)) in
+          let ny = Int.max 1 (Int.min (y + dy) (height - 2)) in
+          walk (n - 1) nx ny
+      | _ -> ()
+  in
+  let x = 1 + Random.State.int rng (width - 2) in
+  let y = 1 + Random.State.int rng (height - 2) in
+  walk length x y

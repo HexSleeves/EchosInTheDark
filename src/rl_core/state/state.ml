@@ -34,16 +34,12 @@ let make ~debug ~w ~h ~seed ~current_level =
   let actor_manager = Actors.Actor_manager.create () in
   let turn_queue = Turn_queue.create () in
 
-  let config = Mapgen.Config.make ~seed ~w ~h () in
-  let map_manager = Map_manager.create ~config ~current_level in
+  let chunk_manager = Chunk_manager.create ~world_seed:seed in
 
-  (* Extract player_id from the first level's entity manager *)
-  let entities = Map_manager.get_entities_by_level map_manager current_level in
-  let player_id =
-    Entities.Entity_manager.find_player_id entities
-    |> Option.value_exn
-         ~message:"No player entity found in first level entity manager"
-  in
+  (* TODO: Initialize entities for the world, including player *)
+  let entities = Entities.Entity_manager.create () in
+  let player_id = 0 in
+  (* TODO: Actually spawn the player and get their ID *)
 
   let actor_manager, turn_queue =
     setup_entities_for_level ~entities ~actor_manager ~turn_queue
@@ -62,7 +58,7 @@ let make ~debug ~w ~h ~seed ~current_level =
       entities;
       actor_manager;
       turn_queue;
-      map_manager;
+      chunk_manager;
       player_id;
       position_index;
       mode = Types.CtrlMode.Normal;
@@ -85,5 +81,6 @@ let get_turn_queue (state : t) : Turn_queue.t = state.turn_queue
 let set_turn_queue (turn_queue : Turn_queue.t) (state : t) : t =
   { state with turn_queue }
 
-let get_current_map (state : t) : Dungeon.Tilemap.t option =
-  Map_manager.get_current_map state.map_manager
+let get_tile_at (state : t) (world_pos : Types.world_pos) :
+    Dungeon.Tile.t option =
+  Chunk_manager.get_tile_at state.chunk_manager world_pos

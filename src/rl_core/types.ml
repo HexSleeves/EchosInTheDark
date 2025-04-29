@@ -71,3 +71,33 @@ module Action = struct
     | StairsDown -> "StairsDown"
     | Wait -> "Wait"
 end
+
+(* --- Chunking System Types --- *)
+
+(* Absolute position in the infinite world *)
+type world_pos = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]
+
+(* Coordinates identifying a specific chunk *)
+type chunk_coord = int * int [@@deriving yojson, show, eq, compare, hash, sexp]
+
+(* Position within a chunk (0-31) *)
+type local_pos = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]
+
+(* Biome types for chunk generation *)
+type biome_type =
+  | Plains
+  | Forest
+  | Mountain
+  | Water_Body
+  | Desert (* Add more as needed *)
+[@@deriving yojson, show, eq, compare, hash, sexp]
+
+(* Metadata associated with a chunk *)
+type chunk_metadata = {
+  seed : int;
+  biome : biome_type;
+      (* Add other flags as needed, e.g., has_feature_x : bool; *)
+}
+[@@deriving yojson, show, eq, compare, hash, sexp]
+
+(* Represents a single 32x32 map chunk *)

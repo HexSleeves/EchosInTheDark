@@ -3,7 +3,7 @@ type t =
   | Floor
   | Stairs_up
   | Stairs_down
-  | River
+  | Water
   | Chasm
   | Trap
   | Secret_door
@@ -22,7 +22,7 @@ let tile_to_glyph tile =
   match tile with
   | Floor -> '.'
   | Wall -> '#'
-  | River -> '~'
+  | Water -> '~'
   | Chasm -> '%'
   | Trap -> '!'
   | Stairs_up -> '<'
@@ -38,7 +38,7 @@ let tile_to_tileset tile =
   | Floor -> (1, 0)
   | Stairs_up -> (18, 2)
   | Stairs_down -> (17, 2)
-  | River -> (1, 0)
+  | Water -> (1, 0)
   | Tree -> (4, 0)
   | Door -> (13, 2)
   | Trap -> (15, 1)
@@ -55,7 +55,7 @@ let tile_to_color tile =
   | Stairs_down -> Color.gold
   | Trap -> Color.red
   | Secret_door -> Color.purple
-  | River -> Color.blue
+  | Water -> Color.blue
   | Chasm -> Color.darkgray
   | Tree -> Color.green
   | Door -> Color.brown

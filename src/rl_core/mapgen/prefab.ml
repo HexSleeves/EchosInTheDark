@@ -27,7 +27,7 @@ let load_prefab filename ~width ~height =
                     | '#' -> Tile.Wall
                     | '>' -> Tile.Stairs_down
                     | '<' -> Tile.Stairs_up
-                    | '~' -> Tile.River
+                    | '~' -> Tile.Water
                     | 'S' -> Tile.Secret_door
                     | 'C' -> Tile.Chasm
                     | 'D' -> Tile.Door

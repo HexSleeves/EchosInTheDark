@@ -34,4 +34,5 @@
   actors
   components
   turn_queue
-  map_manager))
+  map_manager
+  chunk_manager))
