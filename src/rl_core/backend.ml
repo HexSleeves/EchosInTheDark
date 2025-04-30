@@ -8,6 +8,7 @@ let make ~debug ~w ~h ~seed ~depth : t =
   (* Initialize systems *)
   Systems.Log_system.init ();
   Systems.Combat_system.init ();
+  Systems.Item_system.init ();
   State.make ~debug ~w ~h ~seed ~depth
 
 let get_debug (state : t) : bool = State.get_debug state

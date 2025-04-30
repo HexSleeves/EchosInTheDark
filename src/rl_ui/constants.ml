@@ -2,10 +2,10 @@ let font_size = 20
 let font_path = "resources/fonts/FiraMono-Regular.ttf"
 
 (* Dimensions for UI elements *)
+let margin = 8
 let log_height = 120
 let stats_bar_width_min = 220
 let stats_bar_width_frac = 0.24
-let margin = 8
 
 (* Tileset *)
 let tile_width = 8

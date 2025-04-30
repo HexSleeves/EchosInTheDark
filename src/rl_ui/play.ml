@@ -18,15 +18,6 @@ let log_height = Constants.log_height
 let stats_bar_width_min = Constants.stats_bar_width_min
 let stats_bar_width_frac = Constants.stats_bar_width_frac
 
-module PosSet = struct
-  module T = struct
-    type t = int * int [@@deriving compare, sexp]
-  end
-
-  include T
-  include Comparator.Make (T)
-end
-
 let render (state : State.t) : State.t option =
   let backend = state.backend in
   let ctx = state.render_ctx in
@@ -34,29 +25,30 @@ let render (state : State.t) : State.t option =
   let screen_w = Raylib.get_screen_width () in
   let screen_h = Raylib.get_screen_height () in
 
-  let stats_bar_w =
+  (* let stats_bar_w =
     max stats_bar_width_min
       (Int.of_float (Float.of_int screen_w *. stats_bar_width_frac))
-  in
-
-  let log_h = log_height in
-  let map_w = screen_w - stats_bar_w - (2 * margin) in
-  let map_h = screen_h - log_h - (2 * margin) in
+  in *)
+  (* let log_h = log_height in *)
+  let map_w = screen_w - (2 * margin) in
+  let map_h = screen_h - (2 * margin) in
+  (* let map_w = screen_w - stats_bar_w - (2 * margin) in
+  let map_h = screen_h - log_h - (2 * margin) in *)
 
   let map_rect =
     Raylib.Rectangle.create (Float.of_int margin) (Float.of_int margin)
       (Float.of_int map_w) (Float.of_int map_h)
   in
-  let stats_rect =
+  (* let stats_rect =
     Raylib.Rectangle.create
       (Float.of_int (map_w + (2 * margin)))
       0. (Float.of_int stats_bar_w) (Float.of_int screen_h)
-  in
-  let log_rect =
+  in *)
+  (* let log_rect =
     Raylib.Rectangle.create (Float.of_int margin)
       (Float.of_int (map_h + margin))
       (Float.of_int map_w) (Float.of_int log_h)
-  in
+  in *)
 
   let entities = Backend.get_entities backend in
   (* TODO: Integrate chunk-based rendering here. The old get_current_map is gone. *)
@@ -81,15 +73,18 @@ let render (state : State.t) : State.t option =
 
         Renderer.render_map_tiles
           ~tiles:(Array.concat (Array.to_list chunk.tiles))
-          ~width:Chunk_manager.chunk_width ~skip_positions:entity_positions
+          ~width:Chunk.chunk_width ~skip_positions:entity_positions
           ~origin:map_origin ~ctx;
 
         Renderer.render_entities ~entities ~origin:map_origin ~ctx);
 
+  (* Draw a border around the map view *)
+  Raylib.draw_rectangle_lines_ex map_rect 2.0 Constants.color_gold;
+
   (* Render stats bar *)
-  R.draw_stats_bar_vertical
+  (* R.draw_stats_bar_vertical
     ~player_id:(Backend.get_player_id backend)
-    ~rect:stats_rect ~ctx;
+    ~rect:stats_rect ~ctx; *)
 
   (* Render message log from UI console buffer *)
   (* let messages = Ui_log.get_console_messages () in
@@ -140,9 +135,6 @@ let handle_player_input (state : State.t) : State.t =
 let handle_tick (state : State.t) : State.t =
   let open Rl_core in
   let backend = state.backend in
-  Logs.info (fun m ->
-      m "Handling tick for backend: %s"
-        (T.CtrlMode.show (Backend.get_mode backend)));
   match Backend.get_mode backend with
   | T.CtrlMode.WaitInput -> handle_player_input state
   | T.CtrlMode.AI -> { state with backend = Backend.run_ai_step backend }

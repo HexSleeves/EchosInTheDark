@@ -1,4 +1,3 @@
-open Rl_types
 open Events.Event_bus
 open Components
 

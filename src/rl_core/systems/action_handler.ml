@@ -62,8 +62,8 @@ let can_use_stairs_up state id =
 let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
     ~handle_action : State.t * action_result =
   let open Chunk_manager in
-  let chunk_width = chunk_width in
-  let chunk_height = chunk_height in
+  let chunk_width = Chunk.chunk_width in
+  let chunk_height = Chunk.chunk_height in
 
   let delta = Direction.to_point dir in
   let pos = Position.get_exn entity_id in

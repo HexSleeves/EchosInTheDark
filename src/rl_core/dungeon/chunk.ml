@@ -3,8 +3,8 @@ open Rl_types
 open Dungeon
 open Ppx_yojson_conv_lib.Yojson_conv
 
-let chunk_width = 32
-let chunk_height = 32
+let chunk_width = 50
+let chunk_height = 24
 
 (* Absolute position in the infinite world *)
 type world_pos = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]

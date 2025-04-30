@@ -67,5 +67,5 @@ let () =
     }
   in
 
-  Logs.info (fun m -> m "Starting main");
+  Logs.info (fun m -> m "Starting main loop");
   Rl_ui.Modules.run_with_config render_ctx config
