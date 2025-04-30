@@ -1,5 +1,5 @@
 open Base
-open Types
+open Rl_types
 
 module type S = sig
   val decide : entity_id -> State.t -> Action.t

@@ -14,14 +14,14 @@ let pick_random lst ~rng ~(n : int) =
 
 let find_random_floor ?(max_tries = 1000) grid ~width ~height ~rng =
   let rec pick tries =
-    if tries >= max_tries then Types.Loc.make 0 0
+    if tries >= max_tries then Rl_types.Loc.make 0 0
     else
       let x = 1 + Random.State.int rng (width - 2) in
       let y = 1 + Random.State.int rng (height - 2) in
       match Rl_utils.Utils.xy_to_index_opt x y width height with
       | Some idx -> (
           match Rl_utils.Utils.array_get_opt grid idx with
-          | Some tile when Dungeon.Tile.is_floor tile -> Types.Loc.make x y
+          | Some tile when Dungeon.Tile.is_floor tile -> Rl_types.Loc.make x y
           | _ -> pick (tries + 1))
       | None -> pick (tries + 1)
   in
@@ -32,7 +32,7 @@ let neighbors (x, y) width height =
     ~f:(fun (nx, ny) -> nx >= 0 && ny >= 0 && nx < width && ny < height)
     [ (x - 1, y); (x + 1, y); (x, y - 1); (x, y + 1) ]
 
-let bfs_farthest grid ~width ~height ~(start : Types.Loc.t) =
+let bfs_farthest grid ~width ~height ~(start : Rl_types.Loc.t) =
   let open Queue in
   let visited = Array.make_matrix ~dimx:width ~dimy:height false in
   let dist = Array.make_matrix ~dimx:width ~dimy:height (-1) in

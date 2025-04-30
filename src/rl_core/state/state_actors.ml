@@ -23,5 +23,5 @@ let update_actor (state : State_types.t) (actor_id : Actor.actor_id)
   { state with actor_manager = am }
 
 let queue_actor_action (state : State_types.t) (actor_id : Actor.actor_id)
-    (action : Types.Action.t) : State_types.t =
+    (action : Rl_types.Action.t) : State_types.t =
   update_actor state actor_id (fun actor -> Actor.queue_action actor action)

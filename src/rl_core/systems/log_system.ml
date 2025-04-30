@@ -1,12 +1,13 @@
-open Types
+open Rl_types
 open Events.Event_bus
+open Components
 
 let init () =
   subscribe (function
     | EntityMoved { entity_id; from_pos; to_pos } ->
         fun state ->
           Stdio.printf "Entity %d moved from %s to %s\n" entity_id
-            (Loc.show from_pos) (Loc.show to_pos);
+            (Position.show from_pos) (Position.show to_pos);
           state
     | ActorDamaged { actor_id; amount } ->
         fun state ->

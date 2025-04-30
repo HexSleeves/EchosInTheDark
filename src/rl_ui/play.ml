@@ -10,7 +10,7 @@
 
 open Base
 module R = Renderer
-module T = Types
+module T = Rl_types
 module Backend = Rl_core.Backend
 
 let margin = Constants.margin
@@ -64,7 +64,7 @@ let render (state : State.t) : State.t option =
   let player_id = Backend.get_player_id backend in
   let player_pos = Components.Position.get_exn player_id in
   let chunk_manager = Backend.get_chunk_manager backend in
-  let chunk_coords = Chunk_manager.world_to_chunk_coord player_pos in
+  let chunk_coords = Chunk_manager.world_to_chunk_coord player_pos.world_pos in
 
   ignore
     (match Chunk_manager.get_loaded_chunk chunk_coords chunk_manager with
@@ -103,7 +103,8 @@ let handle_mouse (state : State.t) =
     let mouse_pos = get_mouse_position () in
     let tile_pos = Render_utils.screen_to_grid mouse_pos in
     let player_id = Backend.get_player_id state.backend in
-    let b = Backend.move_entity player_id tile_pos state.backend in
+    let position = Components.Position.make tile_pos in
+    let b = Backend.move_entity player_id position state.backend in
     { state with backend = b }
   else state
 
@@ -141,7 +142,7 @@ let handle_tick (state : State.t) : State.t =
   let backend = state.backend in
   Logs.info (fun m ->
       m "Handling tick for backend: %s"
-        (Types.CtrlMode.show (Backend.get_mode backend)));
+        (T.CtrlMode.show (Backend.get_mode backend)));
   match Backend.get_mode backend with
   | T.CtrlMode.WaitInput -> handle_player_input state
   | T.CtrlMode.AI -> { state with backend = Backend.run_ai_step backend }

@@ -3,10 +3,10 @@
     provide the is_key_pressed function and a module with key fields (e.g.,
     Raylib.Key). *)
 
-open Types
 open Base
+open Rl_types
 
-let of_key (key : Raylib.Key.t) : Types.Action.t option =
+let of_key (key : Raylib.Key.t) : Action.t option =
   let open Raylib in
   match key with
   | Key.W | Key.Up -> Some (Move Direction.North)
@@ -18,7 +18,7 @@ let of_key (key : Raylib.Key.t) : Types.Action.t option =
   | Key.Space -> Some Wait
   | _ -> None
 
-let action_from_keys () : Types.Action.t option =
+let action_from_keys () : Action.t option =
   let open Raylib in
   get_key_pressed () |> of_key
 

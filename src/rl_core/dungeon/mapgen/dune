@@ -1,0 +1,24 @@
+(include_subdirs no)
+
+(library
+ (name mapgen)
+ (modules
+  chunk_generator
+  mapgen_types
+  biome
+  ca
+  rooms
+  prefab
+  monster_placement
+  mapgen_utils)
+ (libraries
+  base
+  core_kernel
+  containers
+  logs
+  rl_types
+  entities
+  dungeon
+  core_utils
+  components
+  chunk))

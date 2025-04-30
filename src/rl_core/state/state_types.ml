@@ -1,7 +1,7 @@
 (* State type definition extracted from state.ml *)
 open Entities
 open Actors
-open Types
+open Rl_types
 
 type t = {
   debug : bool;
@@ -13,6 +13,6 @@ type t = {
   turn_queue : Turn_queue.t;
   chunk_manager : Chunk_manager.t;
   chunk_managers : (int, Chunk_manager.t) Base.Hashtbl.t;
-  position_index : (Loc.t, entity_id) Base.Hashtbl.t; (* Fast position lookup *)
+  position_index : (Loc.t, entity_id * Components.Position.t) Base.Hashtbl.t;
 }
 [@@deriving show]

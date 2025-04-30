@@ -1,6 +1,6 @@
 open Base
 open Actors
-open Types
+open Rl_types
 
 type t = State.t
 
@@ -26,8 +26,9 @@ let queue_actor_action (state : t) (actor_id : Actor.actor_id)
     (action : Action.t) : t =
   State.queue_actor_action state actor_id action
 
-let move_entity (id : entity_id) (loc : Loc.t) (state : t) : t =
-  State.move_entity id loc state
+let move_entity (id : entity_id) (position : Components.Position.t) (state : t)
+    : t =
+  State.move_entity id position state
 
 let process_turns (state : t) : t = Systems.Turn_system.process_turns state
 

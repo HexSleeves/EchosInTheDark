@@ -1,6 +1,6 @@
 open Base
 open Entities
-open Types
+open Rl_types
 
 let get_entities_manager (state : State_types.t) : Entity_manager.t =
   state.entities
@@ -20,27 +20,26 @@ let set_equipment (id : entity_id) (eq : Components.Equipment.t) : unit =
 
 (* Entity helpers *)
 
-let move_entity (id : entity_id) (loc : Types.Loc.t) (state : State_types.t) =
+let move_entity (id : entity_id) (position : Components.Position.t)
+    (state : State_types.t) =
   let old_pos = Components.Position.get id in
-  Components.Position.set id loc |> fun _ ->
+  Components.Position.set id position |> fun _ ->
   (match old_pos with
-  | Some pos -> Hashtbl.remove state.position_index pos
+  | Some pos -> Hashtbl.remove state.position_index pos.world_pos
   | None -> ());
-  Hashtbl.set state.position_index ~key:loc ~data:id;
+  Hashtbl.set state.position_index ~key:position.world_pos ~data:(id, position);
   state
 
-let get_entity_at_pos (pos : Types.Loc.t) (state : State_types.t) :
+let get_entity_at_pos (pos : Rl_types.Loc.t) (state : State_types.t) :
     entity_id option =
-  match Hashtbl.find state.position_index pos with
-  | Some id -> Some id
-  | None -> None
+  Option.map (Hashtbl.find state.position_index pos) ~f:fst
 
-let get_blocking_entity_at_pos (pos : Types.Loc.t) (state : State_types.t) :
+let get_blocking_entity_at_pos (pos : Rl_types.Loc.t) (state : State_types.t) :
     entity_id option =
   Entity_manager.to_list state.entities
   |> List.find ~f:(fun id ->
          match Components.Position.get id with
-         | Some pos' when Poly.(pos = pos') ->
+         | Some pos' when Poly.(pos = pos'.world_pos) ->
              Option.value ~default:false (Components.Blocking.get id)
          | _ -> false)
 
@@ -59,7 +58,7 @@ let add_entity_to_index (entity_id : entity_id) (state : State_types.t) :
     State_types.t =
   match Components.Position.get entity_id with
   | Some pos ->
-      Hashtbl.set state.position_index ~key:pos ~data:entity_id;
+      Hashtbl.set state.position_index ~key:pos.world_pos ~data:(entity_id, pos);
       state
   | None -> state
 
@@ -68,7 +67,7 @@ let remove_entity_from_index (entity_id : entity_id) (state : State_types.t) :
     State_types.t =
   match Components.Position.get entity_id with
   | Some pos ->
-      Hashtbl.remove state.position_index pos;
+      Hashtbl.remove state.position_index pos.world_pos;
       state
   | None -> state
 
@@ -77,7 +76,9 @@ let rebuild_position_index (state : State_types.t) : State_types.t =
   Entity_manager.to_list state.entities
   |> List.iter ~f:(fun entity_id ->
          match Components.Position.get entity_id with
-         | Some pos -> Hashtbl.set state.position_index ~key:pos ~data:entity_id
+         | Some pos ->
+             Hashtbl.set state.position_index ~key:pos.world_pos
+               ~data:(entity_id, pos)
          | None -> ());
   state
 
@@ -100,5 +101,5 @@ let remove_entity (id : entity_id) (state : State_types.t) : State_types.t =
   }
   |> fun state ->
   match Components.Position.get id with
-  | Some pos -> spawn_corpse_entity ~pos state
+  | Some pos -> spawn_corpse_entity ~pos:pos.world_pos state
   | None -> state

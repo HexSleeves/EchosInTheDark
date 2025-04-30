@@ -1,6 +1,6 @@
 open Base
 open Components
-module Loc = Types.Loc
+module Loc = Rl_types.Loc
 module Tile = Dungeon.Tile
 
 (* Font configuration for grid rendering *)
@@ -161,7 +161,7 @@ let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx =
   Array.iteri tiles ~f:(fun i t ->
       let x, y = Rl_utils.Utils.index_to_xy i width in
       if not (Set.mem skip_positions (x, y)) then
-        let loc = Types.Loc.make x y in
+        let loc = Rl_types.Loc.make x y in
         match (ctx.render_mode, ctx.tileset_config) with
         | Constants.Tiles, t_cfg ->
             render_tileset_tile ~texture:t_cfg.texture ~tile:t ~loc ~origin
@@ -177,8 +177,11 @@ let render_entities ~entities ~origin ~ctx =
   let drawn = ref (Base.Set.empty (module Int)) in
 
   List.iter entities ~f:(fun entity_id ->
-      let world_pos = Position.get_exn entity_id in
-      let local_pos = Chunk_manager.world_to_local_coord world_pos in
+      let world_position = Position.get_exn entity_id in
+      let local_pos =
+        Chunk_manager.world_to_local_coord world_position.world_pos
+      in
+
       let pos_tuple = (local_pos.x lsl 16) lor local_pos.y in
       if not (Base.Set.mem !drawn pos_tuple) then (
         drawn := Base.Set.add !drawn pos_tuple;
@@ -307,12 +310,12 @@ let draw_player_stats_box ~player_id ~rect ~ctx ~line_height ~padding =
   let lines =
     Option.bind (Stats.get player_id) ~f:(fun stats ->
         Option.map (Position.get player_id) ~f:(fun pos ->
-            let chunk = Chunk_manager.world_to_chunk_coord pos in
-            let local = Chunk_manager.world_to_local_coord pos in
+            let chunk = Chunk_manager.world_to_chunk_coord pos.world_pos in
+            let local = Chunk_manager.world_to_local_coord pos.world_pos in
             [
               Printf.sprintf "Chunk: %s" (Loc.to_string chunk);
               Printf.sprintf "Local: %s" (Loc.to_string local);
-              Printf.sprintf "World: %s" (Loc.to_string pos);
+              Printf.sprintf "World: %s" (Loc.to_string pos.world_pos);
               Printf.sprintf "HP: %d/%d" stats.hp stats.max_hp;
               Printf.sprintf "ATK: %d" stats.attack;
               Printf.sprintf "DEF: %d" stats.defense;

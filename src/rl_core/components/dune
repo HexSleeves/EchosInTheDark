@@ -2,7 +2,7 @@
 
 (library
  (name components)
- (libraries base core_kernel containers logs types)
+ (libraries base core_kernel containers logs rl_types chunk)
  (preprocess
   (pps
    ppx_jane

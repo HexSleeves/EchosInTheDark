@@ -1,11 +1,14 @@
 open Base
 open State_types
-open Mapgen
+module Types = Rl_types
+module Util = Rl_utils
 
 type t = State_types.t [@@deriving show]
 
-let create_default_state () =
-  Entities.Entity_manager.create () |> fun entities ->
+let create_default_state ~player_start =
+  Entities.Spawner.spawn_player ~pos:player_start
+    (Entities.Entity_manager.create ())
+  |> fun entities ->
   State_levels.setup_entities_for_level ~entities
     ~turn_queue:(Turn_queue.create ())
     ~actor_manager:(Actors.Actor_manager.create ())
@@ -31,12 +34,7 @@ let get_chunk_manager (state : t) : Chunk_manager.t = state.chunk_manager
 let set_chunk_manager (chunk_manager : Chunk_manager.t) (state : t) : t =
   { state with chunk_manager }
 
-let update_chunk_managers (chunk_managers : (int, Chunk_manager.t) Hashtbl.t)
-    (chunk_manager : Chunk_manager.t) (state : t) : t =
-  Base.Hashtbl.set chunk_managers ~key:0 ~data:chunk_manager;
-  { state with chunk_managers }
-
-let get_tile_at (state : t) (world_pos : Types.world_pos) :
+let get_tile_at (state : t) (world_pos : Chunk.world_pos) :
     Dungeon.Tile.t option =
   Chunk_manager.get_tile_at world_pos state.chunk_manager
 
@@ -68,7 +66,7 @@ let make ~debug ~w ~h ~seed ~depth =
   Core_log.info (fun m -> m "Creating state with seed: %d" seed);
 
   (* Generate the first chunk and pick a player start position *)
-  let chunk_coords = Types.Loc.make 0 0 in
+  let chunk_coords = Rl_types.Loc.make 0 0 in
   let chunk =
     Chunk_manager.generate_chunk ~chunk_coords ~world_seed:seed ~depth
   in
@@ -79,7 +77,7 @@ let make ~debug ~w ~h ~seed ~depth =
     let height = Array.length chunk.tiles in
     let rng = Random.State.make [| seed |] in
     let loc =
-      Util.find_random_floor
+      Mapgen.Mapgen_utils.find_random_floor
         (Array.concat (Array.to_list chunk.tiles))
         ~width ~height ~rng
     in
@@ -87,20 +85,14 @@ let make ~debug ~w ~h ~seed ~depth =
     loc
   in
 
+  (* Set up actor manager and turn queue *)
+  let actor_manager, turn_queue, entities =
+    create_default_state ~player_start
+  in
   (* Spawn the player at the chosen position *)
-  let entities = Entities.Entity_manager.create () in
-  let entities = Entities.Spawner.spawn_player ~pos:player_start entities in
   let player_id =
     Entities.Entity_manager.find_player_id entities |> Option.value_exn
   in
-
-  (* Set up actor manager and turn queue *)
-  let actor_manager, turn_queue =
-    State_levels.setup_entities_for_level ~entities
-      ~turn_queue:(Turn_queue.create ())
-      ~actor_manager:(Actors.Actor_manager.create ())
-  in
-
   Turn_queue.print_turn_queue turn_queue;
   Entities.Entity_manager.print entities;
 
@@ -112,27 +104,18 @@ let make ~debug ~w ~h ~seed ~depth =
   in
   Base.Hashtbl.set chunk_managers ~key:0 ~data:chunk_manager;
 
-  let position_index = Base.Hashtbl.create (module Types.Loc) in
-  Entities.Entity_manager.to_list entities
-  |> List.iter ~f:(fun entity_id ->
-         match Components.Position.get entity_id with
-         | Some pos -> Base.Hashtbl.set position_index ~key:pos ~data:entity_id
-         | None -> ());
-
-  Logs.info (fun m -> m "Player ID: %d" player_id);
-
   let state =
     {
       debug;
       depth;
       entities;
+      player_id;
       actor_manager;
       turn_queue;
       chunk_manager;
       chunk_managers;
-      position_index;
-      player_id;
       mode = Types.CtrlMode.Normal;
+      position_index = Base.Hashtbl.create (module Rl_types.Loc);
     }
   in
   State_utils.rebuild_position_index state

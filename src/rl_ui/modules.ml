@@ -5,7 +5,6 @@ open Screens
 module R = Renderer
 
 (* Core modules *)
-module T = Types
 module Backend = Rl_core.Backend
 
 type mainloop_iface = {

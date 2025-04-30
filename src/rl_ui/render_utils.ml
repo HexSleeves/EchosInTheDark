@@ -4,16 +4,16 @@ open Raylib
 (* open Components *)
 open Dungeon
 open Constants
-open Types
+open Rl_types
 
 (* Map grid (tile) position to screen position using FontConfig *)
-let grid_to_screen (loc : Types.Loc.t) =
+let grid_to_screen (loc : Rl_types.Loc.t) =
   Raylib.Vector2.create
     (Float.of_int loc.x *. Float.of_int font_size)
     (Float.of_int loc.y *. Float.of_int font_size)
 
 let screen_to_grid (vec : Vector2.t) =
-  Types.Loc.make
+  Rl_types.Loc.make
     (Float.to_int (Vector2.x vec /. Float.of_int font_size))
     (Float.to_int (Vector2.y vec /. Float.of_int font_size))
 
@@ -32,7 +32,7 @@ let occupied_positions (entities : entity_id list) : Set.M(PosSet).t =
     ~init:(Set.empty (module PosSet))
     ~f:(fun acc entity ->
       let pos = Components.Position.get_exn entity in
-      Set.add acc (pos.x, pos.y))
+      Set.add acc (pos.world_pos.x, pos.world_pos.y))
 
 (* Get glyph and color for a tile *)
 let[@warning "-11"] tile_glyph_and_color (tile : Tile.t) : string * Color.t =

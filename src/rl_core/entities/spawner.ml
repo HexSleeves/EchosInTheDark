@@ -1,12 +1,14 @@
 open Components
+open Chunk
 
 type t = Entity_manager.t
 
 let create_base ~name ~glyph ~pos ~description ?(blocking = true) (em : t) =
   let id, em = Entity_manager.spawn em in
+  let position = Position.make pos in
 
   (* Here we set all the components *)
-  Position.set id pos;
+  Position.set id position;
   Name.set id { name };
   Renderable.set id { glyph };
   Blocking.set id blocking;

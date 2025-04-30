@@ -2,4 +2,4 @@
 
 (library
  (name events)
- (libraries base core_kernel containers logs types core_log state_types))
+ (libraries base core_kernel containers logs rl_types core_log state_types))

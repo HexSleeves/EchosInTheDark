@@ -1,9 +1,9 @@
 type t = Entity_manager.t
 
-val spawn_player : pos:Types.Loc.t -> t -> Entity_manager.t
+val spawn_player : pos:Rl_types.Loc.t -> t -> Entity_manager.t
 
 val spawn_creature :
-  pos:Types.Loc.t ->
+  pos:Rl_types.Loc.t ->
   species:Components.Species.t ->
   health:int ->
   glyph:char ->
@@ -14,7 +14,7 @@ val spawn_creature :
   Entity_manager.t
 
 val spawn_item :
-  pos:Types.Loc.t ->
+  pos:Rl_types.Loc.t ->
   item_type:Components.Item.Item_data.item_type ->
   quantity:int ->
   name:string ->
@@ -23,4 +23,4 @@ val spawn_item :
   t ->
   Entity_manager.t
 
-val spawn_corpse : pos:Types.Loc.t -> t -> Entity_manager.t
+val spawn_corpse : pos:Rl_types.Loc.t -> t -> Entity_manager.t

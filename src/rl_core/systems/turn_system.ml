@@ -1,5 +1,5 @@
 open Base
-open Types
+open Rl_types
 open Actors
 open Components
 module Log = (val Core_log.make_logger "turn_system" : Logs.LOG)
@@ -109,7 +109,7 @@ let process_actor_event (state : State.t) (tq : Turn_queue.t)
 let process_turns (backend : State.t) : State.t =
   let rec process_loop current_backend =
     match State.get_mode current_backend with
-    | Types.CtrlMode.WaitInput -> current_backend
+    | Rl_types.CtrlMode.WaitInput -> current_backend
     | _ ->
         Turn_queue.get_next_actor (State.get_turn_queue current_backend)
         |> fun (result, next_tq) ->

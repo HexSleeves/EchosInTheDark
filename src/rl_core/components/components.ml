@@ -1,5 +1,5 @@
 open Base
-open Types
+open Rl_types
 
 (* Exports *)
 module Equipment = Equipment
@@ -41,7 +41,14 @@ module Blocking = struct
 end
 
 module Position = struct
-  type t = Types.Loc.t
+  open Chunk
+
+  type t = {
+    world_pos : world_pos;
+    chunk_pos : chunk_coord;
+    local_pos : local_pos;
+  }
+  [@@deriving yojson, show, eq]
 
   let table : (int, t) Hashtbl.t = Hashtbl.Poly.create ()
   let get id = Hashtbl.find table id
@@ -52,7 +59,17 @@ module Position = struct
 
   let set id pos = Hashtbl.set table ~key:id ~data:pos
   let remove id = Hashtbl.remove table id
-  let show t = Types.Loc.show t
+
+  let show t =
+    Printf.sprintf "World: %s, Chunk: %s, Local: %s"
+      (Loc.to_string t.world_pos)
+      (Loc.to_string t.chunk_pos)
+      (Loc.to_string t.local_pos)
+
+  let make (world : Loc.t) : t =
+    let chunk : chunk_coord = world_to_chunk_coord world in
+    let local : local_pos = world_to_local_coord world in
+    { world_pos = world; chunk_pos = chunk; local_pos = local }
 end
 
 module Kind = struct

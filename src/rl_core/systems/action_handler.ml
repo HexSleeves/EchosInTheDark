@@ -4,7 +4,7 @@
 *)
 
 open Base
-open Types
+open Rl_types
 open Events.Event_bus
 open Components
 module Log = (val Core_log.make_logger "action_handler" : Logs.LOG)
@@ -18,13 +18,13 @@ let is_entity_dead (id : entity_id) : bool =
 
 let can_use_stairs_down state id =
   let pos = Position.get_exn id in
-  match State.get_tile_at state pos with
+  match State.get_tile_at state pos.world_pos with
   | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down
   | None -> false
 
 let can_use_stairs_up state id =
   let pos = Position.get_exn id in
-  match State.get_tile_at state pos with
+  match State.get_tile_at state pos.world_pos with
   | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up
   | None -> false
 
@@ -67,26 +67,26 @@ let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
 
   let delta = Direction.to_point dir in
   let pos = Position.get_exn entity_id in
-  let new_pos = Loc.(pos + delta) in
+  let new_pos = Loc.(pos.world_pos + delta) in
 
   let crossed_chunk_boundary =
-    let old_chunk = world_to_chunk_coord pos in
+    let old_chunk = world_to_chunk_coord pos.world_pos in
     let new_chunk = world_to_chunk_coord new_pos in
     let crossed = not Poly.(old_chunk = new_chunk) in
     Logs.info (fun m ->
         m "old_chunk: %s, new_chunk: %s, crossed: %b"
-          (Sexp.to_string (sexp_of_chunk_coord old_chunk))
-          (Sexp.to_string (sexp_of_chunk_coord new_chunk))
+          (Sexp.to_string (Chunk.sexp_of_chunk_coord old_chunk))
+          (Sexp.to_string (Chunk.sexp_of_chunk_coord new_chunk))
           crossed);
     crossed
   in
 
-  let old_local = world_to_local_coord pos in
+  let old_local = world_to_local_coord pos.world_pos in
   Logs.info (fun m ->
       m "old_local: %s, new_pos: %s" (Loc.show old_local) (Loc.show new_pos));
   let wrapped_new_pos =
     if crossed_chunk_boundary then (
-      let cx, cy = Loc.to_tuple (world_to_chunk_coord pos) in
+      let cx, cy = Loc.to_tuple (world_to_chunk_coord pos.world_pos) in
 
       let wrapped =
         match dir with
@@ -130,7 +130,7 @@ let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
   | None -> (
       match State.get_tile_at state wrapped_new_pos with
       | Some tile when Dungeon.Tile.is_walkable tile ->
-          ( Movement_system.move_entity ~entity_id ~to_pos:wrapped_new_pos state,
+          ( Movement_system.move_entity ~entity_id ~go_to:wrapped_new_pos state,
             Ok 100 )
       | _ -> (state, Error (Failure "Cannot move here: terrain blocked")))
 
@@ -141,13 +141,13 @@ let rec handle_action (state : State.t) (entity_id : entity_id)
   | Action.Move dir -> handle_move ~state ~entity_id ~dir ~handle_action
   | Action.StairsUp -> (
       let pos = Position.get_exn entity_id in
-      match State.get_tile_at state pos with
+      match State.get_tile_at state pos.world_pos with
       | Some tile when Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up ->
           (State.transition_to_previous_level state, Ok (-1))
       | _ -> (state, Error (Failure "Not on stairs up")))
   | Action.StairsDown -> (
       let pos = Position.get_exn entity_id in
-      match State.get_tile_at state pos with
+      match State.get_tile_at state pos.world_pos with
       | Some tile when Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down ->
           (State.transition_to_next_level state, Ok (-1))
       | _ -> (state, Error (Failure "Not on stairs down")))

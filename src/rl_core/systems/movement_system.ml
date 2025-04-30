@@ -1,11 +1,12 @@
 open Base
 open Events.Event_bus
 open Components
-open Types
+open Rl_types
 
-let move_entity ~(entity_id : entity_id) ~(to_pos : Loc.t)
+let move_entity ~(entity_id : entity_id) ~(go_to : Loc.t)
     (state : State_types.t) : State_types.t =
-  let from_pos = entity_id |> Position.get |> Option.value ~default:to_pos in
+  let from_pos = Position.get_exn entity_id in
+  let to_pos = Chunk_manager.make_position go_to in
 
   (* Update the Position component table *)
   State.move_entity entity_id to_pos state

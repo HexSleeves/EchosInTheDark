@@ -135,7 +135,7 @@ let bands_by_depth depth =
 (* Select a random band composition for a room, based on depth *)
 let random_band_for_room ~depth ~rng =
   let bands = bands_by_depth depth in
-  Util.random_choice bands ~rng
+  Mapgen_utils.random_choice bands ~rng
 
 (* Expand a band spec [(species, count); ...] to a list of monster_specs *)
 let expand_band band =

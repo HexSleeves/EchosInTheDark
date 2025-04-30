@@ -7,7 +7,7 @@
   core_kernel
   containers
   logs
-  types
+  rl_types
   entities
   actors
   components

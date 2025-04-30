@@ -1,15 +1,14 @@
-(include_subdirs no)
+(include_subdirs qualified)
 
 (library
  (name dungeon)
- (modules tile chunk)
+ (modules tile)
  (libraries
   base
   core_kernel
   containers
   logs
-  types
-  entities
+  rl_types
   core_log
   raylib
   rl_utils)
@@ -26,3 +25,27 @@
    ppx_hash
    ppx_import
    ppx_inline_test)))
+
+(library
+ (name chunk)
+ (modules chunk)
+ (libraries
+  base
+  core_kernel
+  containers
+  logs
+  dungeon
+  rl_types
+  core_log
+  rl_utils)
+ (preprocess
+  (pps
+   ppx_jane
+   ppx_yojson_conv
+   ppx_deriving.enum
+   ppx_deriving.eq
+   ppx_deriving.ord
+   ppx_deriving.show
+   ppx_sexp_conv
+   ppx_compare
+   ppx_hash)))

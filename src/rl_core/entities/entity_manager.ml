@@ -1,5 +1,5 @@
 open Base
-open Types
+open Rl_types
 
 type t = { next_id : int; alive : Set.M(Int).t }
 

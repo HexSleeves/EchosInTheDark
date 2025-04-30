@@ -2,13 +2,19 @@
 
 (library
  (name state)
- (modules state state_entities state_actors state_levels state_utils)
+ (modules
+  state
+  state_entities
+  state_actors
+  state_levels
+  state_utils
+  state_chunk)
  (libraries
   base
   core_kernel
   containers
   logs
-  types
+  rl_types
   entities
   actors
   components
@@ -27,7 +33,7 @@
   core_kernel
   containers
   logs
-  types
+  rl_types
   core_log
   entities
   actors

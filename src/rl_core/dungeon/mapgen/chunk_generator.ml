@@ -1,10 +1,9 @@
 (***
-  Chunk Generator: Modular, functional chunk generation for the dungeon.
+  Chunk Generator: Modular, functional chunk generation for the
   Supports biomes, pluggable algorithms, and entity/feature placement.
 ***)
 
 open Base
-open Types
 open Mapgen_types
 
 (** Hashing function for deterministic chunk seeding *)
@@ -29,14 +28,14 @@ let run_chunk_algo ~(algo : chunk_gen_algo) ~(width : int) ~(height : int)
 (* --- Biome-specific entity/feature placement --- *)
 
 (** Main chunk generation entry point *)
-let generate ~(chunk_coords : chunk_coord) ~(world_seed : int) ~(depth : int) :
-    Dungeon.Chunk.t =
-  let cx, cy = Loc.to_tuple chunk_coords in
+let generate ~(chunk_coords : Chunk.chunk_coord) ~(world_seed : int)
+    ~(depth : int) : Chunk.t =
+  let cx, cy = Rl_types.Loc.to_tuple chunk_coords in
   Core_log.info (fun m ->
       m "[GEN] Generating chunk at (%d, %d), depth %d" cx cy depth);
   let chunk_seed = hash_coords world_seed cx cy in
-  let width = Dungeon.Chunk.chunk_width in
-  let height = Dungeon.Chunk.chunk_height in
+  let width = Chunk.chunk_width in
+  let height = Chunk.chunk_height in
   let rng = Random.State.make [| chunk_seed |] in
 
   (* Step 1: Pick biome and algorithm *)
@@ -58,11 +57,11 @@ let generate ~(chunk_coords : chunk_coord) ~(world_seed : int) ~(depth : int) :
   in
 
   (* Step 4: Construct metadata and return chunk *)
-  let metadata : chunk_metadata = { seed = chunk_seed; biome } in
+  let metadata : Chunk.chunk_metadata = { seed = chunk_seed; biome } in
   {
     tiles;
     metadata;
     entity_ids;
     last_accessed_turn = 0;
-    Dungeon.Chunk.coords = chunk_coords;
+    Chunk.coords = chunk_coords;
   }

@@ -1,8 +1,12 @@
-open Types
+open Rl_types
 
 (* Define core event types here. Expand as needed. *)
 type event =
-  | EntityMoved of { entity_id : int; from_pos : Loc.t; to_pos : Loc.t }
+  | EntityMoved of {
+      entity_id : int;
+      from_pos : Components.Position.t;
+      to_pos : Components.Position.t;
+    }
   | ActorDamaged of { actor_id : int; amount : int }
   | TrapTriggered of { entity_id : int; trap_id : int }
   | EntityAttacked of { attacker_id : int; defender_id : int }

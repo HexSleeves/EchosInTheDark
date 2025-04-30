@@ -1,5 +1,27 @@
 open Base
-open Types
+open Rl_types
+open Dungeon
+open Ppx_yojson_conv_lib.Yojson_conv
+
+let chunk_width = 32
+let chunk_height = 32
+
+(* Absolute position in the infinite world *)
+type world_pos = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]
+
+(* Coordinates identifying a specific chunk *)
+type chunk_coord = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]
+
+(* Position within a chunk (0-31) *)
+type local_pos = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]
+
+(* Metadata associated with a chunk *)
+type chunk_metadata = {
+  seed : int;
+  biome : Biome.biome_type;
+      (* Add other flags as needed, e.g., has_feature_x : bool; *)
+}
+[@@deriving yojson, show, eq, compare, hash, sexp]
 
 type t = {
   coords : chunk_coord; (* (cx, cy) *)
@@ -10,11 +32,6 @@ type t = {
   mutable last_accessed_turn : int;
       (* For potential LRU cache eviction optimization *)
 }
-(* Deriving yojson might be complex due to the 2D array and Tile.t. Handle manually if needed. *)
-(* [@@deriving show] could also be large. Add if debugging requires it. *)
-
-let chunk_width = 32
-let chunk_height = 32
 
 let create ~coords ~metadata : t =
   {
@@ -26,6 +43,21 @@ let create ~coords ~metadata : t =
       Array.init chunk_height ~f:(fun _ ->
           Array.init chunk_width ~f:(fun _ -> Tile.Floor));
   }
+
+let world_to_chunk_coord (pos : Loc.t) : Loc.t =
+  Loc.make (pos.x / chunk_width) (pos.y / chunk_height)
+
+let world_to_local_coord (pos : Loc.t) : Loc.t =
+  let lx = pos.x % chunk_width in
+  let ly = pos.y % chunk_height in
+  let lx = if lx < 0 then lx + chunk_width else lx in
+  let ly = if ly < 0 then ly + chunk_height else ly in
+  Loc.make lx ly
+
+(* let make_position (world : Loc.t) : Components.Position.t =
+  let chunk = world_to_chunk_coord world in
+  let local = world_to_local_coord world in
+  { world_pos = world; chunk_pos = chunk; local_pos = local } *)
 
 let get_tile (chunk : t) (pos : local_pos) : Tile.t option =
   if pos.x >= 0 && pos.x < chunk_width && pos.y >= 0 && pos.y < chunk_height

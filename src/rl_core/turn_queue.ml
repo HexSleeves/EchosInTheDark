@@ -1,5 +1,5 @@
 open Base
-open Types
+open Rl_types
 module Log = (val Core_log.make_logger "turn_queue" : Logs.LOG)
 
 (* Persistent min-heap of (time, id) using a sorted list *)

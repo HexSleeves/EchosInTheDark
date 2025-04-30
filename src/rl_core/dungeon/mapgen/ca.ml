@@ -73,7 +73,7 @@ let place_monsters ~grid ~width ~height ~rng entity_manager =
         | Some tile when Tile.is_floor tile ->
             let x = idx % width in
             let y = idx / width in
-            Some (Types.Loc.make x y)
+            Some (Rl_types.Loc.make x y)
         | _ -> None)
   in
   (* let num_monsters = Int.max 1 (width * height / 120) in *)

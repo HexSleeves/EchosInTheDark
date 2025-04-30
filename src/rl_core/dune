@@ -24,7 +24,7 @@
   rl_utils
   state
   systems
-  types
+  rl_types
   chunk_manager)
  (preprocess
   (pps ppx_jane ppx_compare ppx_deriving.show)))
@@ -37,17 +37,26 @@
 (library
  (name core_utils)
  (modules util)
- (libraries base core_kernel containers logs types components))
+ (libraries base core_kernel containers logs rl_types components))
 
 (library
  (name chunk_manager)
  (modules chunk_manager)
- (libraries base core_kernel containers logs types components dungeon mapgen)
+ (libraries
+  base
+  core_kernel
+  containers
+  logs
+  rl_types
+  components
+  dungeon
+  mapgen)
  (preprocess
   (pps
    ppx_jane
    ppx_enumerate
    ppx_yojson_conv
+   ppx_sexp_conv
    ppx_deriving.show
    ppx_deriving.eq
    ppx_deriving.ord)))
@@ -55,17 +64,4 @@
 (library
  (name turn_queue)
  (modules turn_queue)
- (libraries base core_kernel containers logs types core_log))
-
-(library
- (name types)
- (modules types)
- (libraries base core_kernel containers logs)
- (preprocess
-  (pps
-   ppx_jane
-   ppx_enumerate
-   ppx_yojson_conv
-   ppx_deriving.show
-   ppx_deriving.eq
-   ppx_deriving.ord)))
+ (libraries base core_kernel containers logs rl_types core_log))

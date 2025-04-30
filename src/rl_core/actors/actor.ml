@@ -1,5 +1,5 @@
 open Base
-open Types
+open Rl_types
 open Ppx_yojson_conv_lib.Yojson_conv
 
 (* --- BEGIN MERGED FROM actor.ml --- *)

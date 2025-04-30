@@ -2,7 +2,7 @@
 
 (library
  (name actors)
- (libraries base core_kernel containers logs types core_log entities)
+ (libraries base core_kernel containers logs rl_types core_log entities)
  (preprocess
   (pps
    ppx_jane

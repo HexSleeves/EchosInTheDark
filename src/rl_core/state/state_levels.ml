@@ -22,9 +22,10 @@ let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
 
 let transition_to_next_level (state : State_types.t) : State_types.t =
   (* Save current chunk_manager *)
-  (* Base.Hashtbl.set state.chunk_managers ~key:state.depth
-    ~data:state.chunk_manager; *)
-  let state = State.update_chunk_managers state.chunk_managers state in
+  let state =
+    State_chunk.update_chunk_managers state.chunk_managers state.chunk_manager
+      state
+  in
 
   let next_depth = state.depth + 1 in
 
@@ -39,7 +40,7 @@ let transition_to_next_level (state : State_types.t) : State_types.t =
     { state with depth = next_depth; chunk_manager } |> fun state' ->
     match Components.Position.get state'.player_id with
     | Some pos -> (
-        match Chunk_manager.get_tile_at pos chunk_manager with
+        match Chunk_manager.get_tile_at pos.world_pos chunk_manager with
         | Some Dungeon.Tile.Stairs_up ->
             State_entities.move_entity state'.player_id pos state'
         | _ -> state')
@@ -50,7 +51,8 @@ let transition_to_next_level (state : State_types.t) : State_types.t =
     state' with
     chunk_manager =
       (match Components.Position.get state'.player_id with
-      | Some pos -> Chunk_manager.tick pos chunk_manager ~depth:state'.depth
+      | Some pos ->
+          Chunk_manager.tick pos.world_pos chunk_manager ~depth:state'.depth
       | None -> chunk_manager);
   }
 
@@ -69,7 +71,7 @@ let transition_to_previous_level (state : State_types.t) : State_types.t =
     { state with depth = prev_depth; chunk_manager } |> fun state' ->
     match Components.Position.get state'.player_id with
     | Some pos -> (
-        match Chunk_manager.get_tile_at pos chunk_manager with
+        match Chunk_manager.get_tile_at pos.world_pos chunk_manager with
         | Some Dungeon.Tile.Stairs_down ->
             State_entities.move_entity state'.player_id pos state'
         | _ -> state')
@@ -80,6 +82,7 @@ let transition_to_previous_level (state : State_types.t) : State_types.t =
     state' with
     chunk_manager =
       (match Components.Position.get state'.player_id with
-      | Some pos -> Chunk_manager.tick pos chunk_manager ~depth:state'.depth
+      | Some pos ->
+          Chunk_manager.tick pos.world_pos chunk_manager ~depth:state'.depth
       | None -> chunk_manager);
   }
