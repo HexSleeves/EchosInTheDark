@@ -1,0 +1,11 @@
+(include_subdirs unqualified)
+
+(library
+ (name constants)
+ (modules constants)
+ (libraries base containers core_kernel logs raylib))
+
+(library
+ (name render_constants)
+ (modules render_constants)
+ (libraries base containers core_kernel logs raylib))

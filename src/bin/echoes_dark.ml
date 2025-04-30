@@ -1,11 +1,9 @@
 (* Copyright (c) 2025 Jacob LeCoq (Yendor). All rights reserved. *)
 
-module Constants = Rl_ui.Constants
-
-let margin = Constants.margin
-let stats_bar_width_min = Constants.stats_bar_width_min
-let stats_bar_width_frac = Constants.stats_bar_width_frac
-let log_height = Constants.log_height
+let margin = Render_constants.margin
+let stats_bar_width_min = Render_constants.stats_bar_width_min
+let stats_bar_width_frac = Render_constants.stats_bar_width_frac
+let log_height = Render_constants.log_height
 
 let () =
   (* CLI argument refs *)

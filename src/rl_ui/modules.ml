@@ -55,8 +55,8 @@ let draw_raylib_scene draw_func =
       let result = draw_func () in
       result)
 
-let main init_fn font_config =
-  let (data : State.t), (v : mainloop_iface) = init_fn font_config in
+let main init_fn render_ctx =
+  let (data : State.t), (v : mainloop_iface) = init_fn render_ctx in
   let rec update_loop (data : State.t) =
     match Raylib.window_should_close () || data.quitting with
     | true -> Ui_log.info (fun m -> m "Window closing...")
@@ -80,7 +80,7 @@ let main init_fn font_config =
   Stdlib.Fun.protect
     ~finally:(fun () ->
       Ui_log.info (fun m -> m "Cleaning up resources...");
-      R.cleanup font_config)
+      R.cleanup render_ctx)
     (fun () -> update_loop data)
 (* --- End mainloop.ml logic --- *)
 
@@ -115,4 +115,16 @@ let run_with_config (render_ctx : R.render_context) (config : init_config) :
     let state = create_initial_state render_ctx config in
     (state, { render; handle_tick })
   in
-  main init_fn render_ctx.font_config
+  main init_fn render_ctx
+
+let () =
+  let render_ctx = R.create_render_context () in
+  let init_fn ctx =
+    let config =
+      { width = 80; height = 50; debug = false; seed = None; backend = None }
+      (* Example config *)
+    in
+    let state = create_initial_state ctx config in
+    (state, { render; handle_tick })
+  in
+  main init_fn render_ctx

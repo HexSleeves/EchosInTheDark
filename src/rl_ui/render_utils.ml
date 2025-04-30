@@ -1,9 +1,7 @@
 open Base
 open Raylib
-
-(* open Components *)
+open Render_constants
 open Dungeon
-open Constants
 open Rl_types
 
 (* Map grid (tile) position to screen position using FontConfig *)
@@ -72,8 +70,8 @@ let entity_to_sprite_coords (entity_id : entity_id) =
           | `Goblin -> (2, 0)
           | `Kobold -> (3, 0)
           | `Spider -> (4, 0)
-          | _ -> Constants.unknown_tile_sprite_coords)
-      | None -> Constants.unknown_tile_sprite_coords)
+          | _ -> Render_constants.unknown_tile_sprite_coords)
+      | None -> Render_constants.unknown_tile_sprite_coords)
   | None -> failwith "Entity has no kind"
 
 let draw_font_text ~font ~font_size ~color ~text ~pos_x ~pos_y =
@@ -82,8 +80,8 @@ let draw_font_text ~font ~font_size ~color ~text ~pos_x ~pos_y =
     font_size 0. color
 
 let draw_texture_ex ~texture ~pos ~origin ~tile_render_size ~col ~row =
-  let tile_width = Constants.tile_width in
-  let tile_height = Constants.tile_height in
+  let tile_width = Render_constants.tile_width in
+  let tile_height = Render_constants.tile_height in
 
   let src =
     Raylib.Rectangle.create

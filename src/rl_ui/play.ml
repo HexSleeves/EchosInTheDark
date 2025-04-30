@@ -9,14 +9,15 @@
     as needed. *)
 
 open Base
+open Constants
 module R = Renderer
 module T = Rl_types
 module Backend = Rl_core.Backend
 
-let margin = Constants.margin
-let log_height = Constants.log_height
-let stats_bar_width_min = Constants.stats_bar_width_min
-let stats_bar_width_frac = Constants.stats_bar_width_frac
+let margin = Render_constants.margin
+let log_height = Render_constants.log_height
+let stats_bar_width_min = Render_constants.stats_bar_width_min
+let stats_bar_width_frac = Render_constants.stats_bar_width_frac
 
 let render (state : State.t) : State.t option =
   let backend = state.backend in
@@ -24,35 +25,62 @@ let render (state : State.t) : State.t option =
 
   let screen_w = Raylib.get_screen_width () in
   let screen_h = Raylib.get_screen_height () in
+  let screen_wf = Float.of_int screen_w in
+  let screen_hf = Float.of_int screen_h in
+  let marginf = Float.of_int margin in
 
-  (* let stats_bar_w =
-    max stats_bar_width_min
-      (Int.of_float (Float.of_int screen_w *. stats_bar_width_frac))
-  in *)
-  (* let log_h = log_height in *)
-  let map_w = screen_w - (2 * margin) in
-  let map_h = screen_h - (2 * margin) in
-  (* let map_w = screen_w - stats_bar_w - (2 * margin) in
-  let map_h = screen_h - log_h - (2 * margin) in *)
+  (* Define UI panel dimensions and positions *)
+  let top_bar_h = 60.0 in
+  (* Adjust as needed *)
+  let bottom_bar_h = 80.0 in
+  (* Adjust as needed *)
+  let right_sidebar_w = screen_wf *. 0.3 in
+  (* 30% width *)
 
-  let map_rect =
-    Raylib.Rectangle.create (Float.of_int margin) (Float.of_int margin)
-      (Float.of_int map_w) (Float.of_int map_h)
+  let top_bar_rect =
+    Raylib.Rectangle.create marginf marginf
+      (screen_wf -. (2. *. marginf))
+      top_bar_h
   in
-  (* let stats_rect =
+
+  let main_view_rect =
+    Raylib.Rectangle.create marginf (top_bar_h +. marginf)
+      (screen_wf -. right_sidebar_w -. (2. *. marginf))
+      (screen_hf -. top_bar_h -. bottom_bar_h -. (2. *. marginf))
+  in
+
+  let right_sidebar_rect =
     Raylib.Rectangle.create
-      (Float.of_int (map_w + (2 * margin)))
-      0. (Float.of_int stats_bar_w) (Float.of_int screen_h)
-  in *)
-  (* let log_rect =
-    Raylib.Rectangle.create (Float.of_int margin)
-      (Float.of_int (map_h + margin))
-      (Float.of_int map_w) (Float.of_int log_h)
-  in *)
+      (screen_wf -. right_sidebar_w -. marginf)
+      (top_bar_h +. marginf) right_sidebar_w
+      (screen_hf -. top_bar_h -. bottom_bar_h -. (2. *. marginf))
+  in
+
+  let bottom_bar_rect =
+    Raylib.Rectangle.create marginf
+      (screen_hf -. bottom_bar_h -. marginf)
+      (screen_wf -. (2. *. marginf))
+      bottom_bar_h
+  in
+
+  (* Split right sidebar into minimap and message log areas *)
+  let minimap_h = Raylib.Rectangle.height right_sidebar_rect *. 0.3 in
+  let minimap_rect =
+    Raylib.Rectangle.create
+      (Raylib.Rectangle.x right_sidebar_rect)
+      (Raylib.Rectangle.y right_sidebar_rect)
+      (Raylib.Rectangle.width right_sidebar_rect)
+      minimap_h
+  in
+  let message_log_rect =
+    Raylib.Rectangle.create
+      (Raylib.Rectangle.x right_sidebar_rect)
+      (Raylib.Rectangle.y right_sidebar_rect +. minimap_h +. marginf)
+      (Raylib.Rectangle.width right_sidebar_rect)
+      (Raylib.Rectangle.height right_sidebar_rect -. minimap_h -. marginf)
+  in
 
   let entities = Backend.get_entities backend in
-  (* TODO: Integrate chunk-based rendering here. The old get_current_map is gone. *)
-
   let player_id = Backend.get_player_id backend in
   let player_pos = Components.Position.get_exn player_id in
   let chunk_manager = Backend.get_chunk_manager backend in
@@ -64,8 +92,8 @@ let render (state : State.t) : State.t option =
     | Some chunk ->
         let map_origin =
           Raylib.Vector2.create
-            (Raylib.Rectangle.x map_rect)
-            (Raylib.Rectangle.y map_rect)
+            (Raylib.Rectangle.x main_view_rect)
+            (Raylib.Rectangle.y main_view_rect)
         in
         let entity_positions =
           Render_utils.occupied_positions (Backend.get_entities backend)
@@ -78,18 +106,18 @@ let render (state : State.t) : State.t option =
 
         Renderer.render_entities ~entities ~origin:map_origin ~ctx);
 
-  (* Draw a border around the map view *)
-  Raylib.draw_rectangle_lines_ex map_rect 2.0 Constants.color_gold;
+  (* Draw a border around the main map view *)
+  Raylib.draw_rectangle_lines_ex main_view_rect 2.0 Render_constants.color_gold;
 
-  (* Render stats bar *)
-  (* R.draw_stats_bar_vertical
-    ~player_id:(Backend.get_player_id backend)
-    ~rect:stats_rect ~ctx; *)
+  (* Render other panels *)
+  R.draw_top_bar ~rect:top_bar_rect ~backend ~ctx;
+  R.draw_minimap ~rect:minimap_rect ~backend ~ctx;
+  let messages = Ui_log.get_console_messages () in
+  R.draw_message_log ~messages ~rect:message_log_rect;
+  R.draw_bottom_bar ~rect:bottom_bar_rect ~backend ~ctx;
 
-  (* Render message log from UI console buffer *)
-  (* let messages = Ui_log.get_console_messages () in
-  R.draw_message_log ~messages ~rect:log_rect; *)
-  if Backend.get_debug backend then R.render_fps_overlay ctx.font_config;
+  if Backend.get_debug backend then R.render_fps_overlay ctx;
+
   None
 
 let handle_mouse (state : State.t) =
@@ -107,18 +135,30 @@ let handle_player_input (state : State.t) : State.t =
   let state = handle_mouse state in
   let action_opt = Input.get_current_action () in
 
+  (* Local helper to convert render_mode to string *)
+  let render_mode_to_string mode =
+    match mode with
+    | Render_constants.Ascii -> "ASCII"
+    | Render_constants.Tiles -> "Tiles"
+  in
+
   (* Handle UI actions *)
   let state =
     match action_opt with
     | Some Input.ToggleRender ->
-        let () = Constants.toggle_render_mode () in
-        let new_mode = !Constants.render_mode_ref in
+        let current_mode = state.render_ctx.render_mode in
+        let new_mode =
+          match current_mode with
+          | Render_constants.Ascii -> Render_constants.Tiles
+          | Render_constants.Tiles -> Render_constants.Ascii
+        in
+        (* Create a new render_ctx with the toggled mode *)
+        let new_render_ctx = { state.render_ctx with render_mode = new_mode } in
         Ui_log.console "Toggled render mode to: %s"
-          (Constants.render_mode_to_string new_mode);
-        {
-          state with
-          render_ctx = { state.render_ctx with render_mode = new_mode };
-        }
+          (render_mode_to_string new_mode);
+        (* Use local helper *)
+        (* Return a new state with the updated render_ctx *)
+        { state with render_ctx = new_render_ctx }
     | _ -> state
   in
 

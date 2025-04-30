@@ -3,14 +3,21 @@ open Item
 open Ppx_yojson_conv_lib.Yojson_conv
 
 module Stats_data = struct
-  type t = { max_hp : int; hp : int; attack : int; defense : int; speed : int }
+  type t = {
+    max_hp : int;
+    hp : int;
+    attack : int;
+    defense : int;
+    speed : int;
+    level : int;
+  }
   [@@deriving yojson, show]
 
   let default () =
-    { max_hp = 30; hp = 30; attack = 10; defense = 5; speed = 100 }
+    { max_hp = 30; hp = 30; attack = 10; defense = 5; speed = 100; level = 1 }
 
-  let create ~max_hp ~hp ~attack ~defense ~speed =
-    { max_hp; hp; attack; defense; speed }
+  let create ~max_hp ~hp ~attack ~defense ~speed ?(level = 1) () =
+    { max_hp; hp; attack; defense; speed; level }
 
   let get_hp t = t.hp
   let get_max_hp t = t.max_hp
@@ -53,4 +60,5 @@ let apply_equipment_modifiers (base : t) (items : Item.t list) : t =
     attack = base.attack + total_mods.attack;
     defense = base.defense + total_mods.defense;
     speed = base.speed + total_mods.speed;
+    level = base.level;
   }

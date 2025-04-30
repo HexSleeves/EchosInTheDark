@@ -35,7 +35,7 @@ let spawn_creature ~pos ~species ~health ~glyph ~name ~description ~faction
     (em : t) =
   let id, em = create_base ~name ~glyph ~pos ~description em in
 
-  Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5 ~speed:100
+  Stats.create ~max_hp:health ~hp:health ~attack:10 ~defense:5 ~speed:100 ()
   |> Stats.set id |> ignore;
 
   (* Set species, faction, etc. as components if you have them *)
