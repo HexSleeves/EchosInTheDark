@@ -22,61 +22,64 @@ let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
 
 let transition_to_next_level (state : State_types.t) : State_types.t =
   (* Save current chunk_manager *)
-  Base.Hashtbl.set state.chunk_managers ~key:state.current_level
+  Base.Hashtbl.set state.chunk_managers ~key:state.depth
     ~data:state.chunk_manager;
 
-  let next_level = state.current_level + 1 in
+  let next_depth = state.depth + 1 in
 
   (* Load or create chunk_manager for next level *)
   let chunk_manager =
-    match Base.Hashtbl.find state.chunk_managers next_level with
+    match Base.Hashtbl.find state.chunk_managers next_depth with
     | Some cm -> cm
     | None ->
-        Chunk_manager.create ~world_seed:next_level (* or use a better seed *)
+        Chunk_manager.create ~world_seed:next_depth (* or use a better seed *)
   in
 
-  let state' = { state with current_level = next_level; chunk_manager } in
-
-  let state'' =
+  let state' =
+    { state with depth = next_depth; chunk_manager } |> fun state' ->
     match Components.Position.get state'.player_id with
     | Some pos -> (
-        match Chunk_manager.get_tile_at chunk_manager pos with
+        match Chunk_manager.get_tile_at pos chunk_manager with
         | Some Dungeon.Tile.Stairs_up ->
             State_entities.move_entity state'.player_id pos state'
         | _ -> state')
     | None -> state'
   in
 
-  let chunk_manager =
-    match Components.Position.get state''.player_id with
-    | Some pos -> Chunk_manager.tick chunk_manager pos
-    | None -> chunk_manager
-  in
-
-  { state'' with chunk_manager }
+  {
+    state' with
+    chunk_manager =
+      (match Components.Position.get state'.player_id with
+      | Some pos -> Chunk_manager.tick pos chunk_manager ~depth:state'.depth
+      | None -> chunk_manager);
+  }
 
 let transition_to_previous_level (state : State_types.t) : State_types.t =
-  Base.Hashtbl.set state.chunk_managers ~key:state.current_level
+  Base.Hashtbl.set state.chunk_managers ~key:state.depth
     ~data:state.chunk_manager;
-  let prev_level = state.current_level - 1 in
+  let prev_depth = state.depth - 1 in
+
   let chunk_manager =
-    match Base.Hashtbl.find state.chunk_managers prev_level with
+    match Base.Hashtbl.find state.chunk_managers prev_depth with
     | Some cm -> cm
-    | None -> Chunk_manager.create ~world_seed:prev_level
+    | None -> Chunk_manager.create ~world_seed:prev_depth
   in
-  let state' = { state with current_level = prev_level; chunk_manager } in
-  let state'' =
+
+  let state' =
+    { state with depth = prev_depth; chunk_manager } |> fun state' ->
     match Components.Position.get state'.player_id with
     | Some pos -> (
-        match Chunk_manager.get_tile_at chunk_manager pos with
+        match Chunk_manager.get_tile_at pos chunk_manager with
         | Some Dungeon.Tile.Stairs_down ->
             State_entities.move_entity state'.player_id pos state'
         | _ -> state')
     | None -> state'
   in
-  let chunk_manager =
-    match Components.Position.get state''.player_id with
-    | Some pos -> Chunk_manager.tick chunk_manager pos
-    | None -> chunk_manager
-  in
-  { state'' with chunk_manager }
+
+  {
+    state' with
+    chunk_manager =
+      (match Components.Position.get state'.player_id with
+      | Some pos -> Chunk_manager.tick pos chunk_manager ~depth:state'.depth
+      | None -> chunk_manager);
+  }

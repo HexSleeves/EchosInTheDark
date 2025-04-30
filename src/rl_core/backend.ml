@@ -4,11 +4,11 @@ open Types
 
 type t = State.t
 
-let make ~debug ~w ~h ~seed ~current_level : t =
+let make ~debug ~w ~h ~seed ~depth : t =
   (* Initialize systems *)
   Systems.Log_system.init ();
   Systems.Combat_system.init ();
-  State.make ~debug ~w ~h ~seed ~current_level
+  State.make ~debug ~w ~h ~seed ~depth
 
 let get_debug (state : t) : bool = State.get_debug state
 let get_mode (state : t) = State.get_mode state

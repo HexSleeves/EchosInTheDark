@@ -10,15 +10,19 @@ let create_default_state () =
     ~actor_manager:(Actors.Actor_manager.create ())
   |> fun (actor_manager, turn_queue) -> (actor_manager, turn_queue, entities)
 
-let make ~debug ~w ~h ~seed ~current_level =
+let make ~debug ~w ~h ~seed ~depth =
   Core_log.info (fun m -> m "Width: %d, Height: %d" w h);
   Core_log.info (fun m -> m "Creating state with seed: %d" seed);
 
   (* Generate the first chunk and pick a player start position *)
-  let chunk_coords = (0, 0) in
-  let chunk_manager = Chunk_manager.create ~world_seed:seed in
-  let chunk = Mapgen.Chunk_generator.generate chunk_coords ~world_seed:seed in
-  Chunk_manager.set_loaded_chunk chunk_manager chunk_coords chunk;
+  let chunk_coords = Types.Loc.make 0 0 in
+  let chunk =
+    Mapgen.Chunk_generator.generate chunk_coords ~world_seed:seed ~depth
+  in
+  let chunk_manager =
+    Chunk_manager.set_loaded_chunk chunk_coords chunk
+      (Chunk_manager.create ~world_seed:seed)
+  in
 
   (* Find a floor tile for player start, fallback to (0,0) *)
   let player_start =
@@ -54,7 +58,7 @@ let make ~debug ~w ~h ~seed ~current_level =
       ~actor_manager:(Actors.Actor_manager.create ())
   in
 
-  let chunk_manager = Chunk_manager.tick chunk_manager player_start in
+  let chunk_manager = Chunk_manager.tick ~depth player_start chunk_manager in
   let chunk_managers = Base.Hashtbl.create (module Int) in
   Base.Hashtbl.set chunk_managers ~key:0 ~data:chunk_manager;
 
@@ -68,12 +72,12 @@ let make ~debug ~w ~h ~seed ~current_level =
   let state =
     {
       debug;
+      depth;
       entities;
       actor_manager;
       turn_queue;
       chunk_manager;
       chunk_managers;
-      current_level;
       position_index;
       player_id;
       mode = Types.CtrlMode.Normal;
@@ -100,7 +104,7 @@ let get_chunk_manager (state : t) : Chunk_manager.t = state.chunk_manager
 
 let get_tile_at (state : t) (world_pos : Types.world_pos) :
     Dungeon.Tile.t option =
-  Chunk_manager.get_tile_at state.chunk_manager world_pos
+  Chunk_manager.get_tile_at world_pos state.chunk_manager
 
 let add_entity_to_index = State_entities.add_entity_to_index
 let get_entities_manager = State_entities.get_entities_manager

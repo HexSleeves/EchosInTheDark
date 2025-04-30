@@ -12,9 +12,25 @@ module Loc = struct
   type t = { x : int; y : int }
   [@@deriving yojson, show, eq, compare, hash, sexp]
 
+  let to_string t = Printf.sprintf "(%d, %d)" t.x t.y
+
+  (* Create a new location *)
   let make x y = { x; y }
+  let to_tuple t = (t.x, t.y)
+
+  (* Add two locations *)
   let add a b = { x = a.x + b.x; y = a.y + b.y }
   let ( + ) = add
+
+  (* Subtract two locations *)
+  let sub a b = { x = a.x - b.x; y = a.y - b.y }
+  let ( - ) = sub
+
+  (* Get the x coordinate *)
+  let x t = t.x
+
+  (* Get the y coordinate *)
+  let y t = t.y
 end
 
 module Direction = struct
@@ -78,7 +94,7 @@ end
 type world_pos = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]
 
 (* Coordinates identifying a specific chunk *)
-type chunk_coord = int * int [@@deriving yojson, show, eq, compare, hash, sexp]
+type chunk_coord = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]
 
 (* Position within a chunk (0-31) *)
 type local_pos = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]
@@ -89,7 +105,12 @@ type biome_type =
   | Forest
   | Mountain
   | Water_Body
-  | Desert (* Add more as needed *)
+  | Desert
+  | Mine
+  | Enchanted_Mine
+  | Cursed
+  | Frigid
+  | Hot
 [@@deriving yojson, show, eq, compare, hash, sexp]
 
 (* Metadata associated with a chunk *)

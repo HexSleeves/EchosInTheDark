@@ -95,3 +95,8 @@ let carve_path ~tile ~length ~rng grid ~width ~height =
   let x = 1 + Random.State.int rng (width - 2) in
   let y = 1 + Random.State.int rng (height - 2) in
   walk length x y
+
+(* Placeholder for noise function - replace with actual library call *)
+let get_noise_value (rng : Random.State.t) (_world_x : int) (_world_y : int) :
+    float =
+  Random.State.float rng 1.0

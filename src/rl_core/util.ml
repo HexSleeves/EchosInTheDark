@@ -44,3 +44,4 @@ let are_factions_hostile (f1 : Components.Faction.t) (f2 : Components.Faction.t)
   | `FriendlyBug, _ | _, `FriendlyBug -> false
   | `Neutral, _ | _, `Neutral -> false
   | `Other a, `Other b -> String.equal a b
+

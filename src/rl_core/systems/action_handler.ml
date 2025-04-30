@@ -86,7 +86,8 @@ let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
       m "old_local: %s, new_pos: %s" (Loc.show old_local) (Loc.show new_pos));
   let wrapped_new_pos =
     if crossed_chunk_boundary then (
-      let cx, cy = world_to_chunk_coord pos in
+      let cx, cy = Loc.to_tuple (world_to_chunk_coord pos) in
+
       let wrapped =
         match dir with
         | Direction.North ->

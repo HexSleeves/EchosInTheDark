@@ -1,7 +1,7 @@
 open Base
 open Dungeon
 
-let load_prefab filename ~width ~height =
+let load_prefab ~width ~height filename =
   let lines = Stdio.In_channel.read_lines filename in
   let prefab_height = List.length lines in
   let prefab_width =

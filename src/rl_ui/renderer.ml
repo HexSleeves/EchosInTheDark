@@ -171,7 +171,7 @@ let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx =
             render_ascii_cell ~glyph ~color ~fc:ctx.font_config ~loc ~origin)
 
 (* Utility: Render all entities *)
-let render_entities ~entities ~chunk_coords ~origin ~ctx =
+let render_entities ~entities ~origin ~ctx =
   let open Render_utils in
   let font_config = ctx.font_config in
   let drawn = ref (Base.Set.empty (module Int)) in
@@ -310,9 +310,9 @@ let draw_player_stats_box ~player_id ~rect ~ctx ~line_height ~padding =
             let chunk = Chunk_manager.world_to_chunk_coord pos in
             let local = Chunk_manager.world_to_local_coord pos in
             [
-              Printf.sprintf "Chunk: (%d, %d)" (fst chunk) (snd chunk);
-              Printf.sprintf "Local: {x=%d, y=%d}" local.x local.y;
-              Printf.sprintf "World: {x=%d, y=%d}" pos.x pos.y;
+              Printf.sprintf "Chunk: %s" (Loc.to_string chunk);
+              Printf.sprintf "Local: %s" (Loc.to_string local);
+              Printf.sprintf "World: %s" (Loc.to_string pos);
               Printf.sprintf "HP: %d/%d" stats.hp stats.max_hp;
               Printf.sprintf "ATK: %d" stats.attack;
               Printf.sprintf "DEF: %d" stats.defense;

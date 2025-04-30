@@ -97,7 +97,7 @@ let create_initial_state (render_ctx : R.render_context) (config : init_config)
     | Some b -> b
     | None ->
         Backend.make ~debug:config.debug ~w:config.width ~h:config.height ~seed
-          ~current_level:1
+          ~depth:1
   in
 
   (* No need to spawn player or rat here; handled in mapgen/generator *)

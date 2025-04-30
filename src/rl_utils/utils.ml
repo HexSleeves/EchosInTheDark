@@ -24,3 +24,5 @@ let list_nth_opt lst idx =
 let xy_to_index_opt x y width height =
   if x >= 0 && x < width && y >= 0 && y < height then Some ((y * width) + x)
   else None
+
+let floor_div x y = if x >= 0 then x / y else ((x + 1) / y) - 1

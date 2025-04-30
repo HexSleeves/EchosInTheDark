@@ -67,7 +67,7 @@ let render (state : State.t) : State.t option =
   let chunk_coords = Chunk_manager.world_to_chunk_coord player_pos in
 
   ignore
-    (match Chunk_manager.get_loaded_chunk chunk_manager chunk_coords with
+    (match Chunk_manager.get_loaded_chunk chunk_coords chunk_manager with
     | None -> ()
     | Some chunk ->
         let map_origin =
@@ -84,7 +84,7 @@ let render (state : State.t) : State.t option =
           ~width:Chunk_manager.chunk_width ~skip_positions:entity_positions
           ~origin:map_origin ~ctx;
 
-        Renderer.render_entities ~entities ~chunk_coords ~origin:map_origin ~ctx);
+        Renderer.render_entities ~entities ~origin:map_origin ~ctx);
 
   (* Render stats bar *)
   R.draw_stats_bar_vertical

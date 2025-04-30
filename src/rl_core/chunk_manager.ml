@@ -1,6 +1,13 @@
+(***
+  Chunk Manager: Handles loading/unloading and coordinate mapping for world chunks.
+  Functional, idiomatic OCaml style.
+***)
+
 open Base
-open Types (* Provides chunk_coord, world_pos, local_pos, entity_id *)
-open Dungeon (* Provides Chunk module and Tile type *)
+open Types
+open Dungeon
+open Rl_utils.Utils
+open Mapgen
 
 (* Module for chunk coordinate sets *)
 module ChunkCoord = struct
@@ -19,8 +26,7 @@ type active_chunks = (chunk_coord, Chunk.t) Hashtbl.t
 type t = {
   active_chunks : active_chunks;
   world_seed : int; (* Needed for deterministic generation *)
-  mutable last_player_chunk : chunk_coord option;
-      (* Track player chunk changes *)
+  last_player_chunk : chunk_coord option; (* Track player chunk changes *)
 }
 
 (* Constants *)
@@ -30,12 +36,8 @@ let load_radius = 2 (* 5x5 grid means radius of 2 from center *)
 
 (* --- Coordinate Conversion Helpers --- *)
 
-let floor_div x y = if x >= 0 then x / y else ((x + 1) / y) - 1
-
 let world_to_chunk_coord (pos : world_pos) : chunk_coord =
-  let cx = floor_div pos.x chunk_width in
-  let cy = floor_div pos.y chunk_height in
-  (cx, cy)
+  Loc.make (floor_div pos.x chunk_width) (floor_div pos.y chunk_height)
 
 let world_to_local_coord (pos : world_pos) : local_pos =
   let lx = Int.rem pos.x chunk_width in
@@ -47,80 +49,80 @@ let world_to_local_coord (pos : world_pos) : local_pos =
 
 (* --- Manager Functions --- *)
 
-let create ~world_seed =
+let create ~world_seed : t =
   {
     world_seed;
     last_player_chunk = None;
     active_chunks = Hashtbl.create (module ChunkCoord);
   }
 
-(* Gets a chunk if it's currently loaded *)
-let get_loaded_chunk t coords = Hashtbl.find t.active_chunks coords
+let get_loaded_chunk (coords : chunk_coord) (t : t) : Chunk.t option =
+  Hashtbl.find t.active_chunks coords
 
-let set_loaded_chunk t coords chunk =
-  Hashtbl.set t.active_chunks ~key:coords ~data:chunk
+let set_loaded_chunk (coords : chunk_coord) (chunk : Chunk.t) (t : t) : t =
+  Hashtbl.set t.active_chunks ~key:coords ~data:chunk;
+  t
 
 (* Gets the tile at a specific world position, if the chunk is loaded *)
-let get_tile_at t world_pos =
+let get_tile_at (world_pos : world_pos) (t : t) : Dungeon.Tile.t option =
   let chunk_coords = world_to_chunk_coord world_pos in
-  match get_loaded_chunk t chunk_coords with
-  | None -> None (* Chunk not loaded *)
-  | Some chunk ->
+  Option.bind (get_loaded_chunk chunk_coords t) ~f:(fun chunk ->
       let local_pos = world_to_local_coord world_pos in
       if
         local_pos.x >= 0 && local_pos.x < chunk_width && local_pos.y >= 0
         && local_pos.y < chunk_height
       then Some chunk.tiles.(local_pos.y).(local_pos.x)
         (* Assuming row-major y,x *)
-      else None (* Should not happen *)
+      else None (* Should not happen *))
 
 (* Calculate the set of chunk coordinates required around a central chunk *)
-let get_required_chunks center_cx center_cy =
+let get_required_chunks (center : chunk_coord) : Set.M(ChunkCoord).t =
+  let open Base in
   let required = ref (Set.empty (module ChunkCoord)) in
   for dx = -load_radius to load_radius do
     for dy = -load_radius to load_radius do
-      required := Set.add !required (center_cx + dx, center_cy + dy)
+      required := Set.add !required (Loc.make (center.x + dx) (center.y + dy))
     done
   done;
   !required
 
-(* Ensures required chunks around the player are loaded, unloading others *)
-let update_loaded_chunks_around_player t player_world_pos =
-  let player_cx, player_cy = world_to_chunk_coord player_world_pos in
-  let current_player_chunk = (player_cx, player_cy) in
-  match t.last_player_chunk with
-  | Some last_chunk when ChunkCoord.compare last_chunk current_player_chunk = 0
-    ->
-      t
-  | _ ->
-      Core_log.info (fun m ->
-          m "Player entered new chunk (%d, %d), updating loaded chunks."
-            player_cx player_cy);
-      t.last_player_chunk <- Some current_player_chunk;
-      let required_chunks = get_required_chunks player_cx player_cy in
-      let loaded_chunks =
-        Set.of_list (module ChunkCoord) (Hashtbl.keys t.active_chunks)
-      in
+let load_chunk (coords : chunk_coord) ~world_seed ~depth : Chunk.t =
+  Chunk_generator.generate coords ~world_seed ~depth
 
-      let chunks_to_load = Set.diff required_chunks loaded_chunks in
-      let chunks_to_unload = Set.diff loaded_chunks required_chunks in
-      Set.iter chunks_to_unload ~f:(fun coords ->
-          Core_log.debug (fun m ->
-              m "Unloading chunk (%d, %d)" (fst coords) (snd coords));
-          Hashtbl.remove t.active_chunks coords);
-      Set.iter chunks_to_load ~f:(fun coords ->
-          Core_log.debug (fun m ->
-              m "Loading chunk (%d, %d)" (fst coords) (snd coords));
-          if not (Hashtbl.mem t.active_chunks coords) then
-            let new_chunk =
-              Mapgen.Chunk_generator.generate coords ~world_seed:t.world_seed
-            in
-            Hashtbl.set t.active_chunks ~key:coords ~data:new_chunk);
-      t
+(* Ensures required chunks around the player are loaded, unloading others *)
+let update_loaded_chunks_around_player (t : t) (player_world_pos : world_pos)
+    ~depth : t =
+  let current_player_chunk = world_to_chunk_coord player_world_pos in
+  let unchanged =
+    Option.value_map t.last_player_chunk ~default:false ~f:(fun last_chunk ->
+        ChunkCoord.compare last_chunk current_player_chunk = 0)
+  in
+  if unchanged then t
+  else
+    let required_chunks = get_required_chunks current_player_chunk in
+    let loaded_chunks =
+      Set.of_list (module ChunkCoord) (Hashtbl.keys t.active_chunks)
+    in
+
+    let chunks_to_load = Set.diff required_chunks loaded_chunks in
+    let chunks_to_unload = Set.diff loaded_chunks required_chunks in
+
+    let active_chunks = Hashtbl.copy t.active_chunks in
+    Set.iter chunks_to_unload ~f:(fun coords ->
+        Core_log.debug (fun m -> m "Unloading chunk (%d, %d)" coords.x coords.y);
+        Hashtbl.remove active_chunks coords);
+
+    Set.iter chunks_to_load ~f:(fun coords ->
+        Core_log.debug (fun m -> m "Loading chunk (%d, %d)" coords.x coords.y);
+        if not (Hashtbl.mem active_chunks coords) then
+          Hashtbl.set active_chunks ~key:coords
+            ~data:
+              (Chunk_generator.generate coords ~world_seed:t.world_seed ~depth));
+    { t with active_chunks; last_player_chunk = Some current_player_chunk }
 
 (* Function to be called potentially every turn or after player move *)
-let tick t player_world_pos =
-  update_loaded_chunks_around_player t player_world_pos
+let tick (player_world_pos : world_pos) (t : t) ~depth : t =
+  update_loaded_chunks_around_player t player_world_pos ~depth
 
 (* TODO:
    - Integrate entity management with chunk loading/unloading if needed
