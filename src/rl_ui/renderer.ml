@@ -171,24 +171,26 @@ let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx =
             render_ascii_cell ~glyph ~color ~fc:ctx.font_config ~loc ~origin)
 
 (* Utility: Render all entities *)
-let render_entities ~entities ~origin ~ctx =
+let render_entities ~entities ~chunk_coords ~origin ~ctx =
   let open Render_utils in
   let font_config = ctx.font_config in
   let drawn = ref (Base.Set.empty (module Int)) in
 
   List.iter entities ~f:(fun entity_id ->
-      let pos = Position.get_exn entity_id in
-      let pos_tuple = (pos.x lsl 16) lor pos.y in
+      let world_pos = Position.get_exn entity_id in
+      let local_pos = Chunk_manager.world_to_local_coord world_pos in
+      let pos_tuple = (local_pos.x lsl 16) lor local_pos.y in
       if not (Base.Set.mem !drawn pos_tuple) then (
         drawn := Base.Set.add !drawn pos_tuple;
 
         match (ctx.render_mode, ctx.tileset_config) with
         | Constants.Tiles, t_cfg ->
-            render_tileset_sprite ~entity_id ~origin ~pos ~texture:t_cfg.texture
-              ~tile_render_size:ctx.tile_render_size
+            render_tileset_sprite ~entity_id ~origin ~pos:local_pos
+              ~texture:t_cfg.texture ~tile_render_size:ctx.tile_render_size
         | _ ->
             let glyph, color = entity_glyph_and_color entity_id in
-            render_ascii_cell ~glyph ~color ~fc:font_config ~loc:pos ~origin))
+            render_ascii_cell ~glyph ~color ~fc:font_config ~loc:local_pos
+              ~origin))
 
 let item_type_to_glyph = function
   | Item.Item_data.Potion -> ("!", Raylib.Color.skyblue)
@@ -305,8 +307,12 @@ let draw_player_stats_box ~player_id ~rect ~ctx ~line_height ~padding =
   let lines =
     Option.bind (Stats.get player_id) ~f:(fun stats ->
         Option.map (Position.get player_id) ~f:(fun pos ->
+            let chunk = Chunk_manager.world_to_chunk_coord pos in
+            let local = Chunk_manager.world_to_local_coord pos in
             [
-              Printf.sprintf "Location: %s" (Loc.show pos);
+              Printf.sprintf "Chunk: (%d, %d)" (fst chunk) (snd chunk);
+              Printf.sprintf "Local: {x=%d, y=%d}" local.x local.y;
+              Printf.sprintf "World: {x=%d, y=%d}" pos.x pos.y;
               Printf.sprintf "HP: %d/%d" stats.hp stats.max_hp;
               Printf.sprintf "ATK: %d" stats.attack;
               Printf.sprintf "DEF: %d" stats.defense;

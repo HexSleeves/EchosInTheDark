@@ -61,18 +61,76 @@ let can_use_stairs_up state id =
 
 let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
     ~handle_action : State.t * action_result =
+  let open Chunk_manager in
+  let chunk_width = chunk_width in
+  let chunk_height = chunk_height in
+
   let delta = Direction.to_point dir in
   let pos = Position.get_exn entity_id in
   let new_pos = Loc.(pos + delta) in
-  match State.get_blocking_entity_at_pos new_pos state with
+
+  let crossed_chunk_boundary =
+    let old_chunk = world_to_chunk_coord pos in
+    let new_chunk = world_to_chunk_coord new_pos in
+    let crossed = not Poly.(old_chunk = new_chunk) in
+    Logs.info (fun m ->
+        m "old_chunk: %s, new_chunk: %s, crossed: %b"
+          (Sexp.to_string (sexp_of_chunk_coord old_chunk))
+          (Sexp.to_string (sexp_of_chunk_coord new_chunk))
+          crossed);
+    crossed
+  in
+
+  let old_local = world_to_local_coord pos in
+  Logs.info (fun m ->
+      m "old_local: %s, new_pos: %s" (Loc.show old_local) (Loc.show new_pos));
+  let wrapped_new_pos =
+    if crossed_chunk_boundary then (
+      let cx, cy = world_to_chunk_coord pos in
+      let wrapped =
+        match dir with
+        | Direction.North ->
+            let wrapped_cy = cy + 1 in
+            Logs.info (fun m ->
+                m "height: %d, cx: %d, cy: %d (wrapped_cy: %d)" chunk_height cx
+                  cy wrapped_cy);
+            Loc.make
+              ((cx * chunk_width) + old_local.x)
+              ((wrapped_cy * chunk_height) + (chunk_height - 1))
+        | Direction.South ->
+            let wrapped_cy = cy - 1 in
+            Loc.make
+              ((cx * chunk_width) + old_local.x)
+              (wrapped_cy * chunk_height)
+        | Direction.West ->
+            let wrapped_cx = cx - 1 in
+            Loc.make
+              ((wrapped_cx * chunk_width) + (chunk_width - 1))
+              ((cy * chunk_height) + old_local.y)
+        | Direction.East ->
+            let wrapped_cx = cx + 1 in
+            Loc.make (wrapped_cx * chunk_width)
+              ((cy * chunk_height) + old_local.y)
+      in
+      Logs.info (fun m ->
+          m "[WRAP] dir: %s, wrapped_new_pos: %s" (Direction.to_string dir)
+            (Loc.show wrapped));
+      wrapped)
+    else new_pos
+  in
+
+  Logs.info (fun m -> m "Final move target: %s\n" (Loc.show wrapped_new_pos));
+
+  match State.get_blocking_entity_at_pos wrapped_new_pos state with
   | Some target_entity -> (
       match Stats.get entity_id with
       | Some _ -> handle_action state entity_id (Action.Attack target_entity)
       | None -> (state, Error (Failure "Blocked by non-attackable entity")))
   | None -> (
-      match State.get_tile_at state new_pos with
+      match State.get_tile_at state wrapped_new_pos with
       | Some tile when Dungeon.Tile.is_walkable tile ->
-          (Movement_system.move_entity ~entity_id ~to_pos:new_pos state, Ok 100)
+          ( Movement_system.move_entity ~entity_id ~to_pos:wrapped_new_pos state,
+            Ok 100 )
       | _ -> (state, Error (Failure "Cannot move here: terrain blocked")))
 
 let rec handle_action (state : State.t) (entity_id : entity_id)

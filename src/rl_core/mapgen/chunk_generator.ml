@@ -29,7 +29,7 @@ let generate (chunk_coords : chunk_coord) ~(world_seed : int) : Dungeon.Chunk.t
   let biome = ref Types.Plains in
 
   (* Default biome *)
-  for y = 0 to Dungeon.Chunk.chunk_height - 1 do
+  (* for y = 0 to Dungeon.Chunk.chunk_height - 1 do
     for x = 0 to Dungeon.Chunk.chunk_width - 1 do
       let world_x = (cx * Dungeon.Chunk.chunk_width) + x in
       let world_y = (cy * Dungeon.Chunk.chunk_height) + y in
@@ -49,7 +49,7 @@ let generate (chunk_coords : chunk_coord) ~(world_seed : int) : Dungeon.Chunk.t
       else if Float.compare noise_val 0.3 < 0 then biome := Types.Water_Body
       (* Keep Plains if intermediate *)
     done
-  done;
+  done; *)
 
   (* Step 2: Feature Overlay (Placeholder) *)
   (* TODO: Based on chunk_coords, biome, rng, decide if features generate *)

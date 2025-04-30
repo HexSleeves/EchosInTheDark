@@ -81,11 +81,10 @@ let render (state : State.t) : State.t option =
 
         Renderer.render_map_tiles
           ~tiles:(Array.concat (Array.to_list chunk.tiles))
-            (* flatten 2D to 1D *)
           ~width:Chunk_manager.chunk_width ~skip_positions:entity_positions
           ~origin:map_origin ~ctx;
 
-        Renderer.render_entities ~entities ~origin:map_origin ~ctx);
+        Renderer.render_entities ~entities ~chunk_coords ~origin:map_origin ~ctx);
 
   (* Render stats bar *)
   R.draw_stats_bar_vertical
@@ -93,9 +92,8 @@ let render (state : State.t) : State.t option =
     ~rect:stats_rect ~ctx;
 
   (* Render message log from UI console buffer *)
-  let messages = Ui_log.get_console_messages () in
-  R.draw_message_log ~messages ~rect:log_rect;
-
+  (* let messages = Ui_log.get_console_messages () in
+  R.draw_message_log ~messages ~rect:log_rect; *)
   if Backend.get_debug backend then R.render_fps_overlay ctx.font_config;
   None
 
