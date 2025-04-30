@@ -49,13 +49,16 @@ let world_to_local_coord (pos : world_pos) : local_pos =
 
 let create ~world_seed =
   {
-    active_chunks = Hashtbl.create (module ChunkCoord);
     world_seed;
     last_player_chunk = None;
+    active_chunks = Hashtbl.create (module ChunkCoord);
   }
 
 (* Gets a chunk if it's currently loaded *)
 let get_loaded_chunk t coords = Hashtbl.find t.active_chunks coords
+
+let set_loaded_chunk t coords chunk =
+  Hashtbl.set t.active_chunks ~key:coords ~data:chunk
 
 (* Gets the tile at a specific world position, if the chunk is loaded *)
 let get_tile_at t world_pos =
@@ -98,6 +101,7 @@ let update_loaded_chunks_around_player t player_world_pos =
       let loaded_chunks =
         Set.of_list (module ChunkCoord) (Hashtbl.keys t.active_chunks)
       in
+
       let chunks_to_load = Set.diff required_chunks loaded_chunks in
       let chunks_to_unload = Set.diff loaded_chunks required_chunks in
       Set.iter chunks_to_unload ~f:(fun coords ->

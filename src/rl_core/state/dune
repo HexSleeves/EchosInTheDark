@@ -16,7 +16,6 @@
   dungeon
   core_log
   events
-  map_manager
   turn_queue
   state_types))
 
@@ -34,5 +33,4 @@
   actors
   components
   turn_queue
-  map_manager
   chunk_manager))

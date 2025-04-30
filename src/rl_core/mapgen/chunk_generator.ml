@@ -4,9 +4,9 @@ open Types
 (* No longer opening Types or Dungeon directly to avoid ambiguity, use qualified names *)
 
 (* Placeholder for noise function - replace with actual library call *)
-let get_noise_value (_world_x : int) (_world_y : int) : float =
-  (* Simple placeholder: checkerboard pattern based on world coords *)
-  if (_world_x + _world_y) % 2 = 0 then 0.2 else 0.8
+let get_noise_value (rng : Random.State.t) (_world_x : int) (_world_y : int) :
+    float =
+  Random.State.float rng 1.0
 
 (* Placeholder for hashing function for seeding *)
 let hash_coords world_seed cx cy =
@@ -33,7 +33,7 @@ let generate (chunk_coords : chunk_coord) ~(world_seed : int) : Dungeon.Chunk.t
     for x = 0 to Dungeon.Chunk.chunk_width - 1 do
       let world_x = (cx * Dungeon.Chunk.chunk_width) + x in
       let world_y = (cy * Dungeon.Chunk.chunk_height) + y in
-      let noise_val = get_noise_value world_x world_y in
+      let noise_val = get_noise_value rng world_x world_y in
       (* Use world coords for consistency *)
 
       (* Example: Map noise to tile type *)

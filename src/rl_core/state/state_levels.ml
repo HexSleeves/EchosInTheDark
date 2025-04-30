@@ -2,7 +2,6 @@ open Base
 open Entities
 open Actors
 open State_types
-open Types
 
 let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
   Entity_manager.to_list entities
@@ -22,62 +21,62 @@ let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
                Turn_queue.schedule_at tq entity_id 0 ))
 
 let transition_to_next_level (state : State_types.t) : State_types.t =
-  let map_manager, entities, actor_manager, turn_queue =
-    Map_manager.save_level_state state.map_manager ~entities:state.entities
-      ~actor_manager:state.actor_manager ~turn_queue:state.turn_queue
-    |> Map_manager.go_to_next_level |> Map_manager.load_level_state
+  (* Save current chunk_manager *)
+  Base.Hashtbl.set state.chunk_managers ~key:state.current_level
+    ~data:state.chunk_manager;
+
+  let next_level = state.current_level + 1 in
+
+  (* Load or create chunk_manager for next level *)
+  let chunk_manager =
+    match Base.Hashtbl.find state.chunk_managers next_level with
+    | Some cm -> cm
+    | None ->
+        Chunk_manager.create ~world_seed:next_level (* or use a better seed *)
   in
 
-  let state' =
-    { state with entities } |> State_entities.add_entity state.player_id
+  let state' = { state with current_level = next_level; chunk_manager } in
+
+  let state'' =
+    match Components.Position.get state'.player_id with
+    | Some pos -> (
+        match Chunk_manager.get_tile_at chunk_manager pos with
+        | Some Dungeon.Tile.Stairs_up ->
+            State_entities.move_entity state'.player_id pos state'
+        | _ -> state')
+    | None -> state'
   in
 
-  (* schedule all entities including the newly spawned player *)
-  let actor_manager, turn_queue =
-    setup_entities_for_level ~entities:state'.entities ~actor_manager
-      ~turn_queue:(Turn_queue.schedule_now turn_queue state'.player_id)
+  let chunk_manager =
+    match Components.Position.get state''.player_id with
+    | Some pos -> Chunk_manager.tick chunk_manager pos
+    | None -> chunk_manager
   in
 
-  let new_state =
-    State_utils.rebuild_position_index
-      {
-        state' with
-        map_manager;
-        turn_queue;
-        actor_manager;
-        mode = CtrlMode.Normal;
-      }
-  in
-
-  match Map_manager.get_current_map map_manager with
-  | Some dungeon ->
-      Option.value_map dungeon.stairs_up ~default:new_state
-        ~f:(fun stairs_pos ->
-          State_entities.move_entity new_state.player_id stairs_pos new_state)
-  | None -> new_state
+  { state'' with chunk_manager }
 
 let transition_to_previous_level (state : State_types.t) : State_types.t =
-  let map_manager, entities, actor_manager, turn_queue =
-    Map_manager.save_level_state state.map_manager ~entities:state.entities
-      ~actor_manager:state.actor_manager ~turn_queue:state.turn_queue
-    |> Map_manager.go_to_previous_level |> Map_manager.load_level_state
+  Base.Hashtbl.set state.chunk_managers ~key:state.current_level
+    ~data:state.chunk_manager;
+  let prev_level = state.current_level - 1 in
+  let chunk_manager =
+    match Base.Hashtbl.find state.chunk_managers prev_level with
+    | Some cm -> cm
+    | None -> Chunk_manager.create ~world_seed:prev_level
   in
-
-  let new_state =
-    State_utils.rebuild_position_index
-      {
-        state with
-        map_manager;
-        entities;
-        actor_manager;
-        turn_queue;
-        mode = CtrlMode.Normal;
-      }
+  let state' = { state with current_level = prev_level; chunk_manager } in
+  let state'' =
+    match Components.Position.get state'.player_id with
+    | Some pos -> (
+        match Chunk_manager.get_tile_at chunk_manager pos with
+        | Some Dungeon.Tile.Stairs_down ->
+            State_entities.move_entity state'.player_id pos state'
+        | _ -> state')
+    | None -> state'
   in
-
-  match Map_manager.get_current_map map_manager with
-  | Some dungeon ->
-      Option.value_map dungeon.stairs_down ~default:new_state
-        ~f:(fun stairs_pos ->
-          State_entities.move_entity new_state.player_id stairs_pos new_state)
-  | None -> new_state
+  let chunk_manager =
+    match Components.Position.get state''.player_id with
+    | Some pos -> Chunk_manager.tick chunk_manager pos
+    | None -> chunk_manager
+  in
+  { state'' with chunk_manager }

@@ -3,47 +3,60 @@ open State_types
 
 type t = State_types.t
 
-let add_entity_to_index = State_entities.add_entity_to_index
-let get_entities_manager = State_entities.get_entities_manager
-let set_entities_manager = State_entities.set_entities_manager
-let get_player_id = State_entities.get_player_id
-let get_entity_at_pos = State_entities.get_entity_at_pos
-let get_blocking_entity_at_pos = State_entities.get_blocking_entity_at_pos
-let get_entities = State_entities.get_entities
-let get_creatures = State_entities.get_creatures
-let move_entity = State_entities.move_entity
-let remove_entity = State_entities.remove_entity
-
-(* let spawn_creature_entity = State_entities.spawn_creature_entity *)
-let get_actor = State_actors.get_actor
-let add_actor = State_actors.add_actor
-let remove_actor = State_actors.remove_actor
-let update_actor = State_actors.update_actor
-let queue_actor_action = State_actors.queue_actor_action
-let setup_entities_for_level = State_levels.setup_entities_for_level
-let transition_to_next_level = State_levels.transition_to_next_level
-let transition_to_previous_level = State_levels.transition_to_previous_level
-let rebuild_position_index = State_entities.rebuild_position_index
-let get_equipment = State_entities.get_equipment
-let set_equipment = State_entities.set_equipment
+let create_default_state () =
+  Entities.Entity_manager.create () |> fun entities ->
+  State_levels.setup_entities_for_level ~entities
+    ~turn_queue:(Turn_queue.create ())
+    ~actor_manager:(Actors.Actor_manager.create ())
+  |> fun (actor_manager, turn_queue) -> (actor_manager, turn_queue, entities)
 
 let make ~debug ~w ~h ~seed ~current_level =
   Core_log.info (fun m -> m "Width: %d, Height: %d" w h);
   Core_log.info (fun m -> m "Creating state with seed: %d" seed);
 
-  let actor_manager = Actors.Actor_manager.create () in
-  let turn_queue = Turn_queue.create () in
-
+  (* Generate the first chunk and pick a player start position *)
+  let chunk_coords = (0, 0) in
   let chunk_manager = Chunk_manager.create ~world_seed:seed in
+  let chunk = Mapgen.Chunk_generator.generate chunk_coords ~world_seed:seed in
+  Chunk_manager.set_loaded_chunk chunk_manager chunk_coords chunk;
 
-  (* TODO: Initialize entities for the world, including player *)
-  let entities = Entities.Entity_manager.create () in
-  let player_id = 0 in
-  (* TODO: Actually spawn the player and get their ID *)
-
-  let actor_manager, turn_queue =
-    setup_entities_for_level ~entities ~actor_manager ~turn_queue
+  (* Find a floor tile for player start, fallback to (0,0) *)
+  let player_start =
+    let found =
+      let open Option in
+      let rec search y =
+        if y >= Array.length chunk.tiles then None
+        else
+          let row = chunk.tiles.(y) in
+          let rec search_row x =
+            if x >= Array.length row then search (y + 1)
+            else if Dungeon.Tile.is_floor row.(x) then Some (Types.Loc.make x y)
+            else search_row (x + 1)
+          in
+          search_row 0
+      in
+      search 0
+    in
+    Option.value found ~default:(Types.Loc.make 0 0)
   in
+
+  (* Spawn the player at the chosen position *)
+  let entities = Entities.Entity_manager.create () in
+  let entities = Entities.Spawner.spawn_player ~pos:player_start entities in
+  let player_id =
+    Entities.Entity_manager.find_player_id entities |> Option.value_exn
+  in
+
+  (* Set up actor manager and turn queue *)
+  let actor_manager, turn_queue =
+    State_levels.setup_entities_for_level ~entities
+      ~turn_queue:(Turn_queue.create ())
+      ~actor_manager:(Actors.Actor_manager.create ())
+  in
+
+  let chunk_manager = Chunk_manager.tick chunk_manager player_start in
+  let chunk_managers = Base.Hashtbl.create (module Int) in
+  Base.Hashtbl.set chunk_managers ~key:0 ~data:chunk_manager;
 
   let position_index = Base.Hashtbl.create (module Types.Loc) in
   Entities.Entity_manager.to_list entities
@@ -59,8 +72,10 @@ let make ~debug ~w ~h ~seed ~current_level =
       actor_manager;
       turn_queue;
       chunk_manager;
-      player_id;
+      chunk_managers;
+      current_level;
       position_index;
+      player_id;
       mode = Types.CtrlMode.Normal;
     }
   in
@@ -81,6 +96,31 @@ let get_turn_queue (state : t) : Turn_queue.t = state.turn_queue
 let set_turn_queue (turn_queue : Turn_queue.t) (state : t) : t =
   { state with turn_queue }
 
+let get_chunk_manager (state : t) : Chunk_manager.t = state.chunk_manager
+
 let get_tile_at (state : t) (world_pos : Types.world_pos) :
     Dungeon.Tile.t option =
   Chunk_manager.get_tile_at state.chunk_manager world_pos
+
+let add_entity_to_index = State_entities.add_entity_to_index
+let get_entities_manager = State_entities.get_entities_manager
+let set_entities_manager = State_entities.set_entities_manager
+let get_player_id = State_entities.get_player_id
+let get_entity_at_pos = State_entities.get_entity_at_pos
+let get_blocking_entity_at_pos = State_entities.get_blocking_entity_at_pos
+let get_entities = State_entities.get_entities
+let get_creatures = State_entities.get_creatures
+let move_entity = State_entities.move_entity
+let remove_entity = State_entities.remove_entity
+
+(* let spawn_creature_entity = State_entities.spawn_creature_entity *)
+let get_actor = State_actors.get_actor
+let add_actor = State_actors.add_actor
+let remove_actor = State_actors.remove_actor
+let update_actor = State_actors.update_actor
+let queue_actor_action = State_actors.queue_actor_action
+let transition_to_next_level = State_levels.transition_to_next_level
+let transition_to_previous_level = State_levels.transition_to_previous_level
+let rebuild_position_index = State_entities.rebuild_position_index
+let get_equipment = State_entities.get_equipment
+let set_equipment = State_entities.set_equipment

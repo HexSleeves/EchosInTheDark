@@ -59,21 +59,33 @@ let render (state : State.t) : State.t option =
   in
 
   let entities = Backend.get_entities backend in
-  let entity_positions = Render_utils.occupied_positions entities in
-  let current_map_opt = Backend.get_current_map backend in
+  (* TODO: Integrate chunk-based rendering here. The old get_current_map is gone. *)
 
-  let map_origin =
-    Raylib.Vector2.create
-      (Raylib.Rectangle.x map_rect)
-      (Raylib.Rectangle.y map_rect)
-  in
+  let player_id = Backend.get_player_id backend in
+  let player_pos = Components.Position.get_exn player_id in
+  let chunk_manager = Backend.get_chunk_manager backend in
+  let chunk_coords = Chunk_manager.world_to_chunk_coord player_pos in
 
-  (match current_map_opt with
-  | Some current_map ->
-      R.render_map_tiles ~tiles:current_map.map ~width:current_map.width
-        ~skip_positions:entity_positions ~origin:map_origin ~ctx;
-      R.render_entities ~entities ~origin:map_origin ~ctx
-  | None -> ());
+  ignore
+    (match Chunk_manager.get_loaded_chunk chunk_manager chunk_coords with
+    | None -> ()
+    | Some chunk ->
+        let map_origin =
+          Raylib.Vector2.create
+            (Raylib.Rectangle.x map_rect)
+            (Raylib.Rectangle.y map_rect)
+        in
+        let entity_positions =
+          Render_utils.occupied_positions (Backend.get_entities backend)
+        in
+
+        Renderer.render_map_tiles
+          ~tiles:(Array.concat (Array.to_list chunk.tiles))
+            (* flatten 2D to 1D *)
+          ~width:Chunk_manager.chunk_width ~skip_positions:entity_positions
+          ~origin:map_origin ~ctx;
+
+        Renderer.render_entities ~entities ~origin:map_origin ~ctx);
 
   (* Render stats bar *)
   R.draw_stats_bar_vertical

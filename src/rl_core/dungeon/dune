@@ -2,7 +2,7 @@
 
 (library
  (name dungeon)
- (modules tile tilemap chunk)
+ (modules tile chunk)
  (libraries
   base
   core_kernel

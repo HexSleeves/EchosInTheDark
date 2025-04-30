@@ -17,19 +17,15 @@ let is_entity_dead (id : entity_id) : bool =
          Stats.Stats_data.get_hp stats <= 0)
 
 let can_use_stairs_down state id =
-  match State.get_current_map state with
-  | Some dungeon -> (
-      match Dungeon.Tilemap.get_tile (Position.get_exn id) dungeon with
-      | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down
-      | None -> false)
+  let pos = Position.get_exn id in
+  match State.get_tile_at state pos with
+  | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down
   | None -> false
 
 let can_use_stairs_up state id =
-  match State.get_current_map state with
-  | Some dungeon -> (
-      match Dungeon.Tilemap.get_tile (Position.get_exn id) dungeon with
-      | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up
-      | None -> false)
+  let pos = Position.get_exn id in
+  match State.get_tile_at state pos with
+  | Some tile -> Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up
   | None -> false
 
 (* ////////////////////////////// *)
@@ -68,27 +64,16 @@ let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
   let delta = Direction.to_point dir in
   let pos = Position.get_exn entity_id in
   let new_pos = Loc.(pos + delta) in
-  match State.get_current_map state with
-  | Some dungeon -> (
-      match State.get_blocking_entity_at_pos new_pos state with
-      | Some target_entity -> (
-          match Stats.get entity_id with
-          | Some _ ->
-              handle_action state entity_id (Action.Attack target_entity)
-          | None -> (state, Error (Failure "Blocked by non-attackable entity")))
-      | None -> (
-          let in_bounds = Dungeon.Tilemap.in_bounds new_pos dungeon in
-          let walkable =
-            match Dungeon.Tilemap.get_tile new_pos dungeon with
-            | Some tile -> Dungeon.Tile.is_walkable tile
-            | None -> false
-          in
-          match in_bounds && walkable with
-          | false -> (state, Error (Failure "Cannot move here: terrain blocked"))
-          | true ->
-              ( Movement_system.move_entity ~entity_id ~to_pos:new_pos state,
-                Ok 100 )))
-  | None -> (state, Error (Failure "No dungeon map loaded"))
+  match State.get_blocking_entity_at_pos new_pos state with
+  | Some target_entity -> (
+      match Stats.get entity_id with
+      | Some _ -> handle_action state entity_id (Action.Attack target_entity)
+      | None -> (state, Error (Failure "Blocked by non-attackable entity")))
+  | None -> (
+      match State.get_tile_at state new_pos with
+      | Some tile when Dungeon.Tile.is_walkable tile ->
+          (Movement_system.move_entity ~entity_id ~to_pos:new_pos state, Ok 100)
+      | _ -> (state, Error (Failure "Cannot move here: terrain blocked")))
 
 let rec handle_action (state : State.t) (entity_id : entity_id)
     (action : Action.t) : State.t * action_result =
@@ -97,22 +82,16 @@ let rec handle_action (state : State.t) (entity_id : entity_id)
   | Action.Move dir -> handle_move ~state ~entity_id ~dir ~handle_action
   | Action.StairsUp -> (
       let pos = Position.get_exn entity_id in
-      match State.get_current_map state with
-      | Some dungeon -> (
-          match Dungeon.Tilemap.get_tile pos dungeon with
-          | Some tile when Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up ->
-              (State.transition_to_previous_level state, Ok (-1))
-          | _ -> (state, Error (Failure "Not on stairs up")))
-      | None -> (state, Error (Failure "No dungeon map loaded")))
+      match State.get_tile_at state pos with
+      | Some tile when Dungeon.Tile.equal tile Dungeon.Tile.Stairs_up ->
+          (State.transition_to_previous_level state, Ok (-1))
+      | _ -> (state, Error (Failure "Not on stairs up")))
   | Action.StairsDown -> (
       let pos = Position.get_exn entity_id in
-      match State.get_current_map state with
-      | Some dungeon -> (
-          match Dungeon.Tilemap.get_tile pos dungeon with
-          | Some tile when Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down ->
-              (State.transition_to_next_level state, Ok (-1))
-          | _ -> (state, Error (Failure "Not on stairs down")))
-      | None -> (state, Error (Failure "No dungeon map loaded")))
+      match State.get_tile_at state pos with
+      | Some tile when Dungeon.Tile.equal tile Dungeon.Tile.Stairs_down ->
+          (State.transition_to_next_level state, Ok (-1))
+      | _ -> (state, Error (Failure "Not on stairs down")))
   | Action.Attack target_id -> (
       let attacker_stats = Stats.get entity_id in
       let defender_stats = Stats.get target_id in

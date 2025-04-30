@@ -1,7 +1,6 @@
 open Base
 open Actors
 open Types
-module Tilemap = Dungeon.Tilemap
 
 type t = State.t
 
@@ -12,8 +11,6 @@ let make ~debug ~w ~h ~seed ~current_level : t =
   State.make ~debug ~w ~h ~seed ~current_level
 
 let get_debug (state : t) : bool = State.get_debug state
-
-(* Mode *)
 let get_mode (state : t) = State.get_mode state
 let set_mode mode (state : t) : t = State.set_mode mode state
 
@@ -21,16 +18,13 @@ let set_mode mode (state : t) : t = State.set_mode mode state
 let get_player_id (state : t) : entity_id = State.get_player_id state
 let get_entities (state : t) : entity_id list = State.get_entities state
 
+(* Chunk *)
+let get_chunk_manager (state : t) : Chunk_manager.t =
+  State.get_chunk_manager state
+
 let queue_actor_action (state : t) (actor_id : Actor.actor_id)
     (action : Action.t) : t =
   State.queue_actor_action state actor_id action
-
-(* Map *)
-let get_current_map (state : t) : Tilemap.t option = State.get_current_map state
-let get_equipment (id : entity_id) = State.get_equipment id
-
-let set_equipment (id : entity_id) (eq : Components.Equipment.t) =
-  State.set_equipment id eq
 
 let move_entity (id : entity_id) (loc : Loc.t) (state : t) : t =
   State.move_entity id loc state

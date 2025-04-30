@@ -71,10 +71,10 @@ let create_render_context ?(title = "Echoes in the Dark")
   let monitor_w = get_monitor_width current_monitor in
   let monitor_h = get_monitor_height current_monitor in
 
-  let window_w = get_render_width () in
-  let window_h = get_render_height () in
+  let window_w = window_width in
+  let window_h = window_height in
 
-  let middle_width = (monitor_w / 2) - (window_w / 2) in
+  let middle_width = monitor_w / 2 in
   let middle_height = monitor_h / 2 in
 
   Ui_log.info (fun m -> m "Monitor size: [%d %d]" monitor_w monitor_h);
@@ -83,7 +83,9 @@ let create_render_context ?(title = "Echoes in the Dark")
       m "Setting window position: [%d %d]" middle_width middle_height);
 
   (* Center window on monitor *)
-  set_window_position middle_width middle_height;
+  set_window_position
+    ((monitor_w / 2) - (window_w / 2))
+    ((monitor_h / 2) - (window_h / 2));
 
   {
     title;
@@ -300,17 +302,17 @@ let rounded_segments = 12
 
 let draw_player_stats_box ~player_id ~rect ~ctx ~line_height ~padding =
   let open Raylib in
-  let stats = Stats.get_exn player_id in
-  let pos = Position.get_exn player_id in
-
   let lines =
-    [
-      Printf.sprintf "Location: %s" (Loc.show pos);
-      Printf.sprintf "HP: %d/%d" stats.hp stats.max_hp;
-      Printf.sprintf "ATK: %d" stats.attack;
-      Printf.sprintf "DEF: %d" stats.defense;
-      Printf.sprintf "SPD: %d" stats.speed;
-    ]
+    Option.bind (Stats.get player_id) ~f:(fun stats ->
+        Option.map (Position.get player_id) ~f:(fun pos ->
+            [
+              Printf.sprintf "Location: %s" (Loc.show pos);
+              Printf.sprintf "HP: %d/%d" stats.hp stats.max_hp;
+              Printf.sprintf "ATK: %d" stats.attack;
+              Printf.sprintf "DEF: %d" stats.defense;
+              Printf.sprintf "SPD: %d" stats.speed;
+            ]))
+    |> Option.value ~default:[ "Player data unavailable" ]
   in
 
   draw_rectangle_rec rect dark_bg;
