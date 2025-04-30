@@ -2,7 +2,7 @@ open Raylib
 open Base
 
 type result = Play | Quit
-type t = { selected : int }
+type t = { selected : int } [@@deriving show]
 
 let versionString = "Version 1.0"
 let copyrightString = "(C) 2025 Yendor"

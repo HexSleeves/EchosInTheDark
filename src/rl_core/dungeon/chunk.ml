@@ -1,7 +1,5 @@
 open Base
 open Types
-(* Provides entity_id, chunk_coord, chunk_metadata *)
-(* Tile.t should be accessible from Tile.ml in the same directory *)
 
 type t = {
   coords : chunk_coord; (* (cx, cy) *)
@@ -21,12 +19,12 @@ let chunk_height = 32
 let create ~coords ~metadata : t =
   {
     coords;
+    metadata;
+    entity_ids = [];
+    last_accessed_turn = 0;
     tiles =
       Array.init chunk_height ~f:(fun _ ->
           Array.init chunk_width ~f:(fun _ -> Tile.Floor));
-    entity_ids = [];
-    metadata;
-    last_accessed_turn = 0;
   }
 
 let get_tile (chunk : t) (pos : local_pos) : Tile.t option =
@@ -49,9 +47,3 @@ let remove_entity (chunk : t) (id : entity_id) : t =
     chunk with
     entity_ids = List.filter chunk.entity_ids ~f:(fun eid -> eid <> id);
   }
-
-(* Potential helper functions: *)
-(* val get_tile : t -> local_pos -> Tile.t option *)
-(* val set_tile : t -> local_pos -> Tile.t -> unit *)
-(* val add_entity : t -> entity_id -> t *)
-(* val remove_entity : t -> entity_id -> t *)

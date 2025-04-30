@@ -15,3 +15,4 @@ type t = {
   chunk_managers : (int, Chunk_manager.t) Base.Hashtbl.t;
   position_index : (Loc.t, entity_id) Base.Hashtbl.t; (* Fast position lookup *)
 }
+[@@deriving show]

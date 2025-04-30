@@ -5,7 +5,7 @@ open Ppx_yojson_conv_lib.Yojson_conv
 type entity_id = int [@@deriving yojson, show]
 
 module CtrlMode = struct
-  type t = Normal | WaitInput | AI | Died of float [@@deriving yojson]
+  type t = Normal | WaitInput | AI | Died of float [@@deriving yojson, show]
 end
 
 module Loc = struct

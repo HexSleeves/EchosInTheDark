@@ -24,6 +24,7 @@ type init_config = {
 
 (* Handle tick updates based on current screen using the Screen interface *)
 let handle_tick (s : State.t) =
+  Logs.info (fun m -> m "Handling tick for screen: %s" (show_screen s.screen));
   match s.screen with
   | MainMenu m ->
       let s', m' = MainMenuScreen.handle_tick m s in

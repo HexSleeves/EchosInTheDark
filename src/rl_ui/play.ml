@@ -139,6 +139,9 @@ let handle_player_input (state : State.t) : State.t =
 let handle_tick (state : State.t) : State.t =
   let open Rl_core in
   let backend = state.backend in
+  Logs.info (fun m ->
+      m "Handling tick for backend: %s"
+        (Types.CtrlMode.show (Backend.get_mode backend)));
   match Backend.get_mode backend with
   | T.CtrlMode.WaitInput -> handle_player_input state
   | T.CtrlMode.AI -> { state with backend = Backend.run_ai_step backend }

@@ -27,7 +27,7 @@
   types
   chunk_manager)
  (preprocess
-  (pps ppx_jane ppx_compare)))
+  (pps ppx_jane ppx_compare ppx_deriving.show)))
 
 (library
  (name core_log)

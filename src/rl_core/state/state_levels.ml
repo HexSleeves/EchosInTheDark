@@ -22,8 +22,9 @@ let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
 
 let transition_to_next_level (state : State_types.t) : State_types.t =
   (* Save current chunk_manager *)
-  Base.Hashtbl.set state.chunk_managers ~key:state.depth
-    ~data:state.chunk_manager;
+  (* Base.Hashtbl.set state.chunk_managers ~key:state.depth
+    ~data:state.chunk_manager; *)
+  let state = State.update_chunk_managers state.chunk_managers state in
 
   let next_depth = state.depth + 1 in
 
@@ -31,8 +32,7 @@ let transition_to_next_level (state : State_types.t) : State_types.t =
   let chunk_manager =
     match Base.Hashtbl.find state.chunk_managers next_depth with
     | Some cm -> cm
-    | None ->
-        Chunk_manager.create ~world_seed:next_depth (* or use a better seed *)
+    | None -> Chunk_manager.create ~world_seed:next_depth
   in
 
   let state' =

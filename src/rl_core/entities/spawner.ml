@@ -16,6 +16,7 @@ let create_base ~name ~glyph ~pos ~description ?(blocking = true) (em : t) =
   (id, em)
 
 let spawn_player ~pos (em : t) =
+  Logs.info (fun m -> m "Spawning player");
   let id, em =
     create_base ~name:"Player" ~glyph:'@' ~pos
       ~description:(Some "This is you!") em
@@ -25,6 +26,7 @@ let spawn_player ~pos (em : t) =
   Inventory.set id { items = []; max_slots = 20 };
   Equipment.set id Equipment.empty;
   Kind.set id Kind.Player;
+
   em
 
 let spawn_creature ~pos ~species ~health ~glyph ~name ~description ~faction

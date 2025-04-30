@@ -1,21 +1,25 @@
+(***
+  Chunk Generator: Modular, functional chunk generation for the dungeon.
+  Supports biomes, pluggable algorithms, and entity/feature placement.
+***)
+
 open Base
-open Biome
 open Types
 open Mapgen_types
 
-(* Placeholder for hashing function for seeding *)
-let hash_coords world_seed cx cy =
-  (* Very basic hash - replace with something better if needed *)
+(** Hashing function for deterministic chunk seeding *)
+let hash_coords (world_seed : int) (cx : int) (cy : int) : int =
   (((world_seed * 31) + cx) * 31) + cy
 
 (* --- Modular Chunk Generation --- *)
 
 (** Strategy for picking algorithm per chunk. You can make this smarter! *)
-let pick_algo_for_chunk (cx, cy) ~world_seed =
+let pick_algo_for_chunk (cx, cy) ~world_seed : chunk_gen_algo =
   if (cx + cy + world_seed) % 2 = 0 then CA else Rooms
 
 (** Unified chunk generation function *)
-let run_chunk_algo ~algo ~width ~height ~rng =
+let run_chunk_algo ~(algo : chunk_gen_algo) ~(width : int) ~(height : int)
+    ~(rng : Random.State.t) : Dungeon.Tile.t array =
   match algo with
   | Prefab filename -> Prefab.load_prefab ~width ~height filename
   | CA -> Ca.run ~width ~height ~rng
@@ -24,18 +28,20 @@ let run_chunk_algo ~algo ~width ~height ~rng =
 
 (* --- Biome-specific entity/feature placement --- *)
 
-let generate (chunk_coords : chunk_coord) ~(world_seed : int) ~(depth : int) :
+(** Main chunk generation entry point *)
+let generate ~(chunk_coords : chunk_coord) ~(world_seed : int) ~(depth : int) :
     Dungeon.Chunk.t =
-  let cx, cy = (chunk_coords.x, chunk_coords.y) in
+  let cx, cy = Loc.to_tuple chunk_coords in
+  Core_log.info (fun m ->
+      m "[GEN] Generating chunk at (%d, %d), depth %d" cx cy depth);
   let chunk_seed = hash_coords world_seed cx cy in
-
   let width = Dungeon.Chunk.chunk_width in
   let height = Dungeon.Chunk.chunk_height in
-
-  (* Pick biome for this chunk *)
   let rng = Random.State.make [| chunk_seed |] in
-  let biome = pick_biome ~depth ~cx ~cy ~world_seed in
-  let algo = algo_for_biome biome in
+
+  (* Step 1: Pick biome and algorithm *)
+  let biome = Biome.pick_biome ~depth ~cx ~cy ~world_seed in
+  let algo = Biome.algo_for_biome biome in
   let tiles_1d = run_chunk_algo ~algo ~width ~height ~rng in
   let tiles =
     Array.init height ~f:(fun y ->
@@ -47,16 +53,16 @@ let generate (chunk_coords : chunk_coord) ~(world_seed : int) ~(depth : int) :
 
   (* Step 3: Entity Placement (biome-specific) *)
   let entity_ids =
-    place_biome_features_and_entities ~biome ~tiles:tiles_1d ~width ~height ~rng
+    Biome.place_biome_features_and_entities ~biome ~tiles:tiles_1d ~width
+      ~height ~rng
   in
 
-  (* Construct metadata *)
+  (* Step 4: Construct metadata and return chunk *)
   let metadata : chunk_metadata = { seed = chunk_seed; biome } in
-
   {
     tiles;
-    entity_ids;
     metadata;
+    entity_ids;
     last_accessed_turn = 0;
     Dungeon.Chunk.coords = chunk_coords;
   }

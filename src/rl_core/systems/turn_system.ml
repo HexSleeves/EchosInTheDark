@@ -74,9 +74,12 @@ let handle_actor_event (ctx : ctx) : State.t =
           Turn_queue.schedule_at tq_after_action entity_id (time + delay)
           |> fun turn_queue ->
           State.set_turn_queue turn_queue backend_after_action)
-  | None ->
-      Turn_queue.schedule_at tq entity_id (time + 100) |> fun turn_queue ->
-      State.set_turn_queue turn_queue backend
+  | None -> (
+      match Kind.get entity_id with
+      | Some Kind.Player -> State.set_wait_input_mode backend
+      | _ ->
+          Turn_queue.schedule_at tq entity_id (time + 100) |> fun turn_queue ->
+          State.set_turn_queue turn_queue backend)
 
 (* Processes a single event from the turn queue for a given id at a specific time.
    Handles fetching the entity and actor, checking liveness, waiting for player input,

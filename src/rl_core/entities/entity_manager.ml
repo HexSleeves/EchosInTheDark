@@ -5,6 +5,11 @@ type t = { next_id : int; alive : Set.M(Int).t }
 
 let create () : t = { next_id = 0; alive = Set.empty (module Int) }
 
+let print (mgr : t) : unit =
+  (* Loop through all alive entities and print their IDs *)
+  Logs.info (fun m -> m "EntityManager:");
+  Set.iter mgr.alive ~f:(fun id -> Logs.info (fun m -> m "Entity: %d" id))
+
 let add (id : entity_id) (mgr : t) : t =
   { mgr with alive = Set.add mgr.alive id }
 

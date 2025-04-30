@@ -24,9 +24,10 @@ let place_biome_features_and_entities ~(biome : Types.biome_type)
     ~(rng : Random.State.t) : entity_id list =
   match biome with
   | Types.Mine | Types.Enchanted_Mine ->
-      Entity_manager.to_list
+      (* Entity_manager.to_list
         (Ca.place_monsters ~grid:tiles ~width ~height ~rng
-           (Entity_manager.create ()))
+           (Entity_manager.create ())) *)
+      []
   | Types.Cursed ->
       (* TODO: Place undead, cursed traps, etc *)
       []

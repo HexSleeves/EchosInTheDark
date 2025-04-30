@@ -12,18 +12,20 @@ let pick_random lst ~rng ~(n : int) =
   let sorted = List.take (List.rev lst) n in
   Rl_utils.Utils.list_nth_opt sorted (Random.State.int rng (List.length sorted))
 
-let find_random_floor grid ~width ~height ~rng =
-  let rec pick () =
-    let x = 1 + Random.State.int rng (width - 2) in
-    let y = 1 + Random.State.int rng (height - 2) in
-    match Rl_utils.Utils.xy_to_index_opt x y width height with
-    | Some idx -> (
-        match Rl_utils.Utils.array_get_opt grid idx with
-        | Some tile when Dungeon.Tile.is_floor tile -> Types.Loc.make x y
-        | _ -> pick ())
-    | None -> pick ()
+let find_random_floor ?(max_tries = 1000) grid ~width ~height ~rng =
+  let rec pick tries =
+    if tries >= max_tries then Types.Loc.make 0 0
+    else
+      let x = 1 + Random.State.int rng (width - 2) in
+      let y = 1 + Random.State.int rng (height - 2) in
+      match Rl_utils.Utils.xy_to_index_opt x y width height with
+      | Some idx -> (
+          match Rl_utils.Utils.array_get_opt grid idx with
+          | Some tile when Dungeon.Tile.is_floor tile -> Types.Loc.make x y
+          | _ -> pick (tries + 1))
+      | None -> pick (tries + 1)
   in
-  pick ()
+  pick 0
 
 let neighbors (x, y) width height =
   List.filter

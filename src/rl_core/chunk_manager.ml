@@ -9,6 +9,14 @@ open Dungeon
 open Rl_utils.Utils
 open Mapgen
 
+(* Constants *)
+let chunk_width = 32
+let chunk_height = 32
+let load_radius = 2 (* 5x5 grid means radius of 2 from center *)
+
+(* Type alias for the hash table storing active chunks *)
+type active_chunks = (chunk_coord, Chunk.t) Hashtbl.t
+
 (* Module for chunk coordinate sets *)
 module ChunkCoord = struct
   (* Need sexp_of_t for Hashtbl.create *)
@@ -19,20 +27,12 @@ module ChunkCoord = struct
   end)
 end
 
-(* Type alias for the hash table storing active chunks *)
-type active_chunks = (chunk_coord, Chunk.t) Hashtbl.t
-
 (* The state managed by the Chunk Manager *)
 type t = {
+  world_seed : int;
   active_chunks : active_chunks;
-  world_seed : int; (* Needed for deterministic generation *)
-  last_player_chunk : chunk_coord option; (* Track player chunk changes *)
+  last_player_chunk : chunk_coord option;
 }
-
-(* Constants *)
-let chunk_width = 32
-let chunk_height = 32
-let load_radius = 2 (* 5x5 grid means radius of 2 from center *)
 
 (* --- Coordinate Conversion Helpers --- *)
 
@@ -63,6 +63,9 @@ let set_loaded_chunk (coords : chunk_coord) (chunk : Chunk.t) (t : t) : t =
   Hashtbl.set t.active_chunks ~key:coords ~data:chunk;
   t
 
+let generate_chunk ~chunk_coords ~world_seed ~depth : Chunk.t =
+  Chunk_generator.generate ~chunk_coords ~world_seed ~depth
+
 (* Gets the tile at a specific world position, if the chunk is loaded *)
 let get_tile_at (world_pos : world_pos) (t : t) : Dungeon.Tile.t option =
   let chunk_coords = world_to_chunk_coord world_pos in
@@ -86,9 +89,6 @@ let get_required_chunks (center : chunk_coord) : Set.M(ChunkCoord).t =
   done;
   !required
 
-let load_chunk (coords : chunk_coord) ~world_seed ~depth : Chunk.t =
-  Chunk_generator.generate coords ~world_seed ~depth
-
 (* Ensures required chunks around the player are loaded, unloading others *)
 let update_loaded_chunks_around_player (t : t) (player_world_pos : world_pos)
     ~depth : t =
@@ -97,28 +97,35 @@ let update_loaded_chunks_around_player (t : t) (player_world_pos : world_pos)
     Option.value_map t.last_player_chunk ~default:false ~f:(fun last_chunk ->
         ChunkCoord.compare last_chunk current_player_chunk = 0)
   in
-  if unchanged then t
-  else
-    let required_chunks = get_required_chunks current_player_chunk in
-    let loaded_chunks =
-      Set.of_list (module ChunkCoord) (Hashtbl.keys t.active_chunks)
-    in
 
-    let chunks_to_load = Set.diff required_chunks loaded_chunks in
-    let chunks_to_unload = Set.diff loaded_chunks required_chunks in
+  match unchanged with
+  | true -> t
+  | false ->
+      let required_chunks = get_required_chunks current_player_chunk in
+      let loaded_chunks =
+        Set.of_list (module ChunkCoord) (Hashtbl.keys t.active_chunks)
+      in
 
-    let active_chunks = Hashtbl.copy t.active_chunks in
-    Set.iter chunks_to_unload ~f:(fun coords ->
-        Core_log.debug (fun m -> m "Unloading chunk (%d, %d)" coords.x coords.y);
-        Hashtbl.remove active_chunks coords);
+      let chunks_to_load = Set.diff required_chunks loaded_chunks in
+      let chunks_to_unload = Set.diff loaded_chunks required_chunks in
 
-    Set.iter chunks_to_load ~f:(fun coords ->
-        Core_log.debug (fun m -> m "Loading chunk (%d, %d)" coords.x coords.y);
-        if not (Hashtbl.mem active_chunks coords) then
-          Hashtbl.set active_chunks ~key:coords
-            ~data:
-              (Chunk_generator.generate coords ~world_seed:t.world_seed ~depth));
-    { t with active_chunks; last_player_chunk = Some current_player_chunk }
+      let active_chunks = Hashtbl.copy t.active_chunks in
+      Set.iter chunks_to_unload ~f:(fun coords ->
+          Core_log.debug (fun m ->
+              m "Unloading chunk (%d, %d)" coords.x coords.y);
+          Hashtbl.remove active_chunks coords);
+
+      Set.iter chunks_to_load ~f:(fun coords ->
+          Core_log.info (fun m ->
+              m "[LOAD] Loading chunk (%d, %d) at depth %d" coords.x coords.y
+                depth);
+          Core_log.debug (fun m -> m "Loading chunk (%d, %d)" coords.x coords.y);
+          if not (Hashtbl.mem active_chunks coords) then
+            Hashtbl.set active_chunks ~key:coords
+              ~data:
+                (Chunk_generator.generate ~chunk_coords:coords
+                   ~world_seed:t.world_seed ~depth));
+      { t with active_chunks; last_player_chunk = Some current_player_chunk }
 
 (* Function to be called potentially every turn or after player move *)
 let tick (player_world_pos : world_pos) (t : t) ~depth : t =
