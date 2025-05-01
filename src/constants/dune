@@ -3,9 +3,13 @@
 (library
  (name constants)
  (modules constants)
- (libraries base containers core_kernel logs raylib))
+ (libraries base containers core_kernel logs raylib)
+ (preprocess
+  (pps ppx_yojson_conv ppx_compare ppx_sexp_conv ppx_hash ppx_deriving.show)))
 
 (library
  (name render_constants)
  (modules render_constants)
- (libraries base containers core_kernel logs raylib))
+ (libraries base containers core_kernel logs raylib)
+ (preprocess
+  (pps ppx_yojson_conv ppx_compare ppx_sexp_conv ppx_hash ppx_deriving.show)))

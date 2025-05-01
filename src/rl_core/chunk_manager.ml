@@ -36,15 +36,15 @@ type t = {
 
 let world_to_chunk_coord (pos : Chunk.world_pos) : Chunk.chunk_coord =
   Loc.make
-    (floor_div pos.x Chunk.chunk_width)
-    (floor_div pos.y Chunk.chunk_height)
+    (floor_div pos.x Constants.chunk_width)
+    (floor_div pos.y Constants.chunk_height)
 
 let world_to_local_coord (pos : Chunk.world_pos) : Chunk.local_pos =
-  let lx = Int.rem pos.x Chunk.chunk_width in
-  let ly = Int.rem pos.y Chunk.chunk_height in
+  let lx = Int.rem pos.x Constants.chunk_width in
+  let ly = Int.rem pos.y Constants.chunk_height in
   (* Ensure positive remainder for negative coordinates *)
-  let lx = if lx < 0 then lx + Chunk.chunk_width else lx in
-  let ly = if ly < 0 then ly + Chunk.chunk_height else ly in
+  let lx = if lx < 0 then lx + Constants.chunk_width else lx in
+  let ly = if ly < 0 then ly + Constants.chunk_height else ly in
   Loc.make lx ly (* Assuming Loc is defined in Types *)
 
 let make_position (world : Rl_types.Loc.t) : Components.Position.t =
@@ -60,6 +60,8 @@ let create ~world_seed : t =
     last_player_chunk = None;
     active_chunks = Hashtbl.create (module ChunkCoord);
   }
+
+let get_active_chunks (t : t) : active_chunks = t.active_chunks
 
 let get_loaded_chunk (coords : Chunk.chunk_coord) (t : t) : Chunk.t option =
   Hashtbl.find t.active_chunks coords
@@ -79,9 +81,9 @@ let get_tile_at (world_pos : Chunk.world_pos) (t : t) : Dungeon.Tile.t option =
       let local_pos = world_to_local_coord world_pos in
       if
         local_pos.x >= 0
-        && local_pos.x < Chunk.chunk_width
+        && local_pos.x < Constants.chunk_width
         && local_pos.y >= 0
-        && local_pos.y < Chunk.chunk_height
+        && local_pos.y < Constants.chunk_height
       then Some chunk.tiles.(local_pos.y).(local_pos.x)
         (* Assuming row-major y,x *)
       else None (* Should not happen *))

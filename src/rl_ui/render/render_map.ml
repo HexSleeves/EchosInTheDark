@@ -24,7 +24,7 @@ let render_tileset_tile ~texture ~tile ~loc ~origin ~tile_render_size =
 let render_ascii_cell ~glyph ~color ~fc ~loc ~origin ~tile_render_size =
   let open Raylib in
   let open Render_utils in
-  let font_size = Float.of_int tile_render_size in
+  let font_size = Vector2.x tile_render_size in
   let glyph_size = measure_text_ex fc.font glyph font_size 0. in
 
   let screen_pos =

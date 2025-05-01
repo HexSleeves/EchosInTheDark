@@ -2,6 +2,7 @@ open Base
 open Render_types
 module Loc = Rl_types.Loc
 module Tile = Dungeon.Tile
+module Backend = Rl_core.Backend
 
 let gold = Render_constants.color_gold
 let dark_bg = Render_constants.color_dark_bg
@@ -87,27 +88,24 @@ let cleanup (ctx : render_context) =
   Raylib.close_window ()
 
 (* Draw FPS overlay in the corner *)
-let render_fps_overlay (ctx : render_context) : unit =
-  let open Raylib in
-  let fc = ctx.font_config in
-  let fps = get_fps () in
-  let fps_text = Int.to_string fps in
-  let text_width = measure_text fps_text fc.font_size in
-  let padding = 4 in
-  let box_height = Float.of_int (fc.font_size + (padding * 2)) in
-  let box_width = Float.of_int (text_width + (padding * 2)) in
-  let padding = Float.of_int padding in
-  let box_x = Float.of_int (get_screen_width ()) -. box_width -. padding in
-  let box_y = Float.of_int (get_screen_height ()) -. box_height -. padding in
-  let box = Rectangle.create box_x box_y box_width box_height in
-  draw_rectangle_rec box (Raylib.fade Color.gray 0.75);
-  let text_x = Float.to_int (box_x +. padding) in
-  let text_y = Float.to_int (box_y +. padding) in
-  draw_text fps_text text_x text_y fc.font_size Color.white
-
+let render_fps_overlay = Render_ui.render_fps_overlay
 let render_map = Render_map.render_map_tiles
 let render_entities = Render_map.render_entities
 let draw_top_bar = Render_ui.draw_top_bar
 let draw_minimap = Render_ui.draw_minimap
 let draw_message_log = Render_ui.draw_message_log
 let draw_bottom_bar = Render_ui.draw_bottom_bar
+
+let render_chunk (chunk : Chunk.t) ~(backend : Backend.t)
+    ~(ctx : render_context) ~(map_origin : Raylib.Vector2.t)
+    ~(entities : int list) =
+  let entity_positions =
+    Render_utils.occupied_positions (Backend.get_entities backend)
+  in
+
+  render_map
+    ~tiles:(Array.concat (Array.to_list chunk.tiles))
+    ~width:Constants.chunk_width ~skip_positions:entity_positions
+    ~origin:map_origin ~ctx;
+
+  render_entities ~entities ~origin:map_origin ~ctx

@@ -20,6 +20,14 @@ let log_height = Render_constants.log_height
 let stats_bar_width_min = Render_constants.stats_bar_width_min
 let stats_bar_width_frac = Render_constants.stats_bar_width_frac
 
+let show_rect rect =
+  Logs.info (fun m ->
+      m "Rect: %s"
+        (Printf.sprintf "x: %f, y: %f, width: %f, height: %f"
+           (Raylib.Rectangle.x rect) (Raylib.Rectangle.y rect)
+           (Raylib.Rectangle.width rect)
+           (Raylib.Rectangle.height rect)))
+
 let render (state : State.t) : State.t option =
   let backend = state.backend in
 
@@ -86,14 +94,20 @@ let render (state : State.t) : State.t option =
   let chunk_manager = Backend.get_chunk_manager backend in
   let chunk_coords = Chunk_manager.world_to_chunk_coord player_pos.world_pos in
 
-  let chunk_size = Constants.chunk_size in
   let tile_render_size =
-    Float.to_int
-      (Float.min
-         (Raylib.Rectangle.width main_view_rect /. chunk_size)
-         (Raylib.Rectangle.height main_view_rect /. chunk_size))
+    Raylib.Vector2.create
+      (Raylib.Rectangle.width main_view_rect
+      /. Float.of_int Constants.chunk_width)
+      (Raylib.Rectangle.height main_view_rect
+      /. Float.of_int Constants.chunk_height)
   in
-  let tile_render_size = 18 in
+
+  Logs.info (fun m ->
+      m "Tile render size: %s"
+        (Printf.sprintf "x: %f, y: %f"
+           (Raylib.Vector2.x tile_render_size)
+           (Raylib.Vector2.y tile_render_size)));
+
   let map_origin =
     Raylib.Vector2.create
       (Raylib.Rectangle.x main_view_rect)
@@ -101,20 +115,10 @@ let render (state : State.t) : State.t option =
   in
   let ctx = { state.render_ctx with tile_render_size } in
 
-  (* Logs.info (fun m -> m "Tile render size: %d" tile_render_size); *)
   (match Chunk_manager.get_loaded_chunk chunk_coords chunk_manager with
   | None -> ()
   | Some chunk ->
-      let entity_positions =
-        Render_utils.occupied_positions (Backend.get_entities backend)
-      in
-
-      Renderer.render_map
-        ~tiles:(Array.concat (Array.to_list chunk.tiles))
-        ~width:Chunk.chunk_width ~skip_positions:entity_positions
-        ~origin:map_origin ~ctx;
-
-      Renderer.render_entities ~entities ~origin:map_origin ~ctx);
+      Renderer.render_chunk chunk ~backend ~ctx ~map_origin ~entities);
 
   (* Draw a border around the main map view *)
   Raylib.draw_rectangle_lines_ex main_view_rect 2.0 Render_constants.color_gold;
@@ -127,7 +131,7 @@ let render (state : State.t) : State.t option =
   R.draw_message_log ~messages ~rect:message_log_rect;
   R.draw_bottom_bar ~rect:bottom_bar_rect ~backend ~ctx;
 
-  if Backend.get_debug backend then R.render_fps_overlay ctx;
+  if Backend.get_debug backend then R.render_fps_overlay ~ctx;
 
   None
 
@@ -164,13 +168,12 @@ let handle_player_input (state : State.t) : State.t =
           | Render_constants.Ascii -> Render_constants.Tiles
           | Render_constants.Tiles -> Render_constants.Ascii
         in
-        (* Create a new render_ctx with the toggled mode *)
-        let new_render_ctx = { state.render_ctx with render_mode = new_mode } in
         Ui_log.console "Toggled render mode to: %s"
           (render_mode_to_string new_mode);
-        (* Use local helper *)
-        (* Return a new state with the updated render_ctx *)
-        { state with render_ctx = new_render_ctx }
+        {
+          state with
+          render_ctx = { state.render_ctx with render_mode = new_mode };
+        }
     | _ -> state
   in
 

@@ -14,15 +14,17 @@ module PosSet = struct
 end
 
 (* Map grid (tile) position to screen position using FontConfig *)
-let grid_to_screen ~tile_render_size (loc : Rl_types.Loc.t) =
+let grid_to_screen ~(tile_render_size : Raylib.Vector2.t) (loc : Rl_types.Loc.t)
+    =
   Raylib.Vector2.create
-    (Float.of_int loc.x *. Float.of_int tile_render_size)
-    (Float.of_int loc.y *. Float.of_int tile_render_size)
+    (Float.of_int loc.x *. Raylib.Vector2.x tile_render_size)
+    (Float.of_int loc.y *. Raylib.Vector2.y tile_render_size)
 
-let screen_to_grid ~tile_render_size (vec : Vector2.t) =
+let screen_to_grid ~(tile_render_size : Raylib.Vector2.t)
+    (vec : Raylib.Vector2.t) =
   Rl_types.Loc.make
-    (Float.to_int (Vector2.x vec /. Float.of_int tile_render_size))
-    (Float.to_int (Vector2.y vec /. Float.of_int tile_render_size))
+    (Float.to_int (Raylib.Vector2.x vec /. Raylib.Vector2.x tile_render_size))
+    (Float.to_int (Raylib.Vector2.y vec /. Raylib.Vector2.y tile_render_size))
 
 let occupied_positions (entities : entity_id list) : Set.M(PosSet).t =
   List.fold entities
@@ -78,7 +80,8 @@ let draw_font_text ~font ~font_size ~color ~text ~pos_x ~pos_y =
     (Raylib.Vector2.create pos_x pos_y)
     font_size 0. color
 
-let draw_texture_ex ~texture ~pos ~origin ~tile_render_size ~col ~row =
+let draw_texture_ex ~texture ~pos ~origin ~col ~row
+    ~(tile_render_size : Raylib.Vector2.t) =
   let tile_width = Render_constants.tile_width in
   let tile_height = Render_constants.tile_height in
 
@@ -94,8 +97,8 @@ let draw_texture_ex ~texture ~pos ~origin ~tile_render_size ~col ~row =
   in
   let dest_rect =
     Raylib.Rectangle.create (Raylib.Vector2.x dest) (Raylib.Vector2.y dest)
-      (Float.of_int tile_render_size)
-      (Float.of_int tile_render_size)
+      (Raylib.Vector2.x tile_render_size)
+      (Raylib.Vector2.y tile_render_size)
   in
 
   let rotation = 0. in

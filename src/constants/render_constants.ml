@@ -10,11 +10,11 @@ let stats_bar_width_frac = 0.24
 (* Tileset *)
 let tile_width = 8
 let tile_height = 8
-let tile_render_size = 20
+let tile_render_size = Raylib.Vector2.create 20. 20.
 let tileset_path = "resources/tiles/classic_roguelike_pico8.png"
 
 (* Render Mode Type Definition *)
-type render_mode = Tiles | Ascii
+type render_mode = Tiles | Ascii [@@deriving sexp, show]
 
 (* Default or fallback sprite coordinates *)
 let unknown_tile_sprite_coords = (20, 5)

@@ -1,5 +1,4 @@
 open Components
-open Chunk
 
 type t = Entity_manager.t
 

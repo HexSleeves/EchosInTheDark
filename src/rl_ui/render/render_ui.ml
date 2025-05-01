@@ -6,7 +6,6 @@
 
 open! Base
 open! Raylib
-open! Rl_types
 open! Render_constants
 open! Components
 open! Render_utils
@@ -14,6 +13,24 @@ open! Render_types
 
 let gold = Render_constants.color_gold
 let dark_bg = Render_constants.color_dark_bg
+
+let render_fps_overlay ~(ctx : render_context) =
+  let open Raylib in
+  let fc = ctx.font_config in
+  let fps = get_fps () in
+  let fps_text = Int.to_string fps in
+  let text_width = measure_text fps_text fc.font_size in
+  let padding = 4 in
+  let box_height = Float.of_int (fc.font_size + (padding * 2)) in
+  let box_width = Float.of_int (text_width + (padding * 2)) in
+  let padding = Float.of_int padding in
+  let box_x = Float.of_int (get_screen_width ()) -. box_width -. padding in
+  let box_y = Float.of_int (get_screen_height ()) -. box_height -. padding in
+  let box = Rectangle.create box_x box_y box_width box_height in
+  draw_rectangle_rec box (Raylib.fade Color.gray 0.75);
+  let text_x = Float.to_int (box_x +. padding) in
+  let text_y = Float.to_int (box_y +. padding) in
+  draw_text fps_text text_x text_y fc.font_size Color.white
 
 (* //////////////////////////////////////////////////////////////// *)
 (* Top Bar *)
@@ -257,8 +274,8 @@ let draw_minimap ~rect ~(backend : Rl_core.Backend.t) ~(ctx : render_context) =
           (* Calculate minimap tile size *)
           let available_w = Rectangle.width rect -. (padding *. 2.0) in
           let available_h = Rectangle.height rect -. (padding *. 2.0) in
-          let tile_w = available_w /. Float.of_int Chunk.chunk_width in
-          let tile_h = available_h /. Float.of_int Chunk.chunk_height in
+          let tile_w = available_w /. Float.of_int Constants.chunk_width in
+          let tile_h = available_h /. Float.of_int Constants.chunk_height in
 
           (* Draw chunk tiles *)
           Array.iteri chunk.tiles ~f:(fun y row ->
@@ -305,10 +322,17 @@ let draw_message_log ~messages ~rect =
   let line_height = 16 in
   let x = Int.of_float (Rectangle.x rect) + padding in
   let y = Int.of_float (Rectangle.y rect) + padding in
+
   draw_rectangle_rec rect dark_bg;
   draw_rectangle_lines_ex rect 1.0 gold;
   List.iteri messages ~f:(fun i msg ->
       let color =
         if String.is_prefix msg ~prefix:"!" then gold else Color.lightgray
       in
-      draw_text msg x (y + (i * line_height)) 18 color)
+      draw_text msg x (y + (i * line_height)) 18 color);
+
+  let title_rect =
+    Rectangle.create (Float.of_int x) (Float.of_int y) 100.0 18.0
+  in
+
+  draw_text "Message Log" x y 20 Color.blue

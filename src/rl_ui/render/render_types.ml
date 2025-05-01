@@ -17,7 +17,7 @@ type render_context = {
   title : string;
   window_width : int;
   window_height : int;
-  tile_render_size : int;
+  tile_render_size : Raylib.Vector2.t;
   font_config : font_config;
   flags : Raylib.ConfigFlags.t list;
   render_mode : Render_constants.render_mode;

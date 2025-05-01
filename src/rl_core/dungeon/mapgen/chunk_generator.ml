@@ -34,17 +34,22 @@ let generate ~(chunk_coords : Chunk.chunk_coord) ~(world_seed : int)
   Core_log.info (fun m ->
       m "[GEN] Generating chunk at (%d, %d), depth %d" cx cy depth);
   let chunk_seed = hash_coords world_seed cx cy in
-  let width = Chunk.chunk_width in
-  let height = Chunk.chunk_height in
+  let width = Constants.chunk_width in
+  let height = Constants.chunk_height in
   let rng = Random.State.make [| chunk_seed |] in
 
   (* Step 1: Pick biome and algorithm *)
   let biome = Biome.pick_biome ~depth ~cx ~cy ~world_seed in
   let algo = Biome.algo_for_biome biome in
   let tiles_1d = run_chunk_algo ~algo ~width ~height ~rng in
-  let tiles =
+  (* let tiles =
     Array.init height ~f:(fun y ->
         Array.init width ~f:(fun x -> tiles_1d.(x + (y * width))))
+  in *)
+
+  let tiles =
+    Array.init height ~f:(fun y ->
+        Array.init width ~f:(fun x -> Dungeon.Tile.Floor))
   in
 
   (* Step 2: Feature Overlay (Placeholder for biome-specific features) *)
