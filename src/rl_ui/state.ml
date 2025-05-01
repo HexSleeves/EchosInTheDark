@@ -1,3 +1,4 @@
+open Render
 module Backend = Rl_core.Backend
 
 module Input_context = struct
@@ -16,5 +17,5 @@ type t = {
   backend : Backend.t;
   input_ctx : Input_context.t;
   screen : Modules_d.screen;
-  render_ctx : Renderer.render_context;
+  render_ctx : Render_types.render_context;
 }

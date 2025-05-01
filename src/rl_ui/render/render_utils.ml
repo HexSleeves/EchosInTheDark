@@ -1,19 +1,7 @@
 open Base
 open Raylib
-open Render_constants
 open Dungeon
 open Rl_types
-
-(* Map grid (tile) position to screen position using FontConfig *)
-let grid_to_screen (loc : Rl_types.Loc.t) =
-  Raylib.Vector2.create
-    (Float.of_int loc.x *. Float.of_int font_size)
-    (Float.of_int loc.y *. Float.of_int font_size)
-
-let screen_to_grid (vec : Vector2.t) =
-  Rl_types.Loc.make
-    (Float.to_int (Vector2.x vec /. Float.of_int font_size))
-    (Float.to_int (Vector2.y vec /. Float.of_int font_size))
 
 (* Utility: Get set of occupied positions from a list of entities *)
 module PosSet = struct
@@ -24,6 +12,17 @@ module PosSet = struct
   include T
   include Comparator.Make (T)
 end
+
+(* Map grid (tile) position to screen position using FontConfig *)
+let grid_to_screen ~tile_render_size (loc : Rl_types.Loc.t) =
+  Raylib.Vector2.create
+    (Float.of_int loc.x *. Float.of_int tile_render_size)
+    (Float.of_int loc.y *. Float.of_int tile_render_size)
+
+let screen_to_grid ~tile_render_size (vec : Vector2.t) =
+  Rl_types.Loc.make
+    (Float.to_int (Vector2.x vec /. Float.of_int tile_render_size))
+    (Float.to_int (Vector2.y vec /. Float.of_int tile_render_size))
 
 let occupied_positions (entities : entity_id list) : Set.M(PosSet).t =
   List.fold entities
@@ -90,7 +89,7 @@ let draw_texture_ex ~texture ~pos ~origin ~tile_render_size ~col ~row =
       (Float.of_int tile_width) (Float.of_int tile_height)
   in
   let dest =
-    let base_pos = grid_to_screen pos in
+    let base_pos = grid_to_screen ~tile_render_size pos in
     Raylib.Vector2.add base_pos origin
   in
   let dest_rect =

@@ -2,7 +2,9 @@ open Base
 open Modules_d
 open State
 open Screens
+open Render
 module R = Renderer
+module RT = Render_types
 
 (* Core modules *)
 module Backend = Rl_core.Backend
@@ -85,7 +87,7 @@ let main init_fn render_ctx =
 (* --- End mainloop.ml logic --- *)
 
 (* Create initial game state using init_config *)
-let create_initial_state (render_ctx : R.render_context) (config : init_config)
+let create_initial_state (render_ctx : RT.render_context) (config : init_config)
     =
   let seed =
     Option.value config.seed ~default:(Rl_utils.Rng.generate_seed ())
@@ -109,22 +111,10 @@ let create_initial_state (render_ctx : R.render_context) (config : init_config)
     input_ctx = Input_context.empty;
   }
 
-let run_with_config (render_ctx : R.render_context) (config : init_config) :
+let run_with_config (render_ctx : RT.render_context) (config : init_config) :
     unit =
   let init_fn _ =
     let state = create_initial_state render_ctx config in
-    (state, { render; handle_tick })
-  in
-  main init_fn render_ctx
-
-let () =
-  let render_ctx = R.create_render_context () in
-  let init_fn ctx =
-    let config =
-      { width = 80; height = 50; debug = false; seed = None; backend = None }
-      (* Example config *)
-    in
-    let state = create_initial_state ctx config in
     (state, { render; handle_tick })
   in
   main init_fn render_ctx

@@ -9,9 +9,10 @@
     as needed. *)
 
 open Base
-open Constants
-module R = Renderer
+open Render
+open Render_types
 module T = Rl_types
+module R = Render.Renderer
 module Backend = Rl_core.Backend
 
 let margin = Render_constants.margin
@@ -21,7 +22,6 @@ let stats_bar_width_frac = Render_constants.stats_bar_width_frac
 
 let render (state : State.t) : State.t option =
   let backend = state.backend in
-  let ctx = state.render_ctx in
 
   let screen_w = Raylib.get_screen_width () in
   let screen_h = Raylib.get_screen_height () in
@@ -86,25 +86,35 @@ let render (state : State.t) : State.t option =
   let chunk_manager = Backend.get_chunk_manager backend in
   let chunk_coords = Chunk_manager.world_to_chunk_coord player_pos.world_pos in
 
-  ignore
-    (match Chunk_manager.get_loaded_chunk chunk_coords chunk_manager with
-    | None -> ()
-    | Some chunk ->
-        let map_origin =
-          Raylib.Vector2.create
-            (Raylib.Rectangle.x main_view_rect)
-            (Raylib.Rectangle.y main_view_rect)
-        in
-        let entity_positions =
-          Render_utils.occupied_positions (Backend.get_entities backend)
-        in
+  let chunk_size = Constants.chunk_size in
+  let tile_render_size =
+    Float.to_int
+      (Float.min
+         (Raylib.Rectangle.width main_view_rect /. chunk_size)
+         (Raylib.Rectangle.height main_view_rect /. chunk_size))
+  in
+  let tile_render_size = 18 in
+  let map_origin =
+    Raylib.Vector2.create
+      (Raylib.Rectangle.x main_view_rect)
+      (Raylib.Rectangle.y main_view_rect)
+  in
+  let ctx = { state.render_ctx with tile_render_size } in
 
-        Renderer.render_map_tiles
-          ~tiles:(Array.concat (Array.to_list chunk.tiles))
-          ~width:Chunk.chunk_width ~skip_positions:entity_positions
-          ~origin:map_origin ~ctx;
+  (* Logs.info (fun m -> m "Tile render size: %d" tile_render_size); *)
+  (match Chunk_manager.get_loaded_chunk chunk_coords chunk_manager with
+  | None -> ()
+  | Some chunk ->
+      let entity_positions =
+        Render_utils.occupied_positions (Backend.get_entities backend)
+      in
 
-        Renderer.render_entities ~entities ~origin:map_origin ~ctx);
+      Renderer.render_map
+        ~tiles:(Array.concat (Array.to_list chunk.tiles))
+        ~width:Chunk.chunk_width ~skip_positions:entity_positions
+        ~origin:map_origin ~ctx;
+
+      Renderer.render_entities ~entities ~origin:map_origin ~ctx);
 
   (* Draw a border around the main map view *)
   Raylib.draw_rectangle_lines_ex main_view_rect 2.0 Render_constants.color_gold;
@@ -112,6 +122,7 @@ let render (state : State.t) : State.t option =
   (* Render other panels *)
   R.draw_top_bar ~rect:top_bar_rect ~backend ~ctx;
   R.draw_minimap ~rect:minimap_rect ~backend ~ctx;
+
   let messages = Ui_log.get_console_messages () in
   R.draw_message_log ~messages ~rect:message_log_rect;
   R.draw_bottom_bar ~rect:bottom_bar_rect ~backend ~ctx;
@@ -124,7 +135,8 @@ let handle_mouse (state : State.t) =
   let open Raylib in
   if is_mouse_button_pressed MouseButton.Left then
     let mouse_pos = get_mouse_position () in
-    let tile_pos = Render_utils.screen_to_grid mouse_pos in
+    let tile_render_size = state.render_ctx.tile_render_size in
+    let tile_pos = Render_utils.screen_to_grid ~tile_render_size mouse_pos in
     let player_id = Backend.get_player_id state.backend in
     let position = Components.Position.make tile_pos in
     let b = Backend.move_entity player_id position state.backend in

@@ -1,9 +1,10 @@
 (* Copyright (c) 2025 Jacob LeCoq (Yendor). All rights reserved. *)
+open Render
 
 let margin = Render_constants.margin
+let log_height = Render_constants.log_height
 let stats_bar_width_min = Render_constants.stats_bar_width_min
 let stats_bar_width_frac = Render_constants.stats_bar_width_frac
-let log_height = Render_constants.log_height
 
 let () =
   (* CLI argument refs *)
@@ -37,7 +38,7 @@ let () =
   Logger.setup_logger level;
 
   (* 1. Create window and font config *)
-  let render_ctx = Rl_ui.Renderer.create_render_context () in
+  let render_ctx = Renderer.create_render_context () in
 
   (* 2. Compute map area (must match your play.ml layout) *)
   let screen_w = Raylib.get_screen_width () in
