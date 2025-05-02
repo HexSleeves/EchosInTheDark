@@ -14,7 +14,7 @@
   render_constants
   rl_core
   rl_loader
-  rl_utils
+  utils
   ui_log)
  (preprocess
   (pps ppx_yojson_conv ppx_compare ppx_sexp_conv ppx_hash ppx_deriving.show)))

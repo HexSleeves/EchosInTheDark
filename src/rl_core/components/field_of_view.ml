@@ -1,5 +1,5 @@
 open Base
-open Rl_utils
+open Utils
 
 (* For now, assume a fixed map size; can refactor for chunks later *)
 let map_width = 128

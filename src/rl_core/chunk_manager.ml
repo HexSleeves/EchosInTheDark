@@ -5,7 +5,7 @@
 
 open Base
 open Rl_types
-open Rl_utils.Utils
+open Utils
 
 (* Constants *)
 let load_radius = 2 (* 5x5 grid means radius of 2 from center *)

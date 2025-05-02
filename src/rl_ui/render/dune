@@ -5,7 +5,7 @@
  (libraries
   rl_core
   core_log
-  rl_utils
+  utils
   rl_loader
   base
   core_kernel

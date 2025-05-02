@@ -21,7 +21,7 @@
   logs
   logs.fmt
   worldgen
-  rl_utils
+  utils
   state
   systems
   rl_types

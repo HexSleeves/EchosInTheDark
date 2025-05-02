@@ -17,8 +17,7 @@ let load_prefab ~width ~height filename =
         Base.String.iteri line ~f:(fun x ch ->
             if x + x_offset < width then
               match
-                Rl_utils.Utils.xy_to_index_opt (x + x_offset) (y + y_offset)
-                  width height
+                Utils.xy_to_index_opt (x + x_offset) (y + y_offset) width height
               with
               | Some idx when idx >= 0 && idx < Array.length grid ->
                   grid.(idx) <-

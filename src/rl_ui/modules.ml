@@ -89,9 +89,7 @@ let main init_fn render_ctx =
 (* Create initial game state using init_config *)
 let create_initial_state (render_ctx : RT.render_context) (config : init_config)
     =
-  let seed =
-    Option.value config.seed ~default:(Rl_utils.Rng.generate_seed ())
-  in
+  let seed = Option.value config.seed ~default:(Utils.Rng.generate_seed ()) in
 
   let backend =
     match config.backend with

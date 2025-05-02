@@ -64,6 +64,6 @@ let place_monsters ~grid ~width ~rooms ~rng ~depth entity_manager =
                  Tile.is_floor grid.(idx))
           |> List.map ~f:(fun (i, j) -> Rl_types.Loc.make i j)
         in
-        Monster_placement.place_band_in_room ~entity_manager:em
-          ~room_positions:positions ~depth ~rng
+        Monster.place_band_in_room ~entity_manager:em ~room_positions:positions
+          ~depth ~rng
       else em)

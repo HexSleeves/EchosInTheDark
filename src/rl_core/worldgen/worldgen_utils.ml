@@ -1,5 +1,5 @@
 open Base
-open Rl_utils
+open Utils
 
 let cartesian_product xs ys =
   List.concat_map xs ~f:(fun x -> List.map ys ~f:(fun y -> (x, y)))

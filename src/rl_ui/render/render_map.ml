@@ -9,7 +9,7 @@ open! Raylib
 open! Rl_types
 open! Render_constants
 open! Components
-open! Rl_utils
+open! Utils
 open! Render_types
 
 let render_tileset_sprite ~int ~origin ~pos ~texture ~tile_render_size

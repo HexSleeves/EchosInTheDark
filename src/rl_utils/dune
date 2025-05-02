@@ -1,7 +1,8 @@
 (include_subdirs qualified)
 
 (library
- (name rl_utils)
+ (name utils)
+ (modules bitset rng utils fov utils_log)
  (libraries base containers core_kernel logs logs.fmt raylib)
  (preprocess
   (pps ppx_yojson_conv)))

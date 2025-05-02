@@ -22,9 +22,9 @@ let count_wall_neighbors (grid : Tile.t array) ~width ~height x y =
         let nx = x + dx and ny = y + dy in
         if nx < 0 || ny < 0 || nx >= width || ny >= height then Int.incr count
         else
-          match Rl_utils.Utils.xy_to_index_opt nx ny width height with
+          match Utils.xy_to_index_opt nx ny width height with
           | Some idx -> (
-              match Rl_utils.Utils.array_get_opt grid idx with
+              match Utils.array_get_opt grid idx with
               | Some tile when Tile.equal tile Tile.Wall -> Int.incr count
               | _ -> ())
           | None -> ()
@@ -39,7 +39,7 @@ let smooth grid ~width ~height ~passes =
   for _ = 1 to passes do
     for y = 0 to height - 1 do
       for x = 0 to width - 1 do
-        match Rl_utils.Utils.xy_to_index_opt x y width height with
+        match Utils.xy_to_index_opt x y width height with
         | Some idx when idx >= 0 && idx < Array.length next ->
             if x = 0 || x = width - 1 || y = 0 || y = height - 1 then
               next.(idx) <- Tile.Wall
@@ -69,7 +69,7 @@ let place_monsters ~grid ~width ~height ~rng entity_manager =
     List.filter_map
       (List.init (width * height) ~f:Fn.id)
       ~f:(fun idx ->
-        match Rl_utils.Utils.array_get_opt grid idx with
+        match Utils.array_get_opt grid idx with
         | Some tile when Tile.is_floor tile ->
             let x = idx % width in
             let y = idx / width in
@@ -82,5 +82,5 @@ let place_monsters ~grid ~width ~height ~rng entity_manager =
   let monster_positions = List.take shuffled num_monsters in
   Core_log.info (fun m -> m "Placing %d monsters..." num_monsters);
   List.fold monster_positions ~init:entity_manager ~f:(fun em pos ->
-      let spec = Monster_placement.get_template "Rat" in
-      Monster_placement.place_monster ~entity_manager:em ~pos spec)
+      let spec = Monster.get_template "Rat" in
+      Monster.place_monster ~entity_manager:em ~pos spec)

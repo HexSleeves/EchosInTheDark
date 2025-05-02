@@ -12,7 +12,7 @@
   core_log
   raylib
   constants
-  rl_utils)
+  utils)
  (preprocess
   (pps
    ppx_jane
@@ -30,15 +30,7 @@
 (library
  (name chunk)
  (modules chunk)
- (libraries
-  base
-  core_kernel
-  containers
-  logs
-  dungeon
-  rl_types
-  core_log
-  rl_utils)
+ (libraries base core_kernel containers logs dungeon rl_types core_log utils)
  (preprocess
   (pps
    ppx_jane
