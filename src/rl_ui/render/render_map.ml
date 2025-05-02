@@ -12,14 +12,17 @@ open! Components
 open! Rl_utils
 open! Render_types
 
-let render_tileset_sprite ~entity_id ~origin ~pos ~texture ~tile_render_size =
-  let col, row = Render_utils.entity_to_sprite_coords entity_id in
+let render_tileset_sprite ~int ~origin ~pos ~texture ~tile_render_size
+    ~is_visible ~is_seen =
+  let col, row = Render_utils.entity_to_sprite_coords int in
   Render_utils.draw_texture_ex ~texture ~pos ~origin ~tile_render_size ~col ~row
+    ~is_visible ~is_seen
 
-let render_tileset_tile ~texture ~tile ~loc ~origin ~tile_render_size =
+let render_tileset_tile ~texture ~tile ~loc ~origin ~tile_render_size
+    ~is_visible ~is_seen =
   let col, row = Tile.tile_to_tileset tile in
   Render_utils.draw_texture_ex ~texture ~pos:loc ~origin ~tile_render_size ~col
-    ~row
+    ~row ~is_visible ~is_seen
 
 let render_ascii_cell ~glyph ~color ~fc ~loc ~origin ~tile_render_size =
   let open Raylib in
@@ -44,32 +47,45 @@ let render_ascii_cell ~glyph ~color ~fc ~loc ~origin ~tile_render_size =
   (* Font, Text, Position, Font-size, Spacing, Color *)
   draw_text_ex fc.font glyph centered_pos font_size spacing color
 
-let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx =
+let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx ~fov =
   Array.iteri
     ~f:(fun i t ->
       let x, y = Utils.index_to_xy i width in
+
+      (* let is_visible = Field_of_view.mem_visible (x, y) fov in
+      let is_seen = Field_of_view.mem_seen (x, y) fov in *)
+      let is_visible = true in
+      let is_seen = true in
+
       if not (Set.mem skip_positions (x, y)) then
         let loc = Loc.make x y in
         match (ctx.render_mode, ctx.tileset_config) with
         | Tiles, t_cfg ->
             render_tileset_tile ~texture:t_cfg.texture ~tile:t ~loc ~origin
-              ~tile_render_size:ctx.tile_render_size
+              ~tile_render_size:ctx.tile_render_size ~is_visible ~is_seen
         | _ ->
             let glyph, color = Render_utils.tile_glyph_and_color t in
             render_ascii_cell ~glyph ~color ~fc:ctx.font_config ~loc ~origin
               ~tile_render_size:ctx.tile_render_size)
     tiles
 
-let render_entities ~entities ~origin ~ctx =
+let render_entities ~entities ~origin ~ctx ~fov =
   let open Render_utils in
   let font_config = ctx.font_config in
   let drawn = ref (Set.empty (module Int)) in
 
-  List.iter entities ~f:(fun entity_id ->
-      let world_position = Position.get_exn entity_id in
+  List.iter entities ~f:(fun int ->
+      let world_position = Position.get_exn int in
       let local_pos =
         Chunk_manager.world_to_local_coord world_position.world_pos
       in
+
+      (* let is_visible =
+        Field_of_view.mem_visible (local_pos.x, local_pos.y) fov
+      in
+      let is_seen = Field_of_view.mem_seen (local_pos.x, local_pos.y) fov in *)
+      let is_visible = true in
+      let is_seen = true in
 
       let pos_tuple = (local_pos.x lsl 16) lor local_pos.y in
       if not (Set.mem !drawn pos_tuple) then (
@@ -77,9 +93,10 @@ let render_entities ~entities ~origin ~ctx =
 
         match (ctx.render_mode, ctx.tileset_config) with
         | Tiles, t_cfg ->
-            render_tileset_sprite ~entity_id ~origin ~pos:local_pos
+            render_tileset_sprite ~int ~origin ~pos:local_pos
               ~texture:t_cfg.texture ~tile_render_size:ctx.tile_render_size
+              ~is_visible ~is_seen
         | _ ->
-            let glyph, color = entity_glyph_and_color entity_id in
+            let glyph, color = entity_glyph_and_color int in
             render_ascii_cell ~glyph ~color ~fc:font_config ~loc:local_pos
               ~origin ~tile_render_size:ctx.tile_render_size))

@@ -1,5 +1,4 @@
 open Base
-open Rl_types
 open Ppx_yojson_conv_lib.Yojson_conv
 
 module StatModifiers = struct
@@ -60,7 +59,7 @@ end
 
 type t = Item_data.t
 
-let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+let table : (int, t) Hashtbl.t = Hashtbl.create (module Int)
 let set id data = Hashtbl.set table ~key:id ~data
 let get id = Hashtbl.find table id
 let remove id = Hashtbl.remove table id

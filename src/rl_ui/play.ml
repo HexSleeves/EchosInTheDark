@@ -90,6 +90,7 @@ let render (state : State.t) : State.t option =
 
   let entities = Backend.get_entities backend in
   let player_id = Backend.get_player_id backend in
+  let fov = Components.Field_of_view.get_exn player_id in
   let player_pos = Components.Position.get_exn player_id in
   let chunk_manager = Backend.get_chunk_manager backend in
   let chunk_coords = Chunk_manager.world_to_chunk_coord player_pos.world_pos in
@@ -102,7 +103,7 @@ let render (state : State.t) : State.t option =
       /. Float.of_int Constants.chunk_height)
   in
 
-  Logs.info (fun m ->
+  Logs.debug (fun m ->
       m "Tile render size: %s"
         (Printf.sprintf "x: %f, y: %f"
            (Raylib.Vector2.x tile_render_size)
@@ -118,7 +119,7 @@ let render (state : State.t) : State.t option =
   (match Chunk_manager.get_loaded_chunk chunk_coords chunk_manager with
   | None -> ()
   | Some chunk ->
-      Renderer.render_chunk chunk ~backend ~ctx ~map_origin ~entities);
+      Renderer.render_chunk chunk ~backend ~ctx ~map_origin ~entities ~fov);
 
   (* Draw a border around the main map view *)
   Raylib.draw_rectangle_lines_ex main_view_rect 2.0 Render_constants.color_gold;

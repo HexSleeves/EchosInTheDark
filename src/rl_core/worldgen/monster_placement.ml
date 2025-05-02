@@ -1,6 +1,6 @@
 (* monster_placement.ml
    Logic for placing monsters (single and bands) in the dungeon after map generation.
-   Integrates with the mapgen pipeline and uses species-to-faction mapping.
+   Integrates with the worldgen pipeline and uses species-to-faction mapping.
 *)
 
 open Base
@@ -135,7 +135,7 @@ let bands_by_depth depth =
 (* Select a random band composition for a room, based on depth *)
 let random_band_for_room ~depth ~rng =
   let bands = bands_by_depth depth in
-  Mapgen_utils.random_choice bands ~rng
+  Worldgen_utils.random_choice bands ~rng
 
 (* Expand a band spec [(species, count); ...] to a list of monster_specs *)
 let expand_band band =

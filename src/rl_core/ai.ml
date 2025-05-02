@@ -2,11 +2,11 @@ open Base
 open Rl_types
 
 module type S = sig
-  val decide : entity_id -> State.t -> Action.t
+  val decide : int -> State.t -> Action.t
 end
 
 module Wander : sig
-  val decide : entity_id -> State.t -> Action.t
+  val decide : int -> State.t -> Action.t
 end = struct
   let decide _entity_id _state =
     let dir =

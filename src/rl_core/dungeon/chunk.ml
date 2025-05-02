@@ -13,20 +13,15 @@ type chunk_coord = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]
 type local_pos = Loc.t [@@deriving yojson, show, eq, compare, hash, sexp]
 
 (* Metadata associated with a chunk *)
-type chunk_metadata = {
-  seed : int;
-  biome : Biome.biome_type;
-      (* Add other flags as needed, e.g., has_feature_x : bool; *)
-}
+type chunk_metadata = { seed : int; biome : BiomeType.biome_type }
 [@@deriving yojson, show, eq, compare, hash, sexp]
 
 type t = {
   coords : chunk_coord; (* (cx, cy) *)
   tiles : Tile.t array array;
-  entity_ids : entity_id list;
+  entity_ids : int list;
   metadata : chunk_metadata;
   mutable last_accessed_turn : int;
-      (* For potential LRU cache eviction optimization *)
 }
 [@@deriving yojson, show]
 
@@ -76,11 +71,25 @@ let set_tile (chunk : t) (pos : local_pos) (tile : Tile.t) : bool =
     true)
   else false
 
-let add_entity (chunk : t) (id : entity_id) : t =
+let add_entity (chunk : t) (id : int) : t =
   { chunk with entity_ids = id :: chunk.entity_ids }
 
-let remove_entity (chunk : t) (id : entity_id) : t =
+let remove_entity (chunk : t) (id : int) : t =
   {
     chunk with
     entity_ids = List.filter chunk.entity_ids ~f:(fun eid -> eid <> id);
   }
+
+(* Save a chunk to disk as JSON. Overwrites existing file. *)
+let save_chunk (path : string) (chunk : t) : unit =
+  let json = yojson_of_t chunk in
+  let oc = Stdio.Out_channel.create path in
+  Yojson.Safe.pretty_to_channel oc json;
+  Stdio.Out_channel.close oc
+
+(* Load a chunk from disk as JSON. Raises if file is missing or invalid. *)
+let load_chunk (path : string) : t =
+  let ic = Stdio.In_channel.create path in
+  let json = Yojson.Safe.from_channel ic in
+  Stdio.In_channel.close ic;
+  t_of_yojson json

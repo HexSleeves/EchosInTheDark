@@ -101,7 +101,7 @@ let create_initial_state (render_ctx : RT.render_context) (config : init_config)
           ~depth:1
   in
 
-  (* No need to spawn player or rat here; handled in mapgen/generator *)
+  (* No need to spawn player or rat here; handled in worldgen/generator *)
   Logs.info (fun m -> m "Initialization done.");
   {
     backend;

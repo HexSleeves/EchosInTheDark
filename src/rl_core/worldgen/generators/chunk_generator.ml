@@ -4,7 +4,7 @@
 ***)
 
 open Base
-open Mapgen_types
+open Worldgen_types
 
 (** Hashing function for deterministic chunk seeding *)
 let hash_coords (world_seed : int) (cx : int) (cy : int) : int =
@@ -20,9 +20,9 @@ let pick_algo_for_chunk (cx, cy) ~world_seed : chunk_gen_algo =
 let run_chunk_algo ~(algo : chunk_gen_algo) ~(width : int) ~(height : int)
     ~(rng : Random.State.t) : Dungeon.Tile.t array =
   match algo with
-  | Prefab filename -> Prefab.load_prefab ~width ~height filename
-  | CA -> Ca.run ~width ~height ~rng
-  | Rooms -> fst (Rooms.rooms_generator ~width ~height ~rng)
+  | Prefab filename -> Algorithms.Prefab.load_prefab ~width ~height filename
+  | CA -> Algorithms.Ca.run ~width ~height ~rng
+  | Rooms -> fst (Algorithms.Rooms.rooms_generator ~width ~height ~rng)
   | Custom f -> f ~width ~height ~rng
 
 (* --- Biome-specific entity/feature placement --- *)
@@ -42,14 +42,9 @@ let generate ~(chunk_coords : Chunk.chunk_coord) ~(world_seed : int)
   let biome = Biome.pick_biome ~depth ~cx ~cy ~world_seed in
   let algo = Biome.algo_for_biome biome in
   let tiles_1d = run_chunk_algo ~algo ~width ~height ~rng in
-  (* let tiles =
-    Array.init height ~f:(fun y ->
-        Array.init width ~f:(fun x -> tiles_1d.(x + (y * width))))
-  in *)
-
   let tiles =
     Array.init height ~f:(fun y ->
-        Array.init width ~f:(fun x -> Dungeon.Tile.Floor))
+        Array.init width ~f:(fun x -> tiles_1d.(x + (y * width))))
   in
 
   (* Step 2: Feature Overlay (Placeholder for biome-specific features) *)

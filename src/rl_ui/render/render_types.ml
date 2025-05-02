@@ -1,6 +1,4 @@
 open Base
-open Components
-module Loc = Rl_types.Loc
 module Tile = Dungeon.Tile
 
 (* Font configuration for grid rendering *)

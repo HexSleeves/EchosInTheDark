@@ -48,6 +48,7 @@ let get_entities = State_entities.get_entities
 let get_creatures = State_entities.get_creatures
 let move_entity = State_entities.move_entity
 let remove_entity = State_entities.remove_entity
+let is_player = State_entities.is_player
 
 (* let spawn_creature_entity = State_entities.spawn_creature_entity *)
 let get_actor = State_actors.get_actor
@@ -62,14 +63,19 @@ let get_equipment = State_entities.get_equipment
 let set_equipment = State_entities.set_equipment
 
 let make ~debug ~w ~h ~seed ~depth =
+  let config = Worldgen.Config.make ~seed ~w:256 ~h:256 () in
+  Worldgen.Generators.World_generator.slice_and_save_chunks ~config ~depth;
+
   Core_log.info (fun m -> m "Width: %d, Height: %d" w h);
   Core_log.info (fun m -> m "Creating state with seed: %d" seed);
 
   (* Generate the first chunk and pick a player start position *)
   let chunk_coords = Rl_types.Loc.make 0 0 in
-  let chunk =
-    Chunk_manager.generate_chunk ~chunk_coords ~world_seed:seed ~depth
+  let chunk_path =
+    Printf.sprintf "resources/chunks/%d/chunk_%d_%d.json" depth chunk_coords.x
+      chunk_coords.y
   in
+  let chunk = Chunk.load_chunk chunk_path in
 
   (* Find a floor tile for player start, fallback to (0,0) *)
   let player_start =
@@ -77,7 +83,7 @@ let make ~debug ~w ~h ~seed ~depth =
     let height = Array.length chunk.tiles in
     let rng = Random.State.make [| seed |] in
     let loc =
-      Mapgen.Mapgen_utils.find_random_floor
+      Worldgen.Worldgen_utils.find_random_floor
         (Array.concat (Array.to_list chunk.tiles))
         ~width ~height ~rng
     in
@@ -99,7 +105,7 @@ let make ~debug ~w ~h ~seed ~depth =
   let chunk_managers = Base.Hashtbl.create (module Int) in
   let chunk_manager =
     Chunk_manager.set_loaded_chunk chunk_coords chunk
-      (Chunk_manager.create ~world_seed:seed)
+      (Chunk_manager.create ~world_seed:seed ~level:(Int.to_string depth))
     |> Chunk_manager.tick player_start ~depth
   in
   Base.Hashtbl.set chunk_managers ~key:0 ~data:chunk_manager;

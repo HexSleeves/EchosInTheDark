@@ -11,7 +11,7 @@ module Log = (val Core_log.make_logger "action_handler" : Logs.LOG)
 
 type action_result = (int, exn) Result.t
 
-let is_entity_dead (id : entity_id) : bool =
+let is_entity_dead (id : int) : bool =
   Stats.get id
   |> Base.Option.value_map ~default:false ~f:(fun stats ->
          Stats.Stats_data.get_hp stats <= 0)
@@ -32,12 +32,12 @@ let can_use_stairs_up state id =
 (* ENTITY MANAGEMENT *)
 (* ////////////////////////////// *)
 
-(* let update_entity_stats (id : entity_id) (state : State.t)
+(* let update_entity_stats (id : int) (state : State.t)
     (f : Stats.t -> Stats.t) : State.t =
   Entity_manager.update_entity_stats (State.get_entities_manager state) id f
   |> fun entities -> State.set_entities_manager entities state *)
 
-(* let handle_entity_death (id : entity_id) (state : State.t) : State.t =
+(* let handle_entity_death (id : int) (state : State.t) : State.t =
   State.get_entity id state
   |> Option.bind ~f:(function
        | Types.Entity.Player _ ->
@@ -59,7 +59,7 @@ let can_use_stairs_up state id =
        | _ -> None)
   |> Option.value ~default:state *)
 
-let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
+let handle_move ~(state : State.t) ~(entity_id : int) ~(dir : Direction.t)
     ~handle_action : State.t * action_result =
   let open Chunk_manager in
   let chunk_width = Constants.chunk_width in
@@ -91,7 +91,7 @@ let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
       let wrapped =
         match dir with
         | Direction.North ->
-            let wrapped_cy = cy + 1 in
+            let wrapped_cy = cy - 1 in
             Logs.info (fun m ->
                 m "height: %d, cx: %d, cy: %d (wrapped_cy: %d)" chunk_height cx
                   cy wrapped_cy);
@@ -99,7 +99,7 @@ let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
               ((cx * chunk_width) + old_local.x)
               ((wrapped_cy * chunk_height) + (chunk_height - 1))
         | Direction.South ->
-            let wrapped_cy = cy - 1 in
+            let wrapped_cy = cy + 1 in
             Loc.make
               ((cx * chunk_width) + old_local.x)
               (wrapped_cy * chunk_height)
@@ -134,8 +134,8 @@ let handle_move ~(state : State.t) ~(entity_id : entity_id) ~(dir : Direction.t)
             Ok 100 )
       | _ -> (state, Error (Failure "Cannot move here: terrain blocked")))
 
-let rec handle_action (state : State.t) (entity_id : entity_id)
-    (action : Action.t) : State.t * action_result =
+let rec handle_action (state : State.t) (entity_id : int) (action : Action.t) :
+    State.t * action_result =
   match action with
   | Action.Wait -> (state, Ok 100)
   | Action.Move dir -> handle_move ~state ~entity_id ~dir ~handle_action

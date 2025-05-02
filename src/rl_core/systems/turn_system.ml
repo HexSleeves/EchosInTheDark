@@ -1,5 +1,4 @@
 open Base
-open Rl_types
 open Actors
 open Components
 module Log = (val Core_log.make_logger "turn_system" : Logs.LOG)
@@ -9,8 +8,8 @@ let player_retry_delay = 0
 
 (* Helper: Determine if the game should wait for player input.
    This is true if the entity is the player and has no action queued. *)
-let should_wait_for_player_input entity_id actor =
-  match Kind.get entity_id with
+let should_wait_for_player_input int actor =
+  match Kind.get int with
   | Some Kind.Player -> Option.is_none (Actor.peek_next_action actor)
   | _ -> false
 
@@ -25,7 +24,7 @@ type ctx = {
   state : State.t;
   tq : Turn_queue.t;
   actor : Actor.t;
-  entity_id : entity_id;
+  entity_id : int;
 }
 
 (* Handles the core logic for an actor taking its turn: dequeuing an action,
@@ -84,8 +83,8 @@ let handle_actor_event (ctx : ctx) : State.t =
 (* Processes a single event from the turn queue for a given id at a specific time.
    Handles fetching the entity and actor, checking liveness, waiting for player input,
    and dispatching to handle_actor_event for action execution. *)
-let process_actor_event (state : State.t) (tq : Turn_queue.t)
-    (entity_id : entity_id) (time : int) : State.t =
+let process_actor_event (state : State.t) (tq : Turn_queue.t) (entity_id : int)
+    (time : int) : State.t =
   State.get_actor state entity_id
   |> Option.map ~f:(fun actor -> (entity_id, actor))
   |> Option.value_map ~default:state ~f:(fun (entity_id, actor) ->

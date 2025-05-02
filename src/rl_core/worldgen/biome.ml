@@ -1,8 +1,7 @@
 open Base
 open Rl_types
-open Entities
-open Mapgen_types
-open Biome (* Biome Types from rl_types *)
+open Worldgen_types
+open BiomeType
 
 let pick_biome ~depth ~cx ~cy ~world_seed =
   match depth with
@@ -13,29 +12,29 @@ let pick_biome ~depth ~cx ~cy ~world_seed =
   | _ -> Enchanted_Mine
 
 let algo_for_biome = function
-  | Biome.Mine | Biome.Enchanted_Mine -> CA
-  | Biome.Cursed -> Rooms
-  | Biome.Frigid -> CA
-  | Biome.Hot -> Rooms
+  | BiomeType.Mine | BiomeType.Enchanted_Mine -> CA
+  | BiomeType.Cursed -> Rooms
+  | BiomeType.Frigid -> CA
+  | BiomeType.Hot -> Rooms
   | _ -> CA
 
 (* --- Biome-specific entity/feature placement --- *)
-let place_biome_features_and_entities ~(biome : Biome.biome_type)
+let place_biome_features_and_entities ~(biome : BiomeType.biome_type)
     ~(tiles : Dungeon.Tile.t array) ~(width : int) ~(height : int)
-    ~(rng : Random.State.t) : entity_id list =
+    ~(rng : Random.State.t) : int list =
   match biome with
-  | Biome.Mine | Biome.Enchanted_Mine ->
+  | BiomeType.Mine | BiomeType.Enchanted_Mine ->
       (* Entity_manager.to_list
         (Ca.place_monsters ~grid:tiles ~width ~height ~rng
            (Entity_manager.create ())) *)
       []
-  | Biome.Cursed ->
+  | BiomeType.Cursed ->
       (* TODO: Place undead, cursed traps, etc *)
       []
-  | Biome.Frigid ->
+  | BiomeType.Frigid ->
       (* TODO: Place ice monsters, frozen traps, etc *)
       []
-  | Biome.Hot ->
+  | BiomeType.Hot ->
       (* TODO: Place fire monsters, lava pools, etc *)
       []
   | _ -> []

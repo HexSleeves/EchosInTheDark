@@ -7,11 +7,12 @@ module Faction = Faction
 module Inventory = Inventory
 module Item = Item
 module Stats = Stats
+module Field_of_view = Field_of_view
 
 module Name = struct
   type t = { name : string }
 
-  let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+  let table : (int, t) Hashtbl.t = Hashtbl.create (module Int)
   let set id name = Hashtbl.set table ~key:id ~data:name
   let get id = Hashtbl.find table id
 end
@@ -19,7 +20,7 @@ end
 module Description = struct
   type t = string
 
-  let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+  let table : (int, t) Hashtbl.t = Hashtbl.create (module Int)
   let set id description = Hashtbl.set table ~key:id ~data:description
   let get id = Hashtbl.find table id
 end
@@ -27,7 +28,7 @@ end
 module Renderable = struct
   type t = { glyph : char }
 
-  let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+  let table : (int, t) Hashtbl.t = Hashtbl.create (module Int)
   let set id data = Hashtbl.set table ~key:id ~data
   let get id = Hashtbl.find table id
 end
@@ -35,7 +36,7 @@ end
 module Blocking = struct
   type t = bool
 
-  let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+  let table : (int, t) Hashtbl.t = Hashtbl.create (module Int)
   let set id data = Hashtbl.set table ~key:id ~data
   let get id = Hashtbl.find table id
 end
@@ -75,7 +76,7 @@ end
 module Kind = struct
   type t = Player | Creature | Item | Corpse
 
-  let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+  let table : (int, t) Hashtbl.t = Hashtbl.create (module Int)
   let set id data = Hashtbl.set table ~key:id ~data
   let get id = Hashtbl.find table id
 end
@@ -116,7 +117,7 @@ module Species = struct
     | `Undead_Miner ]
   [@@deriving yojson, show, eq, compare, hash, sexp]
 
-  let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+  let table : (int, t) Hashtbl.t = Hashtbl.create (module Int)
   let set id species = Hashtbl.set table ~key:id ~data:species
   let get id = Hashtbl.find table id
 end

@@ -20,7 +20,7 @@
   events
   logs
   logs.fmt
-  mapgen
+  worldgen
   rl_utils
   state
   systems
@@ -50,7 +50,7 @@
   rl_types
   components
   dungeon
-  mapgen)
+  worldgen)
  (preprocess
   (pps
    ppx_jane

@@ -17,6 +17,7 @@ let is_floor = function Floor -> true | _ -> false
 let is_walkable = function Wall | Tree | Door -> false | _ -> true
 let is_trap = function Trap -> true | _ -> false
 let is_secret_door = function Secret_door -> true | _ -> false
+let is_opaque = function Wall -> true | _ -> false
 
 let tile_to_glyph tile =
   match tile with

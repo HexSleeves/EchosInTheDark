@@ -1,11 +1,10 @@
 open Base
-open Rl_types
 module Log = (val Core_log.make_logger "turn_queue" : Logs.LOG)
 
 (* Persistent min-heap of (time, id) using a sorted list *)
 type t = {
   current_time : int;
-  turn_queue : (int * entity_id) list; (* Sorted by time ascending *)
+  turn_queue : (int * int) list; (* Sorted by time ascending *)
 }
 
 let create () : t = { current_time = 0; turn_queue = [] }
@@ -26,7 +25,7 @@ let print_turn_queue t =
   | (t, _) :: _ when time < t -> (time, entity) :: queue
   | (t, e) :: rest -> (t, e) :: insert_sorted rest (time, entity) *)
 
-let schedule_at t (entity_id : entity_id) (next_time : int) =
+let schedule_at t (entity_id : int) (next_time : int) =
   let new_queue = List.append t.turn_queue [ (next_time, entity_id) ] in
   {
     t with
@@ -35,10 +34,10 @@ let schedule_at t (entity_id : entity_id) (next_time : int) =
   }
 
 (* Prepend the turn to the front of the queue *)
-let schedule_now t (entity_id : entity_id) =
+let schedule_now t (entity_id : int) =
   { t with turn_queue = List.cons (current_time t, entity_id) t.turn_queue }
 
-let remove_actor t (entity_id : entity_id) =
+let remove_actor t (entity_id : int) =
   {
     t with
     turn_queue = List.filter t.turn_queue ~f:(fun (_, e) -> e <> entity_id);
@@ -55,7 +54,7 @@ let peek_next t : (int * int) option =
   | [] -> None
   | (time, entity) :: _ -> Some (entity, time)
 
-let is_scheduled t (entity_id : entity_id) : bool =
+let is_scheduled t (entity_id : int) : bool =
   List.exists t.turn_queue ~f:(fun (_, e) -> e = entity_id)
 
 let time_until t (time : int) : int =

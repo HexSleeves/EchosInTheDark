@@ -1,5 +1,4 @@
 open Base
-open Rl_types
 open Item
 open Ppx_yojson_conv_lib.Yojson_conv
 
@@ -7,7 +6,7 @@ module Equipment_data = struct
   type slot = Head | Chest | Legs | Weapon | Shield | Accessory1 | Accessory2
   [@@deriving yojson, show, eq, enum]
 
-  type t = (slot * entity_id option) list [@@deriving yojson, show]
+  type t = (slot * int option) list [@@deriving yojson, show]
 
   let empty =
     [
@@ -81,5 +80,5 @@ let unequip_item player_id (slot : Equipment_data.slot) :
       | Some None -> Error "No item equipped in this slot!"
       | None -> Error "Invalid slot!")
 
-let get_equipped_items (eq : Equipment_data.t) : entity_id list =
+let get_equipped_items (eq : Equipment_data.t) : int list =
   List.filter_map eq ~f:(fun (_, i) -> i)

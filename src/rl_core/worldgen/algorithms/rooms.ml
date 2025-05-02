@@ -54,7 +54,7 @@ let rooms_generator ~width ~height ~rng =
   (grid, !rooms)
 
 let place_monsters ~grid ~width ~rooms ~rng ~depth entity_manager =
-  let open Mapgen_utils in
+  let open Worldgen_utils in
   List.fold rooms ~init:entity_manager ~f:(fun em (x, y, w, h) ->
       if Random.State.bool rng then
         let positions =

@@ -5,9 +5,7 @@
 
 open Base
 open Rl_types
-open Dungeon
 open Rl_utils.Utils
-open Mapgen
 
 (* Constants *)
 let load_radius = 2 (* 5x5 grid means radius of 2 from center *)
@@ -28,6 +26,7 @@ end
 (* The state managed by the Chunk Manager *)
 type t = {
   world_seed : int;
+  level : string; (* Add level for chunk file pathing *)
   active_chunks : active_chunks;
   last_player_chunk : Chunk.chunk_coord option;
 }
@@ -54,9 +53,10 @@ let make_position (world : Rl_types.Loc.t) : Components.Position.t =
 
 (* --- Manager Functions --- *)
 
-let create ~world_seed : t =
+let create ~world_seed ~level : t =
   {
     world_seed;
+    level;
     last_player_chunk = None;
     active_chunks = Hashtbl.create (module ChunkCoord);
   }
@@ -72,7 +72,7 @@ let set_loaded_chunk (coords : Chunk.chunk_coord) (chunk : Chunk.t) (t : t) : t
   t
 
 let generate_chunk ~chunk_coords ~world_seed ~depth : Chunk.t =
-  Mapgen.Chunk_generator.generate ~chunk_coords ~world_seed ~depth
+  Worldgen.Generators.Chunk_generator.generate ~chunk_coords ~world_seed ~depth
 
 (* Gets the tile at a specific world position, if the chunk is loaded *)
 let get_tile_at (world_pos : Chunk.world_pos) (t : t) : Dungeon.Tile.t option =
@@ -87,6 +87,18 @@ let get_tile_at (world_pos : Chunk.world_pos) (t : t) : Dungeon.Tile.t option =
       then Some chunk.tiles.(local_pos.y).(local_pos.x)
         (* Assuming row-major y,x *)
       else None (* Should not happen *))
+
+(* Helper to get chunk file path *)
+let chunk_path ~level (coords : Chunk.chunk_coord) =
+  Printf.sprintf "resources/chunks/%s/chunk_%d_%d.json" level coords.x coords.y
+
+(* Load a chunk from disk, log error if missing *)
+let load_chunk_from_disk ~level coords =
+  let path = chunk_path ~level coords in
+  if Stdlib.Sys.file_exists path then Some (Chunk.load_chunk path)
+  else (
+    Core_log.err (fun m -> m "Chunk file missing: %s" path);
+    None)
 
 (* Calculate the set of chunk coordinates required around a central chunk *)
 let get_required_chunks (center : Chunk.chunk_coord) : Set.M(ChunkCoord).t =
@@ -131,10 +143,9 @@ let update_loaded_chunks_around_player (t : t)
                 depth);
           Core_log.debug (fun m -> m "Loading chunk (%d, %d)" coords.x coords.y);
           if not (Hashtbl.mem active_chunks coords) then
-            Hashtbl.set active_chunks ~key:coords
-              ~data:
-                (Mapgen.Chunk_generator.generate ~chunk_coords:coords
-                   ~world_seed:t.world_seed ~depth));
+            match load_chunk_from_disk ~level:t.level coords with
+            | Some chunk -> Hashtbl.set active_chunks ~key:coords ~data:chunk
+            | None -> ());
       { t with active_chunks; last_player_chunk = Some current_player_chunk }
 
 (* Function to be called potentially every turn or after player move *)

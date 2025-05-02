@@ -16,8 +16,8 @@ let get_mode (state : t) = State.get_mode state
 let set_mode mode (state : t) : t = State.set_mode mode state
 
 (* Entity *)
-let get_player_id (state : t) : entity_id = State.get_player_id state
-let get_entities (state : t) : entity_id list = State.get_entities state
+let get_player_id (state : t) : int = State.get_player_id state
+let get_entities (state : t) : int list = State.get_entities state
 
 (* Chunk *)
 let get_chunk_manager (state : t) : Chunk_manager.t =
@@ -27,8 +27,7 @@ let queue_actor_action (state : t) (actor_id : Actor.actor_id)
     (action : Action.t) : t =
   State.queue_actor_action state actor_id action
 
-let move_entity (id : entity_id) (position : Components.Position.t) (state : t)
-    : t =
+let move_entity (id : int) (position : Components.Position.t) (state : t) : t =
   State.move_entity id position state
 
 let process_turns (state : t) : t = Systems.Turn_system.process_turns state

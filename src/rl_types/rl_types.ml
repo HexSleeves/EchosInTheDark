@@ -3,10 +3,7 @@ open Ppx_yojson_conv_lib.Yojson_conv
 (* Export the Loc and Direction modules *)
 module Direction = Loc.Direction
 module Loc = Loc.Loc
-module Biome = Biome
-
-(* Entity is now just an ID *)
-type entity_id = int [@@deriving yojson, show]
+module BiomeType = Biome
 
 module CtrlMode = struct
   type t = Normal | WaitInput | AI | Died of float [@@deriving yojson, show]
@@ -31,10 +28,10 @@ module Action = struct
 
   type t =
     | Move of Direction.t
-    | Interact of entity_id
-    | Pickup of entity_id
-    | Drop of entity_id
-    | Attack of entity_id
+    | Interact of int
+    | Pickup of int
+    | Drop of int
+    | Attack of int
     | StairsUp
     | StairsDown
     | Wait

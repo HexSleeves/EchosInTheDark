@@ -5,20 +5,18 @@ open State_types
 
 let setup_entities_for_level ~entities ~actor_manager ~turn_queue =
   Entity_manager.to_list entities
-  |> List.fold_left ~init:(actor_manager, turn_queue)
-       ~f:(fun (am, tq) entity_id ->
+  |> List.fold_left ~init:(actor_manager, turn_queue) ~f:(fun (am, tq) int ->
          let actor =
-           match Components.Kind.get entity_id with
+           match Components.Kind.get int with
            | Some Player -> Actor_manager.create_player_actor
            | Some Creature -> Actor_manager.create_rat_actor
            | _ -> failwith "Unknown entity kind"
          in
 
-         match Turn_queue.is_scheduled tq entity_id with
-         | true -> (Actor_manager.add entity_id actor am, tq)
+         match Turn_queue.is_scheduled tq int with
+         | true -> (Actor_manager.add int actor am, tq)
          | false ->
-             ( Actor_manager.add entity_id actor am,
-               Turn_queue.schedule_at tq entity_id 0 ))
+             (Actor_manager.add int actor am, Turn_queue.schedule_at tq int 0))
 
 let transition_to_next_level (state : State_types.t) : State_types.t =
   (* Save current chunk_manager *)
@@ -33,7 +31,9 @@ let transition_to_next_level (state : State_types.t) : State_types.t =
   let chunk_manager =
     match Base.Hashtbl.find state.chunk_managers next_depth with
     | Some cm -> cm
-    | None -> Chunk_manager.create ~world_seed:next_depth
+    | None ->
+        Chunk_manager.create ~world_seed:next_depth
+          ~level:(Int.to_string next_depth)
   in
 
   let state' =
@@ -64,7 +64,9 @@ let transition_to_previous_level (state : State_types.t) : State_types.t =
   let chunk_manager =
     match Base.Hashtbl.find state.chunk_managers prev_depth with
     | Some cm -> cm
-    | None -> Chunk_manager.create ~world_seed:prev_depth
+    | None ->
+        Chunk_manager.create ~world_seed:prev_depth
+          ~level:(Int.to_string prev_depth)
   in
 
   let state' =

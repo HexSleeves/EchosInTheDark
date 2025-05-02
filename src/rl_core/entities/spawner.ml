@@ -27,6 +27,7 @@ let spawn_player ~pos (em : t) =
   Inventory.set id { items = []; max_slots = 20 };
   Equipment.set id Equipment.empty;
   Kind.set id Kind.Player;
+  Field_of_view.set id (Field_of_view.make ~radius:8);
 
   em
 

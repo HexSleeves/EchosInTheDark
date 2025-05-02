@@ -1,7 +1,6 @@
 open Base
 open Raylib
 open Dungeon
-open Rl_types
 
 (* Utility: Get set of occupied positions from a list of entities *)
 module PosSet = struct
@@ -26,7 +25,7 @@ let screen_to_grid ~(tile_render_size : Raylib.Vector2.t)
     (Float.to_int (Raylib.Vector2.x vec /. Raylib.Vector2.x tile_render_size))
     (Float.to_int (Raylib.Vector2.y vec /. Raylib.Vector2.y tile_render_size))
 
-let occupied_positions (entities : entity_id list) : Set.M(PosSet).t =
+let occupied_positions (entities : int list) : Set.M(PosSet).t =
   List.fold entities
     ~init:(Set.empty (module PosSet))
     ~f:(fun acc entity ->
@@ -39,7 +38,7 @@ let[@warning "-11"] tile_glyph_and_color (tile : Tile.t) : string * Color.t =
   (String.make 1 (Tile.tile_to_glyph tile), color)
 
 (* Get glyph for an entity *)
-let entity_glyph_and_color (entity : entity_id) : string * Color.t =
+let entity_glyph_and_color (entity : int) : string * Color.t =
   let glyph, color =
     ( (match Components.Kind.get entity with
       | Some Player -> '@'
@@ -58,7 +57,7 @@ let entity_glyph_and_color (entity : entity_id) : string * Color.t =
 
   (glyph, color)
 
-let entity_to_sprite_coords (entity_id : entity_id) =
+let entity_to_sprite_coords (entity_id : int) =
   match Components.Kind.get entity_id with
   | Some Item -> (5, 0)
   | Some Corpse -> (6, 0)
@@ -81,7 +80,8 @@ let draw_font_text ~font ~font_size ~color ~text ~pos_x ~pos_y =
     font_size 0. color
 
 let draw_texture_ex ~texture ~pos ~origin ~col ~row
-    ~(tile_render_size : Raylib.Vector2.t) =
+    ~(tile_render_size : Raylib.Vector2.t) ~(is_visible : bool)
+    ~(is_seen : bool) =
   let tile_width = Render_constants.tile_width in
   let tile_height = Render_constants.tile_height in
 
@@ -101,7 +101,13 @@ let draw_texture_ex ~texture ~pos ~origin ~col ~row
       (Raylib.Vector2.y tile_render_size)
   in
 
+  let color =
+    match (is_visible, is_seen) with
+    | true, _ -> Color.white
+    | _, true -> Color.gray
+    | false, false -> Color.black
+  in
+
   let rotation = 0. in
   let img_origin = Raylib.Vector2.create 0. 0. in
-  Raylib.draw_texture_pro texture src dest_rect img_origin rotation
-    Raylib.Color.white
+  Raylib.draw_texture_pro texture src dest_rect img_origin rotation color

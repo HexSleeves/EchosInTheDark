@@ -1,5 +1,3 @@
-open Rl_types
-
 (* Define core event types here. Expand as needed. *)
 type event =
   | EntityMoved of {
@@ -11,8 +9,8 @@ type event =
   | TrapTriggered of { entity_id : int; trap_id : int }
   | EntityAttacked of { attacker_id : int; defender_id : int }
   | EntityDied of { entity_id : int }
-  | ItemPickedUp of { player_id : int; item_id : entity_id }
-  | ItemDropped of { player_id : int; item_id : entity_id }
+  | ItemPickedUp of { player_id : int; item_id : int }
+  | ItemDropped of { player_id : int; item_id : int }
 (* Add more events as needed *)
 
 type t = event

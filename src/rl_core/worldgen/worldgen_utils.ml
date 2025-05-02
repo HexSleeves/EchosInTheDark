@@ -1,16 +1,17 @@
 open Base
+open Rl_utils
 
 let cartesian_product xs ys =
   List.concat_map xs ~f:(fun x -> List.map ys ~f:(fun y -> (x, y)))
 
 let random_choice lst ~rng =
-  Rl_utils.Utils.list_nth_opt lst (Random.State.int rng (List.length lst))
+  Utils.list_nth_opt lst (Random.State.int rng (List.length lst))
 
 let range a b = List.init (b - a) ~f:(( + ) a)
 
 let pick_random lst ~rng ~(n : int) =
   let sorted = List.take (List.rev lst) n in
-  Rl_utils.Utils.list_nth_opt sorted (Random.State.int rng (List.length sorted))
+  Utils.list_nth_opt sorted (Random.State.int rng (List.length sorted))
 
 let find_random_floor ?(max_tries = 1000) grid ~width ~height ~rng =
   let rec pick tries =
@@ -18,9 +19,9 @@ let find_random_floor ?(max_tries = 1000) grid ~width ~height ~rng =
     else
       let x = 1 + Random.State.int rng (width - 2) in
       let y = 1 + Random.State.int rng (height - 2) in
-      match Rl_utils.Utils.xy_to_index_opt x y width height with
+      match Utils.xy_to_index_opt x y width height with
       | Some idx -> (
-          match Rl_utils.Utils.array_get_opt grid idx with
+          match Utils.array_get_opt grid idx with
           | Some tile when Dungeon.Tile.is_floor tile -> Rl_types.Loc.make x y
           | _ -> pick (tries + 1))
       | None -> pick (tries + 1)
@@ -58,13 +59,13 @@ let bfs_farthest grid ~width ~height ~(start : Rl_types.Loc.t) =
     List.iter
       (neighbors (x, y) width height)
       ~f:(fun (nx, ny) ->
-        match Rl_utils.Utils.xy_to_index_opt nx ny width height with
+        match Utils.xy_to_index_opt nx ny width height with
         | Some idx -> (
             if
               (nx >= 0 && nx < width && ny >= 0 && ny < height)
               && not visited.(nx).(ny)
             then
-              match Rl_utils.Utils.array_get_opt grid idx with
+              match Utils.array_get_opt grid idx with
               | Some tile when Dungeon.Tile.is_floor tile ->
                   visited.(nx).(ny) <- true;
                   dist.(nx).(ny) <- d + 1;
@@ -78,14 +79,14 @@ let carve_path ~tile ~length ~rng grid ~width ~height =
   let rec walk n x y =
     if n = 0 then ()
     else
-      match Rl_utils.Utils.xy_to_index_opt x y width height with
+      match Utils.xy_to_index_opt x y width height with
       | Some idx when idx >= 0 && idx < Array.length grid ->
-          (match Rl_utils.Utils.array_get_opt grid idx with
+          (match Utils.array_get_opt grid idx with
           | Some t when Dungeon.Tile.is_floor t -> grid.(idx) <- tile
           | _ -> ());
           let dirs = [ (1, 0); (-1, 0); (0, 1); (0, -1) ] in
           let dx, dy =
-            match Rl_utils.Utils.list_nth_opt dirs (Random.State.int rng 4) with
+            match Utils.list_nth_opt dirs (Random.State.int rng 4) with
             | Some (dx, dy) -> (dx, dy)
             | None -> (0, 0)
           in

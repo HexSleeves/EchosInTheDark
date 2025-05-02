@@ -1,18 +1,17 @@
 open Base
-open Rl_types
 open Item
 open Ppx_yojson_conv_lib.Yojson_conv
 
 type t = { items : Item_data.t list; max_slots : int } [@@deriving yojson, show]
 
-let table : (entity_id, t) Hashtbl.t = Hashtbl.create (module Int)
+let table : (int, t) Hashtbl.t = Hashtbl.create (module Int)
 let get id = Hashtbl.find table id
 let set id data = Hashtbl.set table ~key:id ~data
 let remove id = Hashtbl.remove table id
 let is_full (inv : t) : bool = List.length inv.items >= inv.max_slots
 let can_add_item (inv : t) : bool = not (is_full inv)
 
-let add_item (inv : t) (item_id : entity_id) : (t, string) Result.t =
+let add_item (inv : t) (item_id : int) : (t, string) Result.t =
   if is_full inv then Error "Inventory is full!"
   else
     let item = Item.get item_id in
@@ -20,7 +19,7 @@ let add_item (inv : t) (item_id : entity_id) : (t, string) Result.t =
     | Some item -> Ok { inv with items = item :: inv.items }
     | None -> Error "Item not found!"
 
-let remove_item (inv : t) (item_id : entity_id) : (t, string) Result.t =
+let remove_item (inv : t) (item_id : int) : (t, string) Result.t =
   match List.findi inv.items ~f:(fun _ i -> i.id = item_id) with
   | None -> Error "Item not found in inventory!"
   | Some (idx, _) ->
