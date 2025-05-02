@@ -5,16 +5,7 @@
 
 open Base
 open Entities
-open Components
-
-(* Represents a monster to be placed *)
-type monster_spec = {
-  species : Species.t;
-  health : int;
-  glyph : char;
-  name : string;
-  description : string;
-}
+open Config
 
 (* Place a band (group) of monsters in a list of locations *)
 let place_monster_band ~entity_manager ~positions (specs : monster_spec list) :
@@ -26,116 +17,14 @@ let place_monster_band ~entity_manager ~positions (specs : monster_spec list) :
            ~glyph:spec.glyph ~name:spec.name
            ~description:(Some spec.description) ~faction mgr)
 
-(* Monster templates by species *)
-let monster_templates =
-  [
-    ( "Rat",
-      {
-        species = `Rat;
-        health = 10;
-        glyph = 'r';
-        name = "Rat";
-        description = "A small, brown rodent.";
-      } );
-    ( "Kobold",
-      {
-        species = `Kobold;
-        health = 16;
-        glyph = 'k';
-        name = "Kobold";
-        description = "A sneaky kobold.";
-      } );
-    ( "Goblin",
-      {
-        species = `Goblin;
-        health = 20;
-        glyph = 'g';
-        name = "Goblin";
-        description = "A mean goblin.";
-      } );
-    ( "Goblin Shaman",
-      {
-        species = `Goblin_Shaman;
-        health = 14;
-        glyph = 'G';
-        name = "Goblin Shaman";
-        description = "A goblin shaman with magic.";
-      } );
-    ( "Ore Slime",
-      {
-        species = `Ore_Slime;
-        health = 18;
-        glyph = 's';
-        name = "Ore Slime";
-        description = "A metallic slime.";
-      } );
-    (* ( "Undead Miner",
-      {
-        species = `Undead_Miner;
-        health = 22;
-        glyph = 'u';
-        name = "Undead Miner";
-        description = "A miner, now undead.";
-      } );
-    ( "Rock Golem",
-      {
-        species = `Rock_Golem;
-        health = 40;
-        glyph = 'R';
-        name = "Rock Golem";
-        description = "A hulking golem of stone.";
-      } ); *)
-    (* ( "Giant Spider",
-      {
-        species = `Giant_Spider;
-        health = 15;
-        glyph = 'S';
-        name = "Giant Spider";
-        description = "A huge, venomous spider.";
-      } ); *)
-    (* ( "Shadow Creeper",
-      {
-        species = `Shadow_Creeper;
-        health = 18;
-        glyph = 'C';
-        name = "Shadow Creeper";
-        description = "A fast, shadowy creature.";
-      } ); *)
-  ]
-
 let get_template species =
-  List.Assoc.find ~equal:String.equal monster_templates species
+  List.Assoc.find ~equal:String.equal Config.monster_templates species
   |> Option.value_exn ~message:("No template for species: " ^ species)
-
-(* Monster bands by depth: returns a list of (species * count) *)
-let bands_by_depth depth =
-  match depth with
-  | 1 -> [ [ ("Rat", 2) ]; [ ("Kobold", 1) ]; [ ("Rat", 1); ("Kobold", 1) ] ]
-  | 2 ->
-      [
-        [ ("Kobold", 2) ];
-        [ ("Goblin", 1); ("Goblin Shaman", 1) ];
-        [ ("Ore Slime", 2) ];
-      ]
-  | 3 ->
-      [
-        [ ("Goblin", 2); ("Goblin Shaman", 1) ];
-        [ ("Undead Miner", 2) ];
-        [ ("Ore Slime", 1); ("Giant Spider", 1) ];
-      ]
-  | 4 ->
-      [
-        [ ("Rock Golem", 1); ("Goblin", 1) ];
-        [ ("Shadow Creeper", 2) ];
-        [ ("Undead Miner", 1); ("Giant Spider", 1) ];
-      ]
-  | _ ->
-      [ [ ("Rock Golem", 2) ]; [ ("Shadow Creeper", 2); ("Goblin Shaman", 1) ] ]
 
 (* Select a random band composition for a room, based on depth *)
 let random_band_for_room ~depth ~rng =
-  let bands = bands_by_depth depth in
-  Worldgen_utils.random_choice bands ~rng
+  let bands = Config.bands_by_depth depth in
+  Utils.Rng.random_choice bands ~rng
 
 (* Expand a band spec [(species, count); ...] to a list of monster_specs *)
 let expand_band band =

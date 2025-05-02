@@ -28,18 +28,19 @@ let run_chunk_algo ~(algo : chunk_gen_algo) ~(width : int) ~(height : int)
 (* --- Biome-specific entity/feature placement --- *)
 
 (** Main chunk generation entry point *)
-let generate ~(chunk_coords : Chunk.chunk_coord) ~(world_seed : int)
+(* let generate ~(chunk_coords : Chunk.chunk_coord) ~(world_seed : int)
     ~(depth : int) : Chunk.t =
   let cx, cy = Rl_types.Loc.to_tuple chunk_coords in
   Core_log.info (fun m ->
       m "[GEN] Generating chunk at (%d, %d), depth %d" cx cy depth);
+
   let chunk_seed = hash_coords world_seed cx cy in
   let width = Constants.chunk_width in
   let height = Constants.chunk_height in
   let rng = Random.State.make [| chunk_seed |] in
 
   (* Step 1: Pick biome and algorithm *)
-  let biome = Biome.pick_biome ~depth ~cx ~cy ~world_seed in
+  let biome = Biome.pick_biome ~depth ~x:cx ~y:cy ~world_seed in
   let algo = Biome.algo_for_biome biome in
   let tiles_1d = run_chunk_algo ~algo ~width ~height ~rng in
   let tiles =
@@ -64,4 +65,4 @@ let generate ~(chunk_coords : Chunk.chunk_coord) ~(world_seed : int)
     entity_ids;
     last_accessed_turn = 0;
     Chunk.coords = chunk_coords;
-  }
+  } *)

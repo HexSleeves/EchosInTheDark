@@ -54,11 +54,12 @@ let rooms_generator ~width ~height ~rng =
   (grid, !rooms)
 
 let place_monsters ~grid ~width ~rooms ~rng ~depth entity_manager =
-  let open Worldgen_utils in
   List.fold rooms ~init:entity_manager ~f:(fun em (x, y, w, h) ->
       if Random.State.bool rng then
         let positions =
-          cartesian_product (range x (x + w)) (range y (y + h))
+          Utils.cartesian_product
+            (Utils.range x (x + w))
+            (Utils.range y (y + h))
           |> List.filter ~f:(fun (i, j) ->
                  let idx = i + (j * width) in
                  Tile.is_floor grid.(idx))

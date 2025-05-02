@@ -71,9 +71,6 @@ let set_loaded_chunk (coords : Chunk.chunk_coord) (chunk : Chunk.t) (t : t) : t
   Hashtbl.set t.active_chunks ~key:coords ~data:chunk;
   t
 
-let generate_chunk ~chunk_coords ~world_seed ~depth : Chunk.t =
-  Worldgen.Generators.Chunk_generator.generate ~chunk_coords ~world_seed ~depth
-
 (* Gets the tile at a specific world position, if the chunk is loaded *)
 let get_tile_at (world_pos : Chunk.world_pos) (t : t) : Dungeon.Tile.t option =
   let chunk_coords = world_to_chunk_coord world_pos in

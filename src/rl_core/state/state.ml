@@ -1,7 +1,6 @@
 open Base
 open State_types
 module Types = Rl_types
-module Util = Rl_utils
 
 type t = State_types.t [@@deriving show]
 

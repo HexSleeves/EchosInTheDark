@@ -1,18 +1,6 @@
 open Base
 open Utils
 
-let cartesian_product xs ys =
-  List.concat_map xs ~f:(fun x -> List.map ys ~f:(fun y -> (x, y)))
-
-let random_choice lst ~rng =
-  Utils.list_nth_opt lst (Random.State.int rng (List.length lst))
-
-let range a b = List.init (b - a) ~f:(( + ) a)
-
-let pick_random lst ~rng ~(n : int) =
-  let sorted = List.take (List.rev lst) n in
-  Utils.list_nth_opt sorted (Random.State.int rng (List.length sorted))
-
 let find_random_floor ?(max_tries = 1000) grid ~width ~height ~rng =
   let rec pick tries =
     if tries >= max_tries then Rl_types.Loc.make 0 0

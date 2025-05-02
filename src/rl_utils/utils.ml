@@ -25,3 +25,5 @@ let floor_div x y = if x >= 0 then x / y else ((x + 1) / y) - 1
 
 let cartesian_product xs ys =
   List.concat_map xs ~f:(fun x -> List.map ys ~f:(fun y -> (x, y)))
+
+let range a b = List.init (b - a) ~f:(( + ) a)

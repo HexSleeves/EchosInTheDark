@@ -10,6 +10,13 @@ type t =
   | Tree
   | Door
   | Unknown
+  | Lava
+  | Ice
+  | Sludge
+  | Obsidian
+  | Crystal
+  | Fungi
+  | Gem
 [@@deriving eq, yojson, enum, show]
 
 let is_wall = function Wall -> true | _ -> false
@@ -31,6 +38,13 @@ let tile_to_glyph tile =
   | Secret_door -> '+'
   | Tree -> 'T'
   | Door -> '+'
+  | Lava -> 'L'
+  | Ice -> '*'
+  | Sludge -> 's'
+  | Obsidian -> 'O'
+  | Crystal -> 'c'
+  | Fungi -> 'f'
+  | Gem -> 'g'
   | Unknown -> '?'
 
 let tile_to_tileset tile =
@@ -45,6 +59,13 @@ let tile_to_tileset tile =
   | Trap -> (15, 1)
   | Secret_door -> (19, 1)
   | Chasm -> (3, 2)
+  | Lava -> (2, 3)
+  | Ice -> (4, 3)
+  | Sludge -> (5, 3)
+  | Obsidian -> (6, 3)
+  | Crystal -> (7, 3)
+  | Fungi -> (8, 3)
+  | Gem -> (9, 3)
   | _ -> (20, 5)
 
 let tile_to_color tile =
@@ -60,4 +81,11 @@ let tile_to_color tile =
   | Chasm -> Color.darkgray
   | Tree -> Color.green
   | Door -> Color.brown
+  | Lava -> Color.orange
+  | Ice -> Color.skyblue
+  | Sludge -> Color.lime
+  | Obsidian -> Color.black
+  | Crystal -> Color.skyblue
+  | Fungi -> Color.violet
+  | Gem -> Color.magenta
   | Unknown -> Color.red
