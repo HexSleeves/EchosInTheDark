@@ -77,14 +77,9 @@ let get_tile_at (world_pos : Chunk.world_pos) (t : t) : Dungeon.Tile.t option =
   let chunk_coords = world_to_chunk_coord world_pos in
   Option.bind (get_loaded_chunk chunk_coords t) ~f:(fun chunk ->
       let local_pos = world_to_local_coord world_pos in
-      if
-        local_pos.x >= 0
-        && local_pos.x < Constants.chunk_w
-        && local_pos.y >= 0
-        && local_pos.y < Constants.chunk_h
-      then Some chunk.tiles.(local_pos.y).(local_pos.x)
-        (* Assuming row-major y,x *)
-      else None (* Should not happen *))
+      if Utils.in_chunk_bounds (local_pos.x, local_pos.y) then
+        Some chunk.tiles.(local_pos.y).(local_pos.x)
+      else None)
 
 (* Helper to get chunk file path *)
 let chunk_path ~level (coords : Chunk.chunk_coord) =
@@ -144,7 +139,7 @@ let update_loaded_chunks_around_player ~em (t : t)
   | false ->
       let required_chunks =
         Set.filter (get_required_chunks current_player_chunk) ~f:(fun c ->
-            c.x >= 0 && c.y >= 0)
+            Utils.in_chunk_bounds (c.x, c.y))
       in
       let loaded_chunks =
         Set.of_list (module ChunkCoord) (Hashtbl.keys t.active_chunks)

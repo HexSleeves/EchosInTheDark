@@ -53,17 +53,11 @@ let world_to_local_coord (pos : Loc.t) : Loc.t =
   { world_pos = world; chunk_pos = chunk; local_pos = local } *)
 
 let get_tile (chunk : t) (pos : local_pos) : Tile.t option =
-  if
-    pos.x >= 0 && pos.x < Constants.chunk_w && pos.y >= 0
-    && pos.y < Constants.chunk_h
-  then Some chunk.tiles.(pos.y).(pos.x)
+  if Utils.in_chunk_bounds (pos.x, pos.y) then Some chunk.tiles.(pos.y).(pos.x)
   else None
 
 let set_tile (chunk : t) (pos : local_pos) (tile : Tile.t) : bool =
-  if
-    pos.x >= 0 && pos.x < Constants.chunk_w && pos.y >= 0
-    && pos.y < Constants.chunk_h
-  then (
+  if Utils.in_chunk_bounds (pos.x, pos.y) then (
     chunk.tiles.(pos.y).(pos.x) <- tile;
     true)
   else false

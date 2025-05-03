@@ -3,6 +3,12 @@ module Bitset = Bitset
 module Rng = Rng
 module Fov = Fov
 
+let in_chunk_bounds (x, y) : bool =
+  x >= 0 && x < Constants.chunk_w && y >= 0 && y < Constants.chunk_h
+
+let in_world_bounds (x, y) : bool =
+  x >= 0 && x < Constants.world_w && y >= 0 && y < Constants.world_h
+
 (* Indexing *)
 let xy_to_index x y width = (y * width) + x
 

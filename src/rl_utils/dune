@@ -3,6 +3,6 @@
 (library
  (name utils)
  (modules bitset rng utils fov utils_log)
- (libraries base containers core_kernel logs logs.fmt raylib)
+ (libraries base containers core_kernel logs logs.fmt raylib constants)
  (preprocess
   (pps ppx_yojson_conv)))
