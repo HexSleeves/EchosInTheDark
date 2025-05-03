@@ -90,49 +90,53 @@ let render (state : State.t) : State.t option =
 
   let entities = Backend.get_entities backend in
   let player_id = Backend.get_player_id backend in
-  let fov = Components.Field_of_view.get_exn player_id in
-  let player_pos = Components.Position.get_exn player_id in
-  let chunk_manager = Backend.get_chunk_manager backend in
-  let chunk_coords = Chunk_manager.world_to_chunk_coord player_pos.world_pos in
+  let player_pos = Components.Position.get player_id in
 
-  let tile_render_size =
-    Raylib.Vector2.create
-      (Raylib.Rectangle.width main_view_rect
-      /. Float.of_int Constants.chunk_width)
-      (Raylib.Rectangle.height main_view_rect
-      /. Float.of_int Constants.chunk_height)
-  in
+  Option.iter player_pos ~f:(fun player_pos ->
+      let chunk_manager = Backend.get_chunk_manager backend in
+      let chunk_coords =
+        Chunk_manager.world_to_chunk_coord player_pos.world_pos
+      in
 
-  Logs.debug (fun m ->
-      m "Tile render size: %s"
-        (Printf.sprintf "x: %f, y: %f"
-           (Raylib.Vector2.x tile_render_size)
-           (Raylib.Vector2.y tile_render_size)));
+      let tile_render_size =
+        Raylib.Vector2.create
+          (Raylib.Rectangle.width main_view_rect
+          /. Float.of_int Constants.chunk_w)
+          (Raylib.Rectangle.height main_view_rect
+          /. Float.of_int Constants.chunk_h)
+      in
 
-  let map_origin =
-    Raylib.Vector2.create
-      (Raylib.Rectangle.x main_view_rect)
-      (Raylib.Rectangle.y main_view_rect)
-  in
-  let ctx = { state.render_ctx with tile_render_size } in
+      Logs.debug (fun m ->
+          m "Tile render size: %s"
+            (Printf.sprintf "x: %f, y: %f"
+               (Raylib.Vector2.x tile_render_size)
+               (Raylib.Vector2.y tile_render_size)));
 
-  (match Chunk_manager.get_loaded_chunk chunk_coords chunk_manager with
-  | None -> ()
-  | Some chunk ->
-      Renderer.render_chunk chunk ~backend ~ctx ~map_origin ~entities ~fov);
+      let map_origin =
+        Raylib.Vector2.create
+          (Raylib.Rectangle.x main_view_rect)
+          (Raylib.Rectangle.y main_view_rect)
+      in
+      let ctx = { state.render_ctx with tile_render_size } in
 
-  (* Draw a border around the main map view *)
-  Raylib.draw_rectangle_lines_ex main_view_rect 2.0 Render_constants.color_gold;
+      (match Chunk_manager.get_loaded_chunk chunk_coords chunk_manager with
+      | None -> ()
+      | Some chunk ->
+          Renderer.render_chunk chunk ~ctx ~backend ~map_origin ~entities);
 
-  (* Render other panels *)
-  R.draw_top_bar ~rect:top_bar_rect ~backend ~ctx;
-  R.draw_minimap ~rect:minimap_rect ~backend ~ctx;
+      (* Draw a border around the main map view *)
+      Raylib.draw_rectangle_lines_ex main_view_rect 2.0
+        Render_constants.color_gold;
 
-  let messages = Ui_log.get_console_messages () in
-  R.draw_message_log ~messages ~rect:message_log_rect;
-  R.draw_bottom_bar ~rect:bottom_bar_rect ~backend ~ctx;
+      (* Render other panels *)
+      R.draw_top_bar ~rect:top_bar_rect ~ctx ~backend;
+      R.draw_minimap ~rect:minimap_rect ~backend ~ctx;
 
-  if Backend.get_debug backend then R.render_fps_overlay ~ctx;
+      let messages = Ui_log.get_console_messages () in
+      R.draw_message_log ~messages ~rect:message_log_rect;
+      R.draw_bottom_bar ~rect:bottom_bar_rect ~ctx);
+
+  if Backend.get_debug backend then R.render_fps_overlay ~ctx:state.render_ctx;
 
   None
 

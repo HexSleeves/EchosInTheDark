@@ -1,5 +1,8 @@
 open Ppx_yojson_conv_lib.Yojson_conv
 
+(* Entity type alias *)
+type entity = int [@@deriving yojson, show]
+
 (* Export the Loc and Direction modules *)
 module Direction = Loc.Direction
 module Loc = Loc.Loc

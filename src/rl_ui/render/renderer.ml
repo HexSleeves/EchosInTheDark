@@ -96,16 +96,14 @@ let draw_minimap = Render_ui.draw_minimap
 let draw_message_log = Render_ui.draw_message_log
 let draw_bottom_bar = Render_ui.draw_bottom_bar
 
-let render_chunk (chunk : Chunk.t) ~(backend : Backend.t)
-    ~(ctx : render_context) ~(map_origin : Raylib.Vector2.t)
-    ~(entities : int list) ~(fov : Components.Field_of_view.t) =
+let render_chunk (chunk : Chunk.t) ~ctx ~backend ~map_origin ~entities =
   let entity_positions =
     Render_utils.occupied_positions (Backend.get_entities backend)
   in
 
   render_map
     ~tiles:(Array.concat (Array.to_list chunk.tiles))
-    ~width:Constants.chunk_width ~skip_positions:entity_positions
-    ~origin:map_origin ~ctx ~fov;
+    ~width:Constants.chunk_w ~skip_positions:entity_positions ~origin:map_origin
+    ~ctx;
 
-  render_entities ~entities ~origin:map_origin ~ctx ~fov
+  render_entities ~entities ~origin:map_origin ~ctx

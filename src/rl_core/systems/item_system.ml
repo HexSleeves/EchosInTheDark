@@ -1,5 +1,4 @@
 open Base
-open Entities
 open Components
 
 let handle_event (event : Events.Event_bus.t) (state : State_types.t) :
@@ -22,12 +21,7 @@ let handle_event (event : Events.Event_bus.t) (state : State_types.t) :
 
                   Components.Inventory.set player_id inv';
 
-                  let entities =
-                    State.get_entities_manager state
-                    |> Entity_manager.remove item_id
-                  in
-
-                  State.set_entities_manager entities state))
+                  state))
       | None -> state
       | _ -> state)
   | Events.Event_bus.ItemDropped { player_id; item_id } -> (
@@ -43,17 +37,9 @@ let handle_event (event : Events.Event_bus.t) (state : State_types.t) :
 
                   match Item.get item_id with
                   | Some item ->
-                      let state' =
-                        State.move_entity item.id
-                          (Components.Position.get_exn player_id)
-                          state
-                      in
-
-                      let entities =
-                        State.get_entities_manager state'
-                        |> Entity_manager.add item.id
-                      in
-                      State.set_entities_manager entities state'
+                      State.move_entity item.id
+                        (Components.Position.get_exn player_id)
+                        state
                   | None -> state))))
   | _ -> state
 

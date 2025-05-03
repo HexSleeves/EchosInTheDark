@@ -30,7 +30,16 @@
 (library
  (name chunk)
  (modules chunk)
- (libraries base core_kernel containers logs dungeon rl_types core_log utils)
+ (libraries
+  base
+  core_kernel
+  containers
+  logs
+  dungeon
+  rl_types
+  core_log
+  utils
+  rl_loader)
  (preprocess
   (pps
    ppx_jane

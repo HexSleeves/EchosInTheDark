@@ -1,17 +1,16 @@
 open Base
+open Entities
 open State_types
+open Worldgen.Generators
 module Types = Rl_types
 
 type t = State_types.t [@@deriving show]
 
-let create_default_state ~player_start =
-  Entities.Spawner.spawn_player ~pos:player_start
-    (Entities.Entity_manager.create ())
-  |> fun entities ->
-  State_levels.setup_entities_for_level ~entities
-    ~turn_queue:(Turn_queue.create ())
+let create_default_state ~player_start em =
+  let em = Spawner.spawn_player ~pos:player_start em in
+  State_levels.setup_entities_for_level ~em ~turn_queue:(Turn_queue.create ())
     ~actor_manager:(Actors.Actor_manager.create ())
-  |> fun (actor_manager, turn_queue) -> (actor_manager, turn_queue, entities)
+  |> fun (actor_manager, turn_queue) -> (em, actor_manager, turn_queue)
 
 let get_debug (state : t) : bool = state.debug
 let get_mode (state : t) : Types.CtrlMode.t = state.mode
@@ -38,9 +37,6 @@ let get_tile_at (state : t) (world_pos : Chunk.world_pos) :
   Chunk_manager.get_tile_at world_pos state.chunk_manager
 
 let add_entity_to_index = State_entities.add_entity_to_index
-let get_entities_manager = State_entities.get_entities_manager
-let set_entities_manager = State_entities.set_entities_manager
-let get_player_id = State_entities.get_player_id
 let get_entity_at_pos = State_entities.get_entity_at_pos
 let get_blocking_entity_at_pos = State_entities.get_blocking_entity_at_pos
 let get_entities = State_entities.get_entities
@@ -48,6 +44,7 @@ let get_creatures = State_entities.get_creatures
 let move_entity = State_entities.move_entity
 let remove_entity = State_entities.remove_entity
 let is_player = State_entities.is_player
+let get_player_id = State_entities.get_player_id
 
 (* let spawn_creature_entity = State_entities.spawn_creature_entity *)
 let get_actor = State_actors.get_actor
@@ -62,11 +59,13 @@ let get_equipment = State_entities.get_equipment
 let set_equipment = State_entities.set_equipment
 
 let make ~debug ~w ~h ~seed ~depth =
-  let config = Worldgen.Config.make ~seed ~w:256 ~h:256 () in
-  Worldgen.Generators.World_generator.slice_and_save_chunks ~config ~depth;
-
   Core_log.info (fun m -> m "Width: %d, Height: %d" w h);
   Core_log.info (fun m -> m "Creating state with seed: %d" seed);
+
+  let config = Worldgen.Config.make ~seed ~w:256 ~h:256 () in
+  let em =
+    World_generator.generate_world ~config ~depth ~em:(Entity_manager.create ())
+  in
 
   (* Generate the first chunk and pick a player start position *)
   let chunk_coords = Rl_types.Loc.make 0 0 in
@@ -91,30 +90,24 @@ let make ~debug ~w ~h ~seed ~depth =
   in
 
   (* Set up actor manager and turn queue *)
-  let actor_manager, turn_queue, entities =
-    create_default_state ~player_start
-  in
-  (* Spawn the player at the chosen position *)
-  let player_id =
-    Entities.Entity_manager.find_player_id entities |> Option.value_exn
-  in
+  let em, actor_manager, turn_queue = create_default_state ~player_start em in
+
   Turn_queue.print_turn_queue turn_queue;
-  Entities.Entity_manager.print entities;
+  Entity_manager.print_entities em;
 
   let chunk_managers = Base.Hashtbl.create (module Int) in
-  let chunk_manager =
+  let chunk_manager, em =
     Chunk_manager.set_loaded_chunk chunk_coords chunk
       (Chunk_manager.create ~world_seed:seed ~level:(Int.to_string depth))
-    |> Chunk_manager.tick player_start ~depth
+    |> Chunk_manager.tick em player_start ~depth
   in
-  Base.Hashtbl.set chunk_managers ~key:0 ~data:chunk_manager;
 
+  Base.Hashtbl.set chunk_managers ~key:0 ~data:chunk_manager;
   let state =
     {
       debug;
       depth;
-      entities;
-      player_id;
+      em;
       actor_manager;
       turn_queue;
       chunk_manager;

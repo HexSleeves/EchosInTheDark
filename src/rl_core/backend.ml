@@ -16,8 +16,8 @@ let get_mode (state : t) = State.get_mode state
 let set_mode mode (state : t) : t = State.set_mode mode state
 
 (* Entity *)
-let get_player_id (state : t) : int = State.get_player_id state
-let get_entities (state : t) : int list = State.get_entities state
+let get_player_id (state : t) = State.get_player_id state
+let get_entities (state : t) = State.get_entities state
 
 (* Chunk *)
 let get_chunk_manager (state : t) : Chunk_manager.t =

@@ -1,6 +1,7 @@
 open Base
 open Rl_types
 open Dungeon
+open Rl_loader
 open Ppx_yojson_conv_lib.Yojson_conv
 
 (* Absolute position in the infinite world *)
@@ -32,18 +33,18 @@ let create ~coords ~metadata : t =
     entity_ids = [];
     last_accessed_turn = 0;
     tiles =
-      Array.init Constants.chunk_height ~f:(fun _ ->
-          Array.init Constants.chunk_width ~f:(fun _ -> Tile.Floor));
+      Array.init Constants.chunk_h ~f:(fun _ ->
+          Array.init Constants.chunk_w ~f:(fun _ -> Tile.Floor));
   }
 
 let world_to_chunk_coord (pos : Loc.t) : Loc.t =
-  Loc.make (pos.x / Constants.chunk_width) (pos.y / Constants.chunk_height)
+  Loc.make (pos.x / Constants.chunk_w) (pos.y / Constants.chunk_h)
 
 let world_to_local_coord (pos : Loc.t) : Loc.t =
-  let lx = pos.x % Constants.chunk_width in
-  let ly = pos.y % Constants.chunk_height in
-  let lx = if lx < 0 then lx + Constants.chunk_width else lx in
-  let ly = if ly < 0 then ly + Constants.chunk_height else ly in
+  let lx = pos.x % Constants.chunk_w in
+  let ly = pos.y % Constants.chunk_h in
+  let lx = if lx < 0 then lx + Constants.chunk_w else lx in
+  let ly = if ly < 0 then ly + Constants.chunk_h else ly in
   Loc.make lx ly
 
 (* let make_position (world : Loc.t) : Components.Position.t =
@@ -53,19 +54,15 @@ let world_to_local_coord (pos : Loc.t) : Loc.t =
 
 let get_tile (chunk : t) (pos : local_pos) : Tile.t option =
   if
-    pos.x >= 0
-    && pos.x < Constants.chunk_width
-    && pos.y >= 0
-    && pos.y < Constants.chunk_height
+    pos.x >= 0 && pos.x < Constants.chunk_w && pos.y >= 0
+    && pos.y < Constants.chunk_h
   then Some chunk.tiles.(pos.y).(pos.x)
   else None
 
 let set_tile (chunk : t) (pos : local_pos) (tile : Tile.t) : bool =
   if
-    pos.x >= 0
-    && pos.x < Constants.chunk_width
-    && pos.y >= 0
-    && pos.y < Constants.chunk_height
+    pos.x >= 0 && pos.x < Constants.chunk_w && pos.y >= 0
+    && pos.y < Constants.chunk_h
   then (
     chunk.tiles.(pos.y).(pos.x) <- tile;
     true)
@@ -89,7 +86,7 @@ let save_chunk (path : string) (chunk : t) : unit =
 
 (* Load a chunk from disk as JSON. Raises if file is missing or invalid. *)
 let load_chunk (path : string) : t =
-  let ic = Stdio.In_channel.create path in
+  let ic = Loader.open_file path in
   let json = Yojson.Safe.from_channel ic in
   Stdio.In_channel.close ic;
   t_of_yojson json

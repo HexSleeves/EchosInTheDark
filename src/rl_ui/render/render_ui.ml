@@ -16,18 +16,22 @@ let dark_bg = Render_constants.color_dark_bg
 
 let render_fps_overlay ~(ctx : render_context) =
   let open Raylib in
+  let padding = 4 in
   let fc = ctx.font_config in
+
   let fps = get_fps () in
   let fps_text = Int.to_string fps in
+
   let text_width = measure_text fps_text fc.font_size in
-  let padding = 4 in
   let box_height = Float.of_int (fc.font_size + (padding * 2)) in
   let box_width = Float.of_int (text_width + (padding * 2)) in
+
   let padding = Float.of_int padding in
   let box_x = Float.of_int (get_screen_width ()) -. box_width -. padding in
   let box_y = Float.of_int (get_screen_height ()) -. box_height -. padding in
   let box = Rectangle.create box_x box_y box_width box_height in
   draw_rectangle_rec box (Raylib.fade Color.gray 0.75);
+
   let text_x = Float.to_int (box_x +. padding) in
   let text_y = Float.to_int (box_y +. padding) in
   draw_text fps_text text_x text_y fc.font_size Color.white
@@ -36,10 +40,10 @@ let render_fps_overlay ~(ctx : render_context) =
 (* Top Bar *)
 (* //////////////////////////////////////////////////////////////// *)
 
-let draw_top_bar ~rect ~(backend : Rl_core.Backend.t) ~(ctx : render_context) =
+let draw_top_bar ~rect ~(ctx : render_context) ~backend =
   let open Raylib in
   let padding = 4 in
-  let line_height = ctx.font_config.font_size + padding in
+  (* let line_height = ctx.font_config.font_size + padding in *)
 
   (* Draw background and border *)
   draw_rectangle_rec rect dark_bg;
@@ -112,9 +116,33 @@ let draw_top_bar ~rect ~(backend : Rl_core.Backend.t) ~(ctx : render_context) =
     (Float.of_int ctx.font_config.font_size)
     0. Color.white;
 
-  (* --- Right Section (Date/Zone) --- *)
+  (* --- Right Section (Date/Zone/Player Pos) --- *)
   (* TODO: Fetch Date/Time and Zone Name *)
-  ()
+  let player_pos_opt = Components.Position.get player_id in
+  match player_pos_opt with
+  | Some pos ->
+      let world_pos = pos.world_pos in
+      let local_pos = pos.local_pos in
+      let chunk_pos = pos.chunk_pos in
+
+      draw_text_ex ctx.font_config.font
+        (Printf.sprintf "World: %d, %d" world_pos.x world_pos.y)
+        (Vector2.create 10.0 (Float.of_int (text_y + 30)))
+        (Float.of_int ctx.font_config.font_size)
+        0. Color.white;
+
+      draw_text_ex ctx.font_config.font
+        (Printf.sprintf "Chunk: %d, %d" chunk_pos.x chunk_pos.y)
+        (Vector2.create 150.0 (Float.of_int (text_y + 30)))
+        (Float.of_int ctx.font_config.font_size)
+        0. Color.white;
+
+      draw_text_ex ctx.font_config.font
+        (Printf.sprintf "Local: %d, %d" local_pos.x local_pos.y)
+        (Vector2.create 270.0 (Float.of_int (text_y + 30)))
+        (Float.of_int ctx.font_config.font_size)
+        0. Color.white
+  | None -> ()
 
 (* //////////////////////////////////////////////////////////////// *)
 (* Bottom Bar *)
@@ -134,7 +162,6 @@ let abilities_to_display : displayed_ability list =
       action = Rl_types.Action.Move Rl_types.Direction.North;
     };
     { name = "Wait"; key_display = "Space"; action = Rl_types.Action.Wait };
-    (* TODO: Add Pickup, Interact, etc. as needed *)
   ]
 
 let draw_ability_slot ~rect ~ability ~(font : Raylib.Font.t) ~(font_size : int)
@@ -171,8 +198,7 @@ let draw_ability_slot ~rect ~ability ~(font : Raylib.Font.t) ~(font_size : int)
 
   ()
 
-let draw_bottom_bar ~rect ~(backend : Rl_core.Backend.t) ~(ctx : render_context)
-    =
+let draw_bottom_bar ~rect ~(ctx : render_context) =
   let open Raylib in
   let padding = 4 in
 
@@ -180,9 +206,8 @@ let draw_bottom_bar ~rect ~(backend : Rl_core.Backend.t) ~(ctx : render_context)
   draw_rectangle_rec rect dark_bg;
   draw_rectangle_lines_ex rect 1.0 gold;
 
-  (* TODO: Implement sections: Active Effects, Target Info *)
   let placeholder_text = "Bottom Bar Placeholder" in
-  let text_w = measure_text placeholder_text ctx.font_config.font_size in
+  (* let text_w = measure_text placeholder_text ctx.font_config.font_size in *)
   let text_x = Rectangle.x rect +. (Float.of_int padding /. 2.0) in
   let text_y =
     Rectangle.y rect
@@ -274,8 +299,8 @@ let draw_minimap ~rect ~(backend : Rl_core.Backend.t) ~(ctx : render_context) =
           (* Calculate minimap tile size *)
           let available_w = Rectangle.width rect -. (padding *. 2.0) in
           let available_h = Rectangle.height rect -. (padding *. 2.0) in
-          let tile_w = available_w /. Float.of_int Constants.chunk_width in
-          let tile_h = available_h /. Float.of_int Constants.chunk_height in
+          let tile_w = available_w /. Float.of_int Constants.chunk_w in
+          let tile_h = available_h /. Float.of_int Constants.chunk_h in
 
           (* Draw chunk tiles *)
           Array.iteri chunk.tiles ~f:(fun y row ->
@@ -330,9 +355,5 @@ let draw_message_log ~messages ~rect =
         if String.is_prefix msg ~prefix:"!" then gold else Color.lightgray
       in
       draw_text msg x (y + (i * line_height)) 18 color);
-
-  let title_rect =
-    Rectangle.create (Float.of_int x) (Float.of_int y) 100.0 18.0
-  in
 
   draw_text "Message Log" x y 20 Color.blue

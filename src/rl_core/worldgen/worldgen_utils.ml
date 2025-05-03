@@ -1,5 +1,4 @@
 open Base
-open Utils
 
 let find_random_floor ?(max_tries = 1000) grid ~width ~height ~rng =
   let rec pick tries =

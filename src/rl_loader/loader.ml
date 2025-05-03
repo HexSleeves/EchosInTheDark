@@ -1,5 +1,4 @@
 open Base
-open Stdio
 
 (* Find the project root by locating a dune-project file in the directory or its ancestors *)
 let rec find_project_root (dir : string) : string =
@@ -15,6 +14,12 @@ let project_root () : string =
   | Some p -> p
   | None -> find_project_root (Stdlib.Sys.getcwd ())
 
+let open_file (filename : string) : Stdio.In_channel.t =
+  let root = project_root () in
+  let full_path = Stdlib.Filename.concat root filename in
+  Stdio.In_channel.create full_path
+
+(*
 (* Mapping table: (x, y) in tileset -> type string *)
 type tile_mapping = (int * int, string) Hashtbl.Poly.t
 
@@ -50,15 +55,4 @@ let gid_to_xy ~(tileset_width : int) (gid : int) : int * int =
 let type_of_gid ~(mapping : tile_mapping) ~(tileset_width : int) (gid : int) :
     string option =
   let xy = gid_to_xy ~tileset_width gid in
-  Hashtbl.find mapping xy
-
-(* Example usage: *)
-(*
-let () =
-  let mapping = load_tile_mapping "resources/mapping.csv" in
-  let tileset_width = 8 in
-  let gid = 3 in
-  match type_of_gid ~mapping ~tileset_width gid with
-  | Some typ -> printf "gid %d is type: %s\n" gid typ
-  | None -> printf "gid %d is unknown\n" gid
-*)
+  Hashtbl.find mapping xy *)

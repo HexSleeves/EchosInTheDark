@@ -50,7 +50,8 @@
   rl_types
   components
   dungeon
-  worldgen)
+  worldgen
+  entities)
  (preprocess
   (pps
    ppx_jane

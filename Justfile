@@ -12,9 +12,14 @@ build:
 run *ARGS:
     dune exec echoes_dark -- {{ARGS}}
 
+debug *ARGS:
+  rm -rf resources/chunks
+  dune exec echoes_dark -- --debug {{ARGS}}
+
 # Clean build artifacts
 clean:
     dune clean
+    rm -rf resources/chunks
 
 # Run tests (if you have them)
 test:

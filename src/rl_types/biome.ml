@@ -13,4 +13,4 @@ type biome_type =
   | Forgotten_Catacombs
   | Underground_Lake
   | Obsidian_Halls
-[@@deriving yojson, show, eq, compare, hash, sexp]
+[@@deriving yojson, show, eq, compare, hash, sexp, enumerate]

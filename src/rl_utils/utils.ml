@@ -27,3 +27,6 @@ let cartesian_product xs ys =
   List.concat_map xs ~f:(fun x -> List.map ys ~f:(fun y -> (x, y)))
 
 let range a b = List.init (b - a) ~f:(( + ) a)
+
+let ensure_dir path =
+  if not (Stdlib.Sys.file_exists path) then Stdlib.Sys.mkdir path 0o755

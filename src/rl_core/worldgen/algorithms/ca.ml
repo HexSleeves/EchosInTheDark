@@ -55,16 +55,7 @@ let smooth grid ~width ~height ~passes =
   done;
   current
 
-(** Run the CA generator: init and smooth, return tile array. *)
-let run ~width ~height ~rng =
-  let wall_prob = 0.58 in
-  (* More initial walls *)
-  let passes = 6 in
-  (* More smoothing passes *)
-  let grid = init_grid ~rng ~width ~height ~wall_prob in
-  smooth grid ~width ~height ~passes
-
-let place_monsters ~grid ~width ~height ~rng entity_manager =
+let place_monsters ~grid ~width ~height ~rng =
   let floor_positions =
     List.filter_map
       (List.init (width * height) ~f:Fn.id)
@@ -81,6 +72,15 @@ let place_monsters ~grid ~width ~height ~rng entity_manager =
   let shuffled = List.permute floor_positions ~random_state:rng in
   let monster_positions = List.take shuffled num_monsters in
   Core_log.info (fun m -> m "Placing %d monsters..." num_monsters);
-  List.fold monster_positions ~init:entity_manager ~f:(fun em pos ->
+  List.fold monster_positions ~init:[] ~f:(fun acc pos ->
       let spec = Monster.get_template "Rat" in
-      Monster.place_monster ~entity_manager:em ~pos spec)
+      Monster.place_monster ~pos spec :: acc)
+
+(** Run the CA generator: init and smooth, return tile array. *)
+let run ~width ~height ~rng : Dungeon.Tile.t array =
+  let wall_prob = 0.58 in
+  (* More initial walls *)
+  let passes = 6 in
+  (* More smoothing passes *)
+  let grid = init_grid ~rng ~width ~height ~wall_prob in
+  smooth grid ~width ~height ~passes

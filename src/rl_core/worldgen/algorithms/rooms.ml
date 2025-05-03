@@ -1,7 +1,7 @@
 open Base
 open Dungeon
 
-let rooms_generator ~width ~height ~rng =
+let run ~width ~height ~rng =
   let grid = Stdlib.Array.make (width * height) Tile.Wall in
   let max_rooms = 8 + Random.State.int rng 8 in
   let min_size = 4 in
@@ -53,8 +53,8 @@ let rooms_generator ~width ~height ~rng =
   done;
   (grid, !rooms)
 
-let place_monsters ~grid ~width ~rooms ~rng ~depth entity_manager =
-  List.fold rooms ~init:entity_manager ~f:(fun em (x, y, w, h) ->
+let place_monsters ~grid ~width ~rooms ~rng ~depth ~em =
+  List.fold rooms ~init:em ~f:(fun em (x, y, w, h) ->
       if Random.State.bool rng then
         let positions =
           Utils.cartesian_product
@@ -65,6 +65,5 @@ let place_monsters ~grid ~width ~rooms ~rng ~depth entity_manager =
                  Tile.is_floor grid.(idx))
           |> List.map ~f:(fun (i, j) -> Rl_types.Loc.make i j)
         in
-        Monster.place_band_in_room ~entity_manager:em ~room_positions:positions
-          ~depth ~rng
+        Monster.place_band_in_room ~room_positions:positions ~depth ~rng ~em
       else em)

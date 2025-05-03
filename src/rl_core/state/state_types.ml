@@ -1,16 +1,17 @@
 (* State type definition extracted from state.ml *)
-open Entities
 open Actors
 open Rl_types
+open Entities
+
+(* NOTE: Ensure Entity_manager is built before this module in dune *)
 
 type t = {
   debug : bool;
   depth : int;
-  player_id : int;
   mode : CtrlMode.t;
-  entities : Entity_manager.t;
-  actor_manager : Actor_manager.t;
+  em : Entity_manager.t;
   turn_queue : Turn_queue.t;
+  actor_manager : Actor_manager.t;
   chunk_manager : Chunk_manager.t;
   chunk_managers : (int, Chunk_manager.t) Base.Hashtbl.t;
   position_index : (Loc.t, int * Components.Position.t) Base.Hashtbl.t;

@@ -47,7 +47,7 @@ let render_ascii_cell ~glyph ~color ~fc ~loc ~origin ~tile_render_size =
   (* Font, Text, Position, Font-size, Spacing, Color *)
   draw_text_ex fc.font glyph centered_pos font_size spacing color
 
-let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx ~fov =
+let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx =
   Array.iteri
     ~f:(fun i t ->
       let x, y = Utils.index_to_xy i width in
@@ -69,7 +69,7 @@ let render_map_tiles ~tiles ~width ~skip_positions ~origin ~ctx ~fov =
               ~tile_render_size:ctx.tile_render_size)
     tiles
 
-let render_entities ~entities ~origin ~ctx ~fov =
+let render_entities ~entities ~origin ~ctx =
   let open Render_utils in
   let font_config = ctx.font_config in
   let drawn = ref (Set.empty (module Int)) in

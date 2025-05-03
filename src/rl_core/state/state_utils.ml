@@ -1,8 +1,9 @@
 open Base
+open Entities
 
 let rebuild_position_index (state : State_types.t) : State_types.t =
   Hashtbl.clear state.position_index;
-  Entities.Entity_manager.to_list state.entities
+  Entity_manager.all_entities state.em
   |> List.iter ~f:(fun int ->
          match Components.Position.get int with
          | None -> ()
