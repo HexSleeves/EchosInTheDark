@@ -3,6 +3,6 @@
 (library
  (name rl_loader)
  (modules loader)
- (libraries base containers core_kernel logs)
+ (libraries base core_kernel logs)
  (preprocess
   (pps ppx_yojson_conv)))

@@ -111,3 +111,50 @@ MIT — see [LICENSE](LICENSE) for details.
 - For technical details, see [architecture.md](docs/architecture.md) and [chunking_design.md](docs/chunking_design.md).
 - For project goals and roadmap, see the memory files in `docs/` and `tasks/`.
 - For help or questions, open an issue or discussion!
+
+## Performance Optimization Features
+
+To help optimize performance in this roguelike game, the following features have been implemented:
+
+### 1. Packed Array Components
+
+The traditional ECS implementation using hashtables has been enhanced with a packed array alternative that can be used for performance-critical operations:
+
+- The `Components.Packed_components` module provides efficient array-based storage for hot components
+- Components implemented with packed arrays include: Position, Stats, Blocking, and Renderable
+- This provides better data locality and cache efficiency compared to hashtables
+- The packed representation supports batch operations for processing multiple entities efficiently
+
+### 2. Performance Profiling
+
+The game includes a built-in performance profiling system that can be enabled with the `--profile` command-line flag:
+
+```
+./echoes_dark --profile
+```
+
+When enabled, this will:
+- Track component access patterns and timing
+- Generate periodic performance reports showing hotspots
+- Enable the use of optimized data structures for performance-critical operations
+
+### Using the Profiler in Development
+
+To add profiling to a new component:
+
+1. Update the `performance_profiler.ml` module to track the new component type
+2. Create wrapper functions that time component access
+3. Update systems to use packed components for batch operations where appropriate
+
+### Performance Optimization Guidelines
+
+For future development, consider these optimization guidelines:
+
+1. Use packed arrays for components that are frequently accessed
+2. Implement batch operations for processing multiple entities at once
+3. Keep hot data together for better cache locality
+4. Use the profiler to identify bottlenecks before optimizing
+5. Consider spatial partitioning for collision and visibility tests
+6. Minimize dynamic memory allocation during the game loop
+
+The performance tools make it easy to measure the impact of optimizations and ensure the game runs smoothly even with many entities.

@@ -3,6 +3,20 @@
 (library
  (name components)
  (libraries base core_kernel containers logs rl_types chunk)
+ (modules components equipment faction field_of_view item inventory stats)
+ (preprocess
+  (pps
+   ppx_jane
+   ppx_yojson_conv
+   ppx_deriving.enum
+   ppx_deriving.show
+   ppx_deriving.eq
+   ppx_deriving.ord)))
+
+(library
+ (name packed_components)
+ (libraries base core_kernel containers logs rl_types chunk)
+ (modules packed_components)
  (preprocess
   (pps
    ppx_jane

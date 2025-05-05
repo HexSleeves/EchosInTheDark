@@ -12,7 +12,6 @@
  (libraries
   base
   core_kernel
-  containers
   logs
   rl_types
   entities
@@ -31,7 +30,6 @@
  (libraries
   base
   core_kernel
-  containers
   logs
   rl_types
   core_log

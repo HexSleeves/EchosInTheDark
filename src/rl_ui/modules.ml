@@ -21,6 +21,7 @@ type init_config = {
   debug : bool;
   seed : int option;
   backend : Backend.t option;
+  enable_profiling : bool;
 }
 
 (* Handle tick updates based on current screen using the Screen interface *)
@@ -99,6 +100,10 @@ let create_initial_state (render_ctx : RT.render_context) (config : init_config)
           ~depth:1
   in
 
+  (* Initialize profiling if enabled *)
+  if config.enable_profiling then
+    Ui_log.info (fun m -> m "Setting up profiling for performance monitoring");
+
   (* No need to spawn player or rat here; handled in worldgen/generator *)
   Logs.info (fun m -> m "Initialization done.");
   {
@@ -107,6 +112,7 @@ let create_initial_state (render_ctx : RT.render_context) (config : init_config)
     quitting = false;
     screen = Playing;
     input_ctx = Input_context.empty;
+    enable_profiling = config.enable_profiling;
   }
 
 let run_with_config (render_ctx : RT.render_context) (config : init_config) :

@@ -31,4 +31,5 @@ let init () =
     | ItemPickedUp { player_id; item_id } ->
         fun state ->
           Stdio.printf "Entity %d picked up item %d\n" item_id player_id;
-          state)
+          state
+    | _ -> fun state -> state)

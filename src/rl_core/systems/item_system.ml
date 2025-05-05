@@ -43,4 +43,4 @@ let handle_event (event : Events.Event_bus.t) (state : State_types.t) :
                   | None -> state))))
   | _ -> state
 
-let init () = Events.Event_bus.subscribe handle_event
+let init () = Events.Event_bus.subscribe_item_events handle_event

@@ -7,12 +7,11 @@
 
 (library
  (name rl_core)
- (modules ai backend input)
+ (modules ai backend input profiler)
  (libraries
   actors
   base
   components
-  containers
   core_kernel
   core_kernel.pairing_heap
   dungeon
@@ -32,12 +31,12 @@
 (library
  (name core_log)
  (modules core_log)
- (libraries base core_kernel containers logs))
+ (libraries base core_kernel logs))
 
 (library
  (name core_utils)
  (modules util)
- (libraries base core_kernel containers logs rl_types components))
+ (libraries base core_kernel logs rl_types components))
 
 (library
  (name chunk_manager)
@@ -45,7 +44,6 @@
  (libraries
   base
   core_kernel
-  containers
   logs
   rl_types
   components
@@ -65,4 +63,4 @@
 (library
  (name turn_queue)
  (modules turn_queue)
- (libraries base core_kernel containers logs rl_types core_log))
+ (libraries base core_kernel logs rl_types core_log bheap))

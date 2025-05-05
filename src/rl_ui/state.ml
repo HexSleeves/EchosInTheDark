@@ -18,4 +18,5 @@ type t = {
   input_ctx : Input_context.t;
   screen : Modules_d.screen;
   render_ctx : Render_types.render_context;
+  enable_profiling : bool;
 }

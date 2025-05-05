@@ -9,7 +9,17 @@ let make ~debug ~w ~h ~seed ~depth : t =
   Systems.Log_system.init ();
   Systems.Combat_system.init ();
   Systems.Item_system.init ();
-  State.make ~debug ~w ~h ~seed ~depth
+
+  (* Initialize performance optimization systems *)
+  try
+    Systems.Packed_system.init ();
+    Systems.Performance_profiler.init ();
+    State.make ~debug ~w ~h ~seed ~depth
+  with e ->
+    Core_log.warn (fun m ->
+        m "Failed to initialize performance systems: %s" (Exn.to_string e));
+
+    State.make ~debug ~w ~h ~seed ~depth
 
 let get_debug (state : t) : bool = State.get_debug state
 let get_mode (state : t) = State.get_mode state
@@ -25,12 +35,19 @@ let get_chunk_manager (state : t) : Chunk_manager.t =
 
 let queue_actor_action (state : t) (actor_id : Actor.actor_id)
     (action : Action.t) : t =
-  State.queue_actor_action state actor_id action
+  State.queue_actor_action state actor_id action |> fun state ->
+  State.set_turn_queue
+    (Turn_queue.schedule_now (State.get_turn_queue state) actor_id)
+    state
 
 let move_entity (id : int) (position : Components.Position.t) (state : t) : t =
   State.move_entity id position state
 
-let process_turns (state : t) : t = Systems.Turn_system.process_turns state
+let process_turns (state : t) : t =
+  (* Run performance reporting if needed *)
+  (try Systems.Performance_profiler.generate_report () with _ -> ());
+
+  Systems.Turn_system.process_turns state
 
 let run_ai_step (state : t) : t =
   List.fold (State.get_creatures state) ~init:state
@@ -41,3 +58,6 @@ let run_ai_step (state : t) : t =
           |> queue_actor_action state' creature_id
       | _ -> state')
   |> fun state -> State.set_normal_mode state
+
+let sync_from_hashtables () = Systems.Packed_system.sync_from_hashtables ()
+let sync_to_hashtables () = Systems.Packed_system.sync_to_hashtables ()

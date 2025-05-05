@@ -14,9 +14,7 @@ let should_wait_for_player_input int actor =
   | _ -> false
 
 (* Helper: Remove a dead actor from the turn queue. *)
-let remove_dead_actor turn_queue id =
-  Log.info (fun m -> m "Removing dead actor %d from queue" id);
-  Turn_queue.remove_actor turn_queue id
+let remove_dead_actor turn_queue id = Turn_queue.remove_actor turn_queue id
 
 (* Context record for passing necessary data to handle_actor_event *)
 type ctx = {

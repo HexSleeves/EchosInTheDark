@@ -189,19 +189,60 @@ let handle_player_input (state : State.t) : State.t =
           (Backend.get_player_id state.backend)
           action
       in
+
       { state with backend = Backend.set_mode T.CtrlMode.AI backend }
   | _ -> state
 
 let handle_tick (state : State.t) : State.t =
   let open Rl_core in
+  (* Profile every 100th frame if profiling is enabled *)
+  let _profiling_result =
+    if
+      state.enable_profiling
+      && Float.compare (Raylib.get_time ()) 5.0 >= 0
+      && Int.rem (Float.to_int (Raylib.get_time ())) 10 = 0
+    then (
+      Ui_log.info (fun m -> m "Running performance profiling...");
+      try
+        Rl_core.Profiler.profile_component_access ();
+        Rl_core.Profiler.profile_batch_operations ()
+      with e ->
+        Ui_log.err (fun m -> m "Error in profiling: %s" (Exn.to_string e)))
+  in
+
+  (* Sync to packed components for performance improvements *)
+  let _sync_result =
+    if state.enable_profiling then (
+      try Backend.sync_from_hashtables ()
+      with e ->
+        Ui_log.err (fun m ->
+            m "Error syncing to packed components: %s" (Exn.to_string e));
+        ())
+  in
+
   let backend = state.backend in
-  match Backend.get_mode backend with
-  | T.CtrlMode.WaitInput -> handle_player_input state
-  | T.CtrlMode.AI -> { state with backend = Backend.run_ai_step backend }
-  | T.CtrlMode.Normal -> { state with backend = Backend.process_turns backend }
-  | T.CtrlMode.Died _ ->
-      {
-        state with
-        screen = GameOver;
-        backend = Backend.set_mode T.CtrlMode.Normal backend;
-      }
+  let new_state =
+    match Backend.get_mode backend with
+    | T.CtrlMode.WaitInput -> handle_player_input state
+    | T.CtrlMode.AI -> { state with backend = Backend.run_ai_step backend }
+    | T.CtrlMode.Normal ->
+        { state with backend = Backend.process_turns backend }
+    | T.CtrlMode.Died _ ->
+        {
+          state with
+          screen = GameOver;
+          backend = Backend.set_mode T.CtrlMode.Normal backend;
+        }
+  in
+
+  (* Sync back from packed components to hashtables if we've been using them *)
+  let _sync_back_result =
+    if state.enable_profiling then (
+      try Backend.sync_to_hashtables ()
+      with e ->
+        Ui_log.err (fun m ->
+            m "Error syncing from packed components: %s" (Exn.to_string e));
+        ())
+  in
+
+  new_state

@@ -3,16 +3,7 @@
 (library
  (name dungeon)
  (modules tile)
- (libraries
-  base
-  core_kernel
-  containers
-  logs
-  rl_types
-  core_log
-  raylib
-  constants
-  utils)
+ (libraries base core_kernel logs rl_types core_log raylib constants utils)
  (preprocess
   (pps
    ppx_jane
@@ -24,22 +15,12 @@
    ppx_compare
    ppx_sexp_conv
    ppx_hash
-   ppx_import
    ppx_inline_test)))
 
 (library
  (name chunk)
  (modules chunk)
- (libraries
-  base
-  core_kernel
-  containers
-  logs
-  dungeon
-  rl_types
-  core_log
-  utils
-  rl_loader)
+ (libraries base core_kernel logs dungeon rl_types core_log utils rl_loader)
  (preprocess
   (pps
    ppx_jane

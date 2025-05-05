@@ -5,13 +5,16 @@
  (libraries
   base
   core_kernel
-  containers
+  unix
   logs
   rl_types
   entities
   actors
   components
+  packed_components
   events
   core_log
   state
-  state_types))
+  state_types)
+ (preprocess
+  (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))

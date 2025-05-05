@@ -11,6 +11,7 @@ let () =
   let debug = ref false in
   let seed = ref None in
   let log_level = ref "info" in
+  let enable_profiling = ref false in
 
   let speclist =
     [
@@ -21,6 +22,7 @@ let () =
       ( "--log-level",
         Arg.Set_string log_level,
         "Log level (app|info|debug|warn|error)" );
+      ("--profile", Arg.Set enable_profiling, "Enable performance profiling");
     ]
   in
   let usage = "Echoes in the Dark [options]" in
@@ -36,6 +38,15 @@ let () =
   in
 
   Logger.setup_logger level;
+
+  (* Initialize systems *)
+  Logs.info (fun m -> m "Initializing packed component system...");
+  Systems.Packed_system.init ();
+
+  (* Initialize profiling if enabled *)
+  if !enable_profiling then
+    Logs.info (fun m -> m "Performance profiling enabled")
+    (* It will be run at the appropriate time in the game loop *);
 
   (* 1. Create window and font config *)
   let render_ctx = Renderer.create_render_context () in
@@ -63,6 +74,7 @@ let () =
       width = map_width_tiles;
       height = map_height_tiles;
       backend = None;
+      enable_profiling = !enable_profiling;
     }
   in
 

@@ -1,61 +1,94 @@
 open Base
 module Log = (val Core_log.make_logger "turn_queue" : Logs.LOG)
 
-(* Persistent min-heap of (time, id) using a sorted list *)
-type t = {
-  current_time : int;
-  turn_queue : (int * int) list; (* Sorted by time ascending *)
-}
+module MinHeap = Binary_heap.Make (struct
+  type t = int * int [@@deriving yojson]
 
-let create () : t = { current_time = 0; turn_queue = [] }
+  let compare (a_time, _) (b_time, _) = Int.compare a_time b_time
+end)
+[@@deriving yojson, show]
+
+(* Mutable min-heap of (time, id) using Binary_heap *)
+type t = { mutable current_time : int; mutable heap : MinHeap.t }
+[@@deriving yojson, show]
+
+let to_yojson t =
+  let elements = ref [] in
+  MinHeap.iter (fun x -> elements := x :: !elements) t.heap;
+  `Assoc
+    [
+      ("current_time", `Int t.current_time);
+      ( "heap_elements",
+        `List
+          (List.rev !elements
+          |> List.map ~f:(fun (time, id) -> `List [ `Int time; `Int id ])) );
+    ]
+
+let of_yojson = function
+  | `Assoc
+      [ ("current_time", `Int current_time); ("heap_elements", `List elements) ]
+    -> (
+      try
+        let heap = MinHeap.create ~dummy:(-1, -1) 16 in
+        List.iter elements ~f:(function
+          | `List [ `Int time; `Int id ] -> MinHeap.add heap (time, id)
+          | _ -> raise (Invalid_argument "malformed heap element"));
+        Ok { current_time; heap }
+      with Invalid_argument msg -> Error msg)
+  | _ -> Error "malformed turn queue"
+
+let create () : t =
+  { current_time = 0; heap = MinHeap.create ~dummy:(-1, -1) 16 }
+
 let current_time t = t.current_time
 
 let print_turn_queue t =
+  let elements = ref [] in
+  MinHeap.iter (fun x -> elements := x :: !elements) t.heap;
   let queue_str =
-    List.map t.turn_queue ~f:(fun (time, actor) ->
-        Printf.sprintf "(time: %d, actor: %d)" time actor)
+    List.rev !elements
+    |> List.map ~f:(fun (time, actor) ->
+           Printf.sprintf "(time: %d, actor: %d)" time actor)
     |> String.concat ~sep:"; "
   in
   Log.info (fun m ->
       m "Current time: %d, Turn queue: [%s]" t.current_time queue_str)
 
-(* let rec insert_sorted queue (time, entity) =
-  match queue with
-  | [] -> [ (time, entity) ]
-  | (t, _) :: _ when time < t -> (time, entity) :: queue
-  | (t, e) :: rest -> (t, e) :: insert_sorted rest (time, entity) *)
-
 let schedule_at t (entity_id : int) (next_time : int) =
-  let new_queue = List.append t.turn_queue [ (next_time, entity_id) ] in
-  {
-    t with
-    turn_queue =
-      List.sort new_queue ~compare:(fun (t1, _) (t2, _) -> Int.compare t1 t2);
-  }
+  MinHeap.add t.heap (next_time, entity_id);
+  t
 
-(* Prepend the turn to the front of the queue *)
 let schedule_now t (entity_id : int) =
-  { t with turn_queue = List.cons (current_time t, entity_id) t.turn_queue }
+  MinHeap.add t.heap (current_time t, entity_id);
+  t
 
 let remove_actor t (entity_id : int) =
-  {
-    t with
-    turn_queue = List.filter t.turn_queue ~f:(fun (_, e) -> e <> entity_id);
-  }
+  let temp_heap = MinHeap.create ~dummy:(-1, -1) 16 in
+  let elements = ref [] in
+  MinHeap.iter (fun x -> elements := x :: !elements) t.heap;
+  List.iter (List.rev !elements) ~f:(fun ((_, id) as x) ->
+      if id <> entity_id then MinHeap.add temp_heap x);
+  t.heap <- temp_heap;
+  t
 
 let get_next_actor t : (int * int) option * t =
-  match t.turn_queue with
-  | [] -> (None, t)
-  | (time, id) :: rest ->
-      (Some (id, time), { current_time = time; turn_queue = rest })
+  if MinHeap.is_empty t.heap then (None, t)
+  else
+    let time, id = MinHeap.minimum t.heap in
+    MinHeap.remove t.heap;
+    t.current_time <- time;
+    (Some (id, time), t)
 
 let peek_next t : (int * int) option =
-  match t.turn_queue with
-  | [] -> None
-  | (time, entity) :: _ -> Some (entity, time)
+  if MinHeap.is_empty t.heap then None
+  else
+    let time, entity = MinHeap.minimum t.heap in
+    Some (entity, time)
 
 let is_scheduled t (entity_id : int) : bool =
-  List.exists t.turn_queue ~f:(fun (_, e) -> e = entity_id)
+  let found = ref false in
+  MinHeap.iter (fun (_, id) -> if id = entity_id then found := true) t.heap;
+  !found
 
 let time_until t (time : int) : int =
   Int.(time - t.current_time) land Int.max_value
@@ -63,5 +96,12 @@ let time_until t (time : int) : int =
 let is_before t (time_a : int) (time_b : int) : bool =
   time_until t time_a < time_until t time_b
 
-let to_list t = t.turn_queue
-let copy (t : t) : t = t (* Already persistent *)
+let to_list t =
+  let elements = ref [] in
+  MinHeap.iter (fun x -> elements := x :: !elements) t.heap;
+  List.rev !elements
+
+let copy (t : t) : t =
+  let new_heap = MinHeap.create ~dummy:(-1, -1) 16 in
+  MinHeap.iter (fun x -> MinHeap.add new_heap x) t.heap;
+  { current_time = t.current_time; heap = new_heap }

@@ -22,7 +22,7 @@
 (library
  (name ui_log)
  (modules ui_log)
- (libraries base core_kernel containers logs core_log core_utils))
+ (libraries base core_kernel logs core_log core_utils))
 
 (env
  (dev
