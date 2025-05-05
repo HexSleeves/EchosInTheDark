@@ -9,7 +9,6 @@
   logs
   rl_types
   entities
-  actors
   components
   packed_components
   events

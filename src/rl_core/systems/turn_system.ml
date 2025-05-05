@@ -1,6 +1,6 @@
 open Base
-open Actors
 open Components
+open Rl_types
 module Log = (val Core_log.make_logger "turn_system" : Logs.LOG)
 
 let monster_reschedule_delay = 100

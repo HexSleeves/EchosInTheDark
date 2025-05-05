@@ -1,6 +1,4 @@
 open Base
-open Entities
-open Actors
 open State_types
 
 let setup_entities_for_level ~em ~actor_manager ~turn_queue =

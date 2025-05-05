@@ -1,5 +1,4 @@
 open Base
-open Entities
 
 let rebuild_position_index (state : State_types.t) : State_types.t =
   Hashtbl.clear state.position_index;

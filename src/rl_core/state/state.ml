@@ -9,7 +9,7 @@ type t = State_types.t [@@deriving show]
 let create_default_state ~player_start em =
   let em = Spawner.spawn_player ~pos:player_start em in
   State_levels.setup_entities_for_level ~em ~turn_queue:(Turn_queue.create ())
-    ~actor_manager:(Actors.Actor_manager.create ())
+    ~actor_manager:(Actor_manager.create ())
   |> fun (actor_manager, turn_queue) -> (em, actor_manager, turn_queue)
 
 let get_debug (state : t) : bool = state.debug

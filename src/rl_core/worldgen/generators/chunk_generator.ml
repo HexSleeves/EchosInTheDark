@@ -5,7 +5,6 @@
 
 open Base
 open Rl_types
-open Entities
 open Worldgen_types
 
 (** Hashing function for deterministic chunk seeding *)

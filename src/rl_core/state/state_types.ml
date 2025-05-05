@@ -1,7 +1,5 @@
 (* State type definition extracted from state.ml *)
-open Actors
 open Rl_types
-open Entities
 
 (* NOTE: Ensure Entity_manager is built before this module in dune *)
 

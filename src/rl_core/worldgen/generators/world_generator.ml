@@ -1,6 +1,5 @@
 open Base
 open Rl_types
-open Entities
 
 (* batch generate all chunks (good for static worlds). *)
 let generate_world ~config ~depth ~em : Entity_manager.t =

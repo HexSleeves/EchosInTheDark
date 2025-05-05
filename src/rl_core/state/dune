@@ -15,7 +15,6 @@
   logs
   rl_types
   entities
-  actors
   components
   worldgen
   dungeon
@@ -34,7 +33,7 @@
   rl_types
   core_log
   entities
-  actors
   components
   turn_queue
+  actor_manager
   chunk_manager))

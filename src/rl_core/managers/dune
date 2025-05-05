@@ -1,0 +1,51 @@
+(include_subdirs no)
+
+(library
+ (name actor_manager)
+ (modules actor_manager)
+ (libraries base logs components rl_types)
+ (preprocess
+  (pps
+   ppx_jane
+   ppx_enumerate
+   ppx_yojson_conv
+   ppx_sexp_conv
+   ppx_deriving.show
+   ppx_deriving.eq
+   ppx_deriving.ord)))
+
+(library
+ (name entity_manager)
+ (modules entity_manager)
+ (libraries base logs components)
+ (preprocess
+  (pps
+   ppx_jane
+   ppx_enumerate
+   ppx_yojson_conv
+   ppx_sexp_conv
+   ppx_deriving.show
+   ppx_deriving.eq
+   ppx_deriving.ord)))
+
+(library
+ (name chunk_manager)
+ (modules chunk_manager)
+ (libraries
+  base
+  core_kernel
+  logs
+  rl_types
+  components
+  dungeon
+  worldgen
+  entities)
+ (preprocess
+  (pps
+   ppx_jane
+   ppx_enumerate
+   ppx_yojson_conv
+   ppx_sexp_conv
+   ppx_deriving.show
+   ppx_deriving.eq
+   ppx_deriving.ord)))

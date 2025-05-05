@@ -1,5 +1,5 @@
 open Base
-open Actors
+open Rl_types
 
 let get_actor (state : State_types.t) (actor_id : Actor.actor_id) :
     Actor.t option =

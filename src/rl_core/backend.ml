@@ -1,5 +1,4 @@
 open Base
-open Actors
 open Rl_types
 
 type t = State.t

@@ -9,7 +9,6 @@
  (name rl_core)
  (modules ai backend input profiler)
  (libraries
-  actors
   base
   components
   core_kernel
@@ -24,7 +23,8 @@
   state
   systems
   rl_types
-  chunk_manager)
+  chunk_manager
+  entity_manager)
  (preprocess
   (pps ppx_jane ppx_compare ppx_deriving.show)))
 
@@ -37,28 +37,6 @@
  (name core_utils)
  (modules util)
  (libraries base core_kernel logs rl_types components))
-
-(library
- (name chunk_manager)
- (modules chunk_manager)
- (libraries
-  base
-  core_kernel
-  logs
-  rl_types
-  components
-  dungeon
-  worldgen
-  entities)
- (preprocess
-  (pps
-   ppx_jane
-   ppx_enumerate
-   ppx_yojson_conv
-   ppx_sexp_conv
-   ppx_deriving.show
-   ppx_deriving.eq
-   ppx_deriving.ord)))
 
 (library
  (name turn_queue)

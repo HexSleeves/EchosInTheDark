@@ -1,4 +1,5 @@
 open Base
+open Rl_types
 
 (* Persistent map for actors *)
 type t = Actor.t Map.M(Int).t

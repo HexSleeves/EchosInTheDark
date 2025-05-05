@@ -11,4 +11,5 @@
   dungeon
   core_utils
   components
-  chunk))
+  chunk
+  entity_manager))

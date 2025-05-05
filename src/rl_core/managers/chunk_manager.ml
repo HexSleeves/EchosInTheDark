@@ -6,7 +6,6 @@
 open Base
 open Rl_types
 open Utils
-open Entities
 
 (* Constants *)
 let load_radius = Constants.chunk_load_radius
