@@ -1,0 +1,13 @@
+(include_subdirs no)
+
+(library
+ (name profiler)
+ (modules profiler performance_profiler position_profiler)
+ (libraries
+  base
+  core_kernel
+  logs
+  components
+  rl_types
+  packed_components
+  systems))

@@ -15,6 +15,7 @@
   rl_core
   rl_loader
   utils
+  profiler
   ui_log)
  (preprocess
   (pps ppx_yojson_conv ppx_compare ppx_sexp_conv ppx_hash ppx_deriving.show)))

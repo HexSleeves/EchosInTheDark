@@ -204,8 +204,8 @@ let handle_tick (state : State.t) : State.t =
     then (
       Ui_log.info (fun m -> m "Running performance profiling...");
       try
-        Rl_core.Profiler.profile_component_access ();
-        Rl_core.Profiler.profile_batch_operations ()
+        Profiler.profile_component_access ();
+        Profiler.profile_batch_operations ()
       with e ->
         Ui_log.err (fun m -> m "Error in profiling: %s" (Exn.to_string e)))
   in

@@ -1,4 +1,6 @@
 open Base
+module Performance_profiler = Performance_profiler
+module Position_profiler = Position_profiler
 
 (* Simple profiler based on Unix.gettimeofday *)
 module SimpleProfiler = struct
@@ -152,3 +154,7 @@ let run_profiling () =
 
   Stdio.printf "Running batch operation profiling...\n";
   profile_batch_operations ()
+
+let init () =
+  Performance_profiler.init ();
+  Position_profiler.init ()

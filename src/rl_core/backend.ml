@@ -11,8 +11,8 @@ let make ~debug ~w ~h ~seed ~depth : t =
 
   (* Initialize performance optimization systems *)
   try
+    Profiler.init ();
     Systems.Packed_system.init ();
-    Systems.Performance_profiler.init ();
     State.make ~debug ~w ~h ~seed ~depth
   with e ->
     Core_log.warn (fun m ->
@@ -44,7 +44,7 @@ let move_entity (id : int) (position : Components.Position.t) (state : t) : t =
 
 let process_turns (state : t) : t =
   (* Run performance reporting if needed *)
-  (try Systems.Performance_profiler.generate_report () with _ -> ());
+  (try Profiler.Performance_profiler.generate_report () with _ -> ());
 
   Systems.Turn_system.process_turns state
 
