@@ -1,8 +1,0 @@
-(include_subdirs qualified)
-
-(library
- (name rl_loader)
- (modules loader)
- (libraries base core_kernel logs)
- (preprocess
-  (pps ppx_yojson_conv)))

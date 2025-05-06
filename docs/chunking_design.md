@@ -15,7 +15,7 @@ This document outlines the design for a dynamic map chunking system for the OCam
 
 ## 3. Data Structures
 
-*   **`Chunk.t`:** Represents a single map chunk. To be defined in a new file, e.g., `src/rl_core/dungeon/chunk.ml`.
+*   **`Chunk.t`:** Represents a single map chunk. To be defined in a new file, e.g., `src/core/dungeon/chunk.ml`.
 
     ```ocaml
     type chunk_coord = int * int
@@ -46,7 +46,7 @@ This document outlines the design for a dynamic map chunking system for the OCam
     }
     ```
 
-*   **Entity Management:** Entities remain globally managed (e.g., by `Entity_manager`). Chunks store references (`entity_ids`) to entities currently within their bounds. The `Position` component (`src/rl_core/components/position.ml`) will store `world_pos`.
+*   **Entity Management:** Entities remain globally managed (e.g., by `Entity_manager`). Chunks store references (`entity_ids`) to entities currently within their bounds. The `Position` component (`src/core/components/position.ml`) will store `world_pos`.
 
 ## 4. Chunk Loading/Unloading
 

@@ -10,11 +10,11 @@ build:
 
 # Run the project (pass extra args if needed)
 run *ARGS:
-    dune exec echoes_dark -- {{ARGS}}
+    dune exec echos_dark -- {{ARGS}}
 
 debug *ARGS:
   rm -rf resources/chunks
-  dune exec echoes_dark -- --debug {{ARGS}}
+  dune exec echos_dark -- --debug {{ARGS}}
 
 # Clean build artifacts
 clean:

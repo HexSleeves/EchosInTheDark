@@ -1,3 +1,3 @@
 (test
  (name echoes_dark)
- (libraries base fmt stdio rl_loader))
+ (libraries base fmt stdio loader))

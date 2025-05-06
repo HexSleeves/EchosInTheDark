@@ -1,0 +1,15 @@
+(include_subdirs qualified)
+
+(library
+ (name worldgen)
+ (libraries
+  base
+  core_kernel
+  logs
+  types
+  entities
+  dungeon
+  core_utils
+  components
+  chunk
+  entity_manager))

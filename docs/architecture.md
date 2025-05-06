@@ -22,19 +22,19 @@ Echoes in the Dark is built around a modular, entity-component-system (ECS) core
 
 ```mermaid
 flowchart TD
-    UI[rl_ui]
-    RLCore[rl_core]
+    UI[ui]
+    RLCore[core]
     Raylib[Raylib]
-    RLUtils[rl_utils]
-    RLLoader[rl_loader]
-    RLCoreMap[rl_core.map/rl_core.mapgen]
-    RLCoreChunk[rl_core.dungeon/chunk_manager]
-    RLCoreActors[rl_core.actors]
-    RLCoreEntities[rl_core.entities]
-    RLCoreComponents[rl_core.components]
-    RLCoreSystems[rl_core.systems]
-    RLCoreState[rl_core.state]
-    RLCoreTypes[rl_core.types]
+    RLUtils[utils]
+    RLLoader[loader]
+    RLCoreMap[core.map/core.mapgen]
+    RLCoreChunk[core.dungeon/chunk_manager]
+    RLCoreActors[core.actors]
+    RLCoreEntities[core.entities]
+    RLCoreComponents[core.components]
+    RLCoreSystems[core.systems]
+    RLCoreState[core.state]
+    RLCoreTypes[core.types]
 
     UI --> RLCore
     UI --> Raylib

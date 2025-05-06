@@ -1,0 +1,23 @@
+(include_subdirs unqualified)
+
+(library
+ (name effect_systems)
+ (modules
+  turn_system
+  effect_event_system_integration
+  effect_action_handler_integration
+  effect_state_integration
+  effect_systems_integration)
+ (libraries
+  base
+  core_kernel
+  logs
+  types
+  components
+  events
+  state
+  systems
+  turn_queue
+  core_log)
+ (preprocess
+  (pps ppx_jane ppx_compare ppx_deriving.show)))

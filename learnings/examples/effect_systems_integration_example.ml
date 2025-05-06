@@ -4,7 +4,7 @@
 *)
 
 open Base
-open Rl_types
+open Types
 
 (* Import the effect systems integration *)
 module Effect_systems = Effect_systems.Effect_systems_integration

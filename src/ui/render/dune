@@ -1,0 +1,23 @@
+(include_subdirs qualified)
+
+(library
+ (name render)
+ (libraries
+  game_core
+  core_log
+  utils
+  loader
+  base
+  core_kernel
+  raylib
+  raygui
+  constants
+  ui_log
+  render_constants)
+ (preprocess
+  (pps ppx_yojson_conv ppx_compare ppx_sexp_conv ppx_hash ppx_deriving.show)))
+
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A -w -30))))

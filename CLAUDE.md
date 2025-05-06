@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Run specific test: `dune exec test/echoes_dark.exe`
 
 ## Code Style Guidelines
-- **Modules**: Snake_case, properly namespaced (rl_core, rl_ui, rl_utils, rl_loader)
+- **Modules**: Snake_case, properly namespaced (core, ui, utils, loader)
 - **Functions**: Snake_case with labeled arguments
 - **Types**: Use module signatures (.mli) for interfaces, prefer immutable data structures
 - **Formatting**: Follow OCaml conventional style
@@ -19,9 +19,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Functional style**: Use pipeline operator (|>), pattern matching, and immutable data
 
 ## Project Structure
-- Core game logic: src/rl_core
-- User interface: src/rl_ui
-- Utilities: src/rl_utils
-- Resource loading: src/rl_loader
+- Core game logic: src/core
+- User interface: src/ui
+- Utilities: src/utils
+- Resource loading: src/loader
 
 Prefer functional programming patterns with immutable data and explicit state passing.

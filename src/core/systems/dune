@@ -1,0 +1,18 @@
+(include_subdirs no)
+
+(library
+ (name systems)
+ (libraries
+  base
+  core_kernel
+  unix
+  logs
+  types
+  entities
+  components
+  events
+  core_log
+  state
+  state_types)
+ (preprocess
+  (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))

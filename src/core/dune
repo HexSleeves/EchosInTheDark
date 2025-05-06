@@ -1,0 +1,45 @@
+(include_subdirs qualified)
+
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A -w -30))))
+
+(library
+ (name game_core)
+ (modules ai backend input)
+ (libraries
+  base
+  components
+  core_kernel
+  core_kernel.pairing_heap
+  dungeon
+  entities
+  events
+  logs
+  logs.fmt
+  worldgen
+  utils
+  state
+  systems
+  types
+  chunk_manager
+  entity_manager
+  effect_systems)
+ (preprocess
+  (pps ppx_jane ppx_compare ppx_deriving.show)))
+
+(library
+ (name core_log)
+ (modules core_log)
+ (libraries base core_kernel logs))
+
+(library
+ (name core_utils)
+ (modules util)
+ (libraries base core_kernel logs types components))
+
+(library
+ (name turn_queue)
+ (modules turn_queue)
+ (libraries base core_kernel logs types core_log bheap))

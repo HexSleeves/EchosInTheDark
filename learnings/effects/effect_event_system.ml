@@ -5,7 +5,7 @@
 *)
 
 open Base
-open Rl_types
+open Types
 open Stdlib
 
 (* Define our own logging functions *)

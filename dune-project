@@ -1,6 +1,6 @@
 (lang dune 3.9)
 
-(name echoes_dark)
+(name echos_dark)
 
 (generate_opam_files true)
 
@@ -16,7 +16,7 @@
 (documentation https://github.com/bayou-brogrammer/echoes_dark)
 
 (package
- (name echoes_dark)
+ (name echos_dark)
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends ocaml dune)

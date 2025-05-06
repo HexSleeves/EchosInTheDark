@@ -5,7 +5,7 @@
 *)
 
 open Base
-open Rl_types
+open Types
 open Effect_handlers
 
 (* Example 1: Simple state management *)

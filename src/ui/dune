@@ -1,0 +1,30 @@
+(include_subdirs qualified)
+
+(library
+ (name ui)
+ (modules play modules modules_d mainmenu screens game_over state input)
+ (libraries
+  base
+  constants
+  core_kernel
+  core_log
+  raygui
+  raylib
+  render
+  render_constants
+  game_core
+  loader
+  utils
+  ui_log)
+ (preprocess
+  (pps ppx_yojson_conv ppx_compare ppx_sexp_conv ppx_hash ppx_deriving.show)))
+
+(library
+ (name ui_log)
+ (modules ui_log)
+ (libraries base core_kernel logs core_log core_utils))
+
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A -w -30))))

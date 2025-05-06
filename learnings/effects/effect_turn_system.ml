@@ -5,7 +5,7 @@
 *)
 
 open Base
-open Rl_types
+open Types
 open Stdlib
 
 (* Define our own logging functions *)
@@ -126,7 +126,7 @@ let process_actor_turn (id : int) (time : int) : unit =
 let rec process_turns_loop () : unit =
   let state = get_state () in
   match State.get_mode state with
-  | Rl_types.CtrlMode.WaitInput -> log_info "Waiting for player input"
+  | CtrlMode.WaitInput -> log_info "Waiting for player input"
   | _ -> (
       match get_next_actor () with
       | Some (id, time) ->

@@ -1,0 +1,39 @@
+(include_subdirs no)
+
+(library
+ (name state)
+ (modules
+  state
+  state_entities
+  state_actors
+  state_levels
+  state_utils
+  state_chunk)
+ (libraries
+  base
+  core_kernel
+  logs
+  types
+  entities
+  components
+  worldgen
+  dungeon
+  core_log
+  events
+  turn_queue
+  state_types))
+
+(library
+ (name state_types)
+ (modules state_types)
+ (libraries
+  base
+  core_kernel
+  logs
+  types
+  core_log
+  entities
+  components
+  turn_queue
+  actor_manager
+  chunk_manager))

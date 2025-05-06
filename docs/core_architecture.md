@@ -2,7 +2,7 @@
 
 ## Overview
 
-The roguelike core (`rl_core`) is built using a combination of traditional object-oriented and functional programming patterns, with a focus on modularity and maintainability. The architecture has been simplified to reduce unnecessary indirection while maintaining flexibility.
+The roguelike core (`core`) is built using a combination of traditional object-oriented and functional programming patterns, with a focus on modularity and maintainability. The architecture has been simplified to reduce unnecessary indirection while maintaining flexibility.
 
 ## Key Components
 
