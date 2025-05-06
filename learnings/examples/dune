@@ -1,0 +1,5 @@
+(include_subdirs no)
+
+(library
+ (name rl_core_examples)
+ (libraries base core_kernel unix logs rl_types events effect_systems))

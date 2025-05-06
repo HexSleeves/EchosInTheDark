@@ -1,9 +1,9 @@
 (include_subdirs unqualified)
 
 (library
- (name effect_integrations)
+ (name effect_systems)
  (modules
-  effect_turn_system_integration
+  turn_system
   effect_event_system_integration
   effect_action_handler_integration
   effect_state_integration

@@ -102,7 +102,9 @@ let update_actor id f =
 let monster_reschedule_delay = 100
 let player_retry_delay = 0
 
-(* Process a single actor's turn using effect handlers *)
+(* Processes a single event from the turn queue for a given id at a specific time.
+   Handles fetching the entity and actor, checking liveness, waiting for player input,
+   and dispatching to handle_actor_event for action execution. *)
 let process_actor_turn (id : int) (time : int) : unit =
   (* Check if the actor is alive *)
   if not (is_actor_alive id) then
