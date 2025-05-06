@@ -19,7 +19,7 @@ let run_game_with_effects (state : State.t) : State.t =
       (* Subscribe to movement events *)
       Event_effects.subscribe_movement_events (function
         | Events.Event_bus.EntityMoved { entity_id; from_pos; to_pos } ->
-            Core_log.info (fun m ->
+            Logger.info (fun m ->
                 m "Entity %d moved from (%d,%d) to (%d,%d)" entity_id
                   from_pos.world_pos.x from_pos.world_pos.y to_pos.world_pos.x
                   to_pos.world_pos.y)
@@ -28,7 +28,7 @@ let run_game_with_effects (state : State.t) : State.t =
       (* Subscribe to combat events *)
       Event_effects.subscribe_combat_events (function
         | Events.Event_bus.EntityAttacked { attacker_id; defender_id } ->
-            Core_log.info (fun m ->
+            Logger.info (fun m ->
                 m "Entity %d attacked entity %d" attacker_id defender_id)
         | _ -> ());
 
@@ -42,7 +42,7 @@ let perform_action_and_publish_event (state : State.t) (entity_id : int)
       (* Perform the action *)
       match Action_effects.perform_action entity_id action with
       | Ok time_cost ->
-          Core_log.info (fun m ->
+          Logger.info (fun m ->
               m "Action performed with time cost %d" time_cost);
 
           (* Schedule the entity for its next turn *)
@@ -53,7 +53,7 @@ let perform_action_and_publish_event (state : State.t) (entity_id : int)
             (Events.Event_bus.EntityAttacked
                { attacker_id = entity_id; defender_id = 2 })
       | Error exn ->
-          Core_log.err (fun m -> m "Action failed: %s" (Exn.to_string exn)))
+          Logger.err (fun m -> m "Action failed: %s" (Exn.to_string exn)))
 
 (* Example: Function that demonstrates how to use the effect systems in the game loop *)
 let game_loop (state : State.t) : State.t =

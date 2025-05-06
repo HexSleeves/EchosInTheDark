@@ -102,12 +102,12 @@ let publish_event_and_update (event : Events.Event_bus.event) (state : State.t)
 let handle_movement_events () =
   subscribe_movement_events (function
     | Events.Event_bus.EntityMoved { entity_id; from_pos; to_pos } ->
-        Core_log.info (fun m ->
+        Logger.info (fun m ->
             m "Entity %d moved from (%d,%d) to (%d,%d)" entity_id
               from_pos.world_pos.x from_pos.world_pos.y to_pos.world_pos.x
               to_pos.world_pos.y)
     | Events.Event_bus.EntityWantsToMove { entity_id; dir } ->
-        Core_log.info (fun m ->
+        Logger.info (fun m ->
             m "Entity %d wants to move %s" entity_id (Direction.show dir))
     | _ -> ())
 
@@ -115,12 +115,12 @@ let handle_movement_events () =
 let handle_combat_events () =
   subscribe_combat_events (function
     | Events.Event_bus.EntityAttacked { attacker_id; defender_id } ->
-        Core_log.info (fun m ->
+        Logger.info (fun m ->
             m "Entity %d attacked entity %d" attacker_id defender_id)
     | Events.Event_bus.ActorDamaged { actor_id; amount } ->
-        Core_log.info (fun m -> m "Actor %d took %d damage" actor_id amount)
+        Logger.info (fun m -> m "Actor %d took %d damage" actor_id amount)
     | Events.Event_bus.EntityDied { entity_id } ->
-        Core_log.info (fun m -> m "Entity %d died" entity_id)
+        Logger.info (fun m -> m "Entity %d died" entity_id)
     | _ -> ())
 
 (* Initialize event handlers using effects *)
@@ -132,6 +132,5 @@ let init (state : State.t) : State.t =
       (* Example of a custom event handler that updates state *)
       subscribe (function
         | Events.Event_bus.EntityDied { entity_id } ->
-            Core_log.info (fun m ->
-                m "Custom handler: Entity %d died" entity_id)
+            Logger.info (fun m -> m "Custom handler: Entity %d died" entity_id)
         | _ -> ()))

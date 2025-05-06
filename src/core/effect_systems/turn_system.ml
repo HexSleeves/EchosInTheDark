@@ -108,15 +108,15 @@ let player_retry_delay = 0
 let process_actor_turn (id : int) (time : int) : unit =
   (* Check if the actor is alive *)
   if not (is_actor_alive id) then
-    Core_log.info (fun m -> m "Actor %d is dead, removing from turn queue" id)
+    Logger.info (fun m -> m "Actor %d is dead, removing from turn queue" id)
   else if is_player id && not (has_queued_action id) then (
     (* Player is waiting for input *)
-    Core_log.info (fun m -> m "Player is waiting for input");
+    Logger.info (fun m -> m "Player is waiting for input");
     set_mode CtrlMode.WaitInput)
   else
     (* Get the actor *)
     match get_actor id with
-    | None -> Core_log.warn (fun m -> m "Actor %d not found" id)
+    | None -> Logger.warn (fun m -> m "Actor %d not found" id)
     | Some actor -> (
         (* Get the next action from the actor *)
         let maybe_action, updated_actor = Actor.next_action actor in
@@ -136,8 +136,7 @@ let process_actor_turn (id : int) (time : int) : unit =
                 ()
             | Error exn ->
                 (* Action failed *)
-                Core_log.err (fun m ->
-                    m "Action failed: %s" (Exn.to_string exn));
+                Logger.err (fun m -> m "Action failed: %s" (Exn.to_string exn));
 
                 (* Reschedule with appropriate delay *)
                 let delay =
@@ -159,18 +158,17 @@ let process_turns_hybrid (_state : State.t) : unit =
   (* Define the process_turns_loop function *)
   let rec process_turns_loop () =
     match get_mode () with
-    | CtrlMode.WaitInput ->
-        Core_log.info (fun m -> m "Waiting for player input")
+    | CtrlMode.WaitInput -> Logger.info (fun m -> m "Waiting for player input")
     | _ -> (
         match get_next_actor () with
         | Some (id, time) ->
             (* Process the actor's turn *)
             (if not (is_actor_alive id) then
-               Core_log.info (fun m ->
+               Logger.info (fun m ->
                    m "Actor %d is dead, removing from turn queue" id)
              else
                match get_actor id with
-               | None -> Core_log.warn (fun m -> m "Actor %d not found" id)
+               | None -> Logger.warn (fun m -> m "Actor %d not found" id)
                | Some actor -> (
                    (* Get the next action from the actor *)
                    let maybe_action, updated_actor = Actor.next_action actor in
@@ -190,7 +188,7 @@ let process_turns_hybrid (_state : State.t) : unit =
                            ()
                        | Error exn ->
                            (* Action failed *)
-                           Core_log.err (fun m ->
+                           Logger.err (fun m ->
                                m "Action failed: %s" (Exn.to_string exn));
 
                            (* Reschedule with appropriate delay *)
@@ -204,7 +202,7 @@ let process_turns_hybrid (_state : State.t) : unit =
 
             (* Continue processing turns *)
             process_turns_loop ()
-        | None -> Core_log.info (fun m -> m "Turn queue is empty"))
+        | None -> Logger.info (fun m -> m "Turn queue is empty"))
   in
 
   (* Start the processing loop *)

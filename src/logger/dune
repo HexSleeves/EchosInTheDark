@@ -1,0 +1,4 @@
+(library
+ (name logger)
+ (modules logger)
+ (libraries base core_kernel logs))

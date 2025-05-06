@@ -1,5 +1,5 @@
 open Base
-module Log = (val Core_log.make_logger "turn_queue" : Logs.LOG)
+module Log = (val Logger.make_logger "turn_queue")
 
 module MinHeap = Binary_heap.Make (struct
   type t = int * int [@@deriving yojson]

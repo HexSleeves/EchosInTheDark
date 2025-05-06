@@ -134,7 +134,7 @@ let render (state : State.t) : State.t option =
       R.draw_top_bar ~rect:top_bar_rect ~ctx:!ctx ~backend;
       R.draw_minimap ~rect:minimap_rect ~backend ~ctx:!ctx;
 
-      let messages = Ui_log.get_console_messages () in
+      let messages = Backend.get_console_messages in
       R.draw_message_log ~messages ~rect:message_log_rect;
       R.draw_bottom_bar ~rect:bottom_bar_rect ~ctx:!ctx);
 
@@ -179,7 +179,7 @@ let handle_player_input (state : State.t) : State.t =
           | Render_constants.Ascii -> Render_constants.Tiles
           | Render_constants.Tiles -> Render_constants.Ascii
         in
-        Ui_log.console "Toggled render mode to: %s"
+        Console.console "Toggled render mode to: %s"
           (render_mode_to_string new_mode);
         {
           state with

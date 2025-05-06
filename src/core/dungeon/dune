@@ -3,7 +3,7 @@
 (library
  (name dungeon)
  (modules tile)
- (libraries base core_kernel logs types core_log raylib constants utils)
+ (libraries base core_kernel logs types logger raylib constants utils)
  (preprocess
   (pps
    ppx_jane
@@ -20,7 +20,7 @@
 (library
  (name chunk)
  (modules chunk)
- (libraries base core_kernel logs dungeon types core_log utils loader)
+ (libraries base core_kernel logs dungeon types logger utils loader)
  (preprocess
   (pps
    ppx_jane

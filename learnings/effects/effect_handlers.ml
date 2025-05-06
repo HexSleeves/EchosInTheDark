@@ -103,6 +103,6 @@ let run_stateful (initial_state : State_types.t) (f : unit -> 'a) :
   match run_with_all_handlers initial_state f with
   | Ok (_, final_state) -> final_state
   | Error exn ->
-      Core_log.err (fun m ->
+      Logger.err (fun m ->
           m "Error in stateful computation: %s" (Exn.to_string exn));
       initial_state

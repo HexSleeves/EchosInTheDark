@@ -11,7 +11,7 @@
   entities
   components
   events
-  core_log
+  logger
   state
   state_types)
  (preprocess

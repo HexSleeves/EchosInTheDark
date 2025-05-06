@@ -13,7 +13,7 @@ let make ~debug ~w ~h ~seed ~depth () : t =
   let state =
     try State.make ~debug ~w ~h ~seed ~depth
     with e ->
-      Core_log.warn (fun m ->
+      Logger.warn (fun m ->
           m "Failed to initialize performance systems: %s" (Exn.to_string e));
 
       State.make ~debug ~w ~h ~seed ~depth
@@ -21,6 +21,7 @@ let make ~debug ~w ~h ~seed ~depth () : t =
 
   { state }
 
+let get_console_messages : string list = Console.get_console_messages ()
 let get_debug (backend : t) : bool = State.get_debug backend.state
 let get_mode (backend : t) = State.get_mode backend.state
 

@@ -35,4 +35,4 @@ let copy (t : t) : t = t (* Map is persistent, so this is just identity *)
 
 let print_actor_manager (manager : t) : unit =
   Map.iteri manager ~f:(fun ~key ~data ->
-      Core_log.info (fun m -> m "Actor %d: %s" key (Actor.show data)))
+      Logger.info (fun m -> m "Actor %d: %s" key (Actor.show data)))

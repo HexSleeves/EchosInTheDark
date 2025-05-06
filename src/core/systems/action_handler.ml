@@ -9,7 +9,7 @@ open Base
 open Types
 open Events.Event_bus
 open Components
-module Log = (val Core_log.make_logger "action_handler" : Logs.LOG)
+module Log = (val Logger.make_logger "action_handler" : Logs.LOG)
 
 type action_result = (int, exn) Result.t
 

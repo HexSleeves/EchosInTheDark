@@ -70,10 +70,10 @@ let process_wait_action (entity_id : int) (state : State.t) : State.t =
   run_with_actions state (fun () ->
       match perform_action entity_id Action.Wait with
       | Ok time_cost ->
-          Core_log.info (fun m ->
+          Logger.info (fun m ->
               m "Entity %d waited for %d time units" entity_id time_cost)
       | Error exn ->
-          Core_log.err (fun m ->
+          Logger.err (fun m ->
               m "Entity %d failed to wait: %s" entity_id (Exn.to_string exn)))
 
 (* Example: Process a move action using effects *)
@@ -82,11 +82,11 @@ let process_move_action (entity_id : int) (dir : Direction.t) (state : State.t)
   run_with_actions state (fun () ->
       match perform_action entity_id (Action.Move dir) with
       | Ok time_cost ->
-          Core_log.info (fun m ->
+          Logger.info (fun m ->
               m "Entity %d moved %s for %d time units" entity_id
                 (Direction.show dir) time_cost)
       | Error exn ->
-          Core_log.err (fun m ->
+          Logger.err (fun m ->
               m "Entity %d failed to move %s: %s" entity_id (Direction.show dir)
                 (Exn.to_string exn)))
 
@@ -96,10 +96,10 @@ let process_attack_action (attacker_id : int) (defender_id : int)
   run_with_actions state (fun () ->
       match perform_action attacker_id (Action.Attack defender_id) with
       | Ok time_cost ->
-          Core_log.info (fun m ->
+          Logger.info (fun m ->
               m "Entity %d attacked entity %d for %d time units" attacker_id
                 defender_id time_cost)
       | Error exn ->
-          Core_log.err (fun m ->
+          Logger.err (fun m ->
               m "Entity %d failed to attack entity %d: %s" attacker_id
                 defender_id (Exn.to_string exn)))

@@ -4,7 +4,7 @@
  (name render)
  (libraries
   game_core
-  core_log
+  logger
   utils
   loader
   base

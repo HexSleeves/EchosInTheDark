@@ -17,7 +17,7 @@ let handle_player_movement () =
         (* Check if this is the player *)
         match Components.Kind.get entity_id with
         | Some Components.Kind.Player ->
-            Core_log.info (fun m ->
+            Logger.info (fun m ->
                 m "Player moved from (%d,%d) to (%d,%d)" from_pos.world_pos.x
                   from_pos.world_pos.y to_pos.world_pos.x to_pos.world_pos.y)
         | _ -> ())
@@ -27,17 +27,17 @@ let handle_player_movement () =
 let handle_combat_events () =
   Event_effects.subscribe_combat_events (function
     | EntityAttacked { attacker_id; defender_id } ->
-        Core_log.info (fun m ->
+        Logger.info (fun m ->
             m "Entity %d attacked entity %d" attacker_id defender_id)
     | ActorDamaged { actor_id; amount } ->
-        Core_log.info (fun m -> m "Actor %d took %d damage" actor_id amount)
+        Logger.info (fun m -> m "Actor %d took %d damage" actor_id amount)
     | _ -> ())
 
 (* Example: Custom event handler that modifies game state *)
 let handle_entity_death () =
   Event_effects.subscribe (function
     | EntityDied { entity_id } ->
-        Core_log.info (fun m -> m "Entity %d died, handling cleanup" entity_id);
+        Logger.info (fun m -> m "Entity %d died, handling cleanup" entity_id);
         (* We could perform additional cleanup here *)
         ()
     | _ -> ())
@@ -53,7 +53,7 @@ let process_turn (state : State.t) : State.t =
   (* Use the effect systems integration to process a turn *)
   Effect_systems.run_with_all_handlers state (fun () ->
       (* This will use all effect handlers, including our event handlers *)
-      Core_log.info (fun m -> m "Processing turn with effect handlers");
+      Logger.info (fun m -> m "Processing turn with effect handlers");
 
       (* Example: Publish a movement event *)
       let player_id = State.get_player_id state in

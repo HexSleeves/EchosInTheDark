@@ -7,17 +7,16 @@
 open Base
 open Types
 open Stdlib
+module Log = (val Logger.make_logger "effect_event_system")
 
 (* Define our own logging functions *)
-let log_info msg = Core_log.info (fun m -> m "%s" msg)
-let log_debug msg = Core_log.debug (fun m -> m "%s" msg)
-let log_warn msg = Core_log.warn (fun m -> m "%s" msg)
-let log_error msg = Core_log.err (fun m -> m "%s" msg)
+let log_info msg = Log.info (fun m -> m "%s" msg)
+let log_debug msg = Log.debug (fun m -> m "%s" msg)
+let log_warn msg = Log.warn (fun m -> m "%s" msg)
+let log_error msg = Log.err (fun m -> m "%s" msg)
 
 (* Define a simple update_state function *)
 let update_state f state = f state
-
-module Log = (val Core_log.make_logger "effect_event_system" : Logs.LOG)
 
 (* Effect for subscribing to events *)
 type _ Effect.t += Subscribe : (Events.Event_bus.event -> unit) -> unit Effect.t

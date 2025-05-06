@@ -59,8 +59,8 @@ let get_equipment = State_entities.get_equipment
 let set_equipment = State_entities.set_equipment
 
 let make ~debug ~w ~h ~seed ~depth =
-  Core_log.info (fun m -> m "Width: %d, Height: %d" w h);
-  Core_log.info (fun m -> m "Creating state with seed: %d" seed);
+  Logger.info (fun m -> m "Width: %d, Height: %d" w h);
+  Logger.info (fun m -> m "Creating state with seed: %d" seed);
 
   let config = Worldgen.Config.make ~seed ~w:256 ~h:256 () in
   let em =
@@ -85,7 +85,7 @@ let make ~debug ~w ~h ~seed ~depth =
         (Array.concat (Array.to_list chunk.tiles))
         ~width ~height ~rng
     in
-    Core_log.info (fun m -> m "[SPAWN] Player starting at (%d, %d)" loc.x loc.y);
+    Logger.info (fun m -> m "[SPAWN] Player starting at (%d, %d)" loc.x loc.y);
     loc
   in
 

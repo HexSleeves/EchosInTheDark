@@ -11,8 +11,10 @@
  (libraries
   base
   components
+  console
   core_kernel
   core_kernel.pairing_heap
+  logger
   dungeon
   entities
   events
@@ -30,8 +32,8 @@
   (pps ppx_jane ppx_compare ppx_deriving.show)))
 
 (library
- (name core_log)
- (modules core_log)
+ (name console)
+ (modules console)
  (libraries base core_kernel logs))
 
 (library
@@ -42,4 +44,4 @@
 (library
  (name turn_queue)
  (modules turn_queue)
- (libraries base core_kernel logs types core_log bheap))
+ (libraries base core_kernel logs types logger bheap))

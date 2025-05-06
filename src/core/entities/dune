@@ -2,6 +2,6 @@
 
 (library
  (name entities)
- (libraries base core_kernel logs types core_log components entity_manager)
+ (libraries base core_kernel logs types logger components entity_manager)
  (preprocess
   (pps ppx_jane ppx_enumerate ppx_yojson_conv ppx_deriving.show)))

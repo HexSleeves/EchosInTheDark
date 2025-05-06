@@ -31,14 +31,14 @@ open Effect_integrations.Effect_event_system_integration
 let handle_all_events () =
   subscribe (function
     | Events.Event_bus.EntityDied { entity_id } ->
-        Core_log.info (fun m -> m "Entity %d died" entity_id)
+        Logger.info (fun m -> m "Entity %d died" entity_id)
     | _ -> ())
 
 (* Subscribe to specific event categories *)
 let handle_movement_events () =
   subscribe_movement_events (function
     | Events.Event_bus.EntityMoved { entity_id; from_pos; to_pos } ->
-        Core_log.info (fun m ->
+        Logger.info (fun m ->
             m "Entity %d moved from (%d,%d) to (%d,%d)" entity_id
               from_pos.world_pos.x from_pos.world_pos.y to_pos.world_pos.x
               to_pos.world_pos.y)

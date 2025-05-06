@@ -3,6 +3,6 @@
 (library
  (name events)
  (modules event_bus)
- (libraries base core_kernel logs types core_log state_types components)
+ (libraries base core_kernel logs types logger state_types components)
  (preprocess
   (pps ppx_jane ppx_deriving.eq ppx_deriving.show)))

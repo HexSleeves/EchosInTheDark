@@ -7,12 +7,13 @@
 open Base
 open Types
 open Stdlib
+module Log = (val Logger.make_logger "effect_turn_system")
 
 (* Define our own logging functions *)
-let log_info msg = Core_log.info (fun m -> m "%s" msg)
-let log_debug msg = Core_log.debug (fun m -> m "%s" msg)
-let log_warn msg = Core_log.warn (fun m -> m "%s" msg)
-let log_error msg = Core_log.err (fun m -> m "%s" msg)
+let log_info msg = Log.info (fun m -> m "%s" msg)
+let log_debug msg = Log.debug (fun m -> m "%s" msg)
+let log_warn msg = Log.warn (fun m -> m "%s" msg)
+let log_error msg = Log.err (fun m -> m "%s" msg)
 
 (* Define a simple update_state function *)
 let update_state _f = ()
@@ -29,8 +30,6 @@ let perform_action (_entity_id, _action) = Ok 100
 
 (* Define a simple run_stateful function *)
 let run_stateful state _f = state
-
-module Log = (val Core_log.make_logger "effect_turn_system" : Logs.LOG)
 
 (* Constants *)
 let monster_reschedule_delay = 100

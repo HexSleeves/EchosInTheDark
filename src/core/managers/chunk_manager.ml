@@ -98,10 +98,10 @@ let load_chunk_from_disk ~em ~level coords =
         let em = Entity_manager.register_entities entities em in
         Some (chunk, em)
     | false ->
-        Core_log.err (fun m -> m "Entity file missing: %s" entity_path);
+        Logger.err (fun m -> m "Entity file missing: %s" entity_path);
         Some (chunk, em))
   else (
-    Core_log.err (fun m -> m "Chunk file missing: %s" path);
+    Logger.err (fun m -> m "Chunk file missing: %s" path);
     None)
 
 let unload_chunk_to_disk ~level ~em (chunk : Chunk.t) =
@@ -149,18 +149,16 @@ let update_loaded_chunks_around_player ~em (t : t)
 
       let active_chunks = Hashtbl.copy t.active_chunks in
       Set.iter chunks_to_unload ~f:(fun coords ->
-          Core_log.debug (fun m ->
-              m "Unloading chunk (%d, %d)" coords.x coords.y);
+          Logger.debug (fun m -> m "Unloading chunk (%d, %d)" coords.x coords.y);
           Hashtbl.remove active_chunks coords);
 
       let active_chunks, em =
         Set.fold chunks_to_load ~init:(active_chunks, em)
           ~f:(fun (active_chunks, em) coords ->
-            Core_log.info (fun m ->
+            Logger.info (fun m ->
                 m "[LOAD] Loading chunk (%d, %d) at depth %d" coords.x coords.y
                   depth);
-            Core_log.debug (fun m ->
-                m "Loading chunk (%d, %d)" coords.x coords.y);
+            Logger.debug (fun m -> m "Loading chunk (%d, %d)" coords.x coords.y);
             if not (Hashtbl.mem active_chunks coords) then
               match load_chunk_from_disk ~em ~level:t.level coords with
               | Some (chunk, em') ->

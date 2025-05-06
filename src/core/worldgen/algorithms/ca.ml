@@ -71,7 +71,7 @@ let place_monsters ~grid ~width ~height ~rng =
   let num_monsters = 2 in
   let shuffled = List.permute floor_positions ~random_state:rng in
   let monster_positions = List.take shuffled num_monsters in
-  Core_log.info (fun m -> m "Placing %d monsters..." num_monsters);
+  Logger.info (fun m -> m "Placing %d monsters..." num_monsters);
   List.fold monster_positions ~init:[] ~f:(fun acc pos ->
       let spec = Monster.get_template "Rat" in
       Monster.place_monster ~pos spec :: acc)

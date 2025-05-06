@@ -18,6 +18,6 @@
   state
   systems
   turn_queue
-  core_log)
+  logger)
  (preprocess
   (pps ppx_jane ppx_compare ppx_deriving.show)))
