@@ -19,6 +19,8 @@ type _ Effect.t += Put_state : State.t -> unit Effect.t
 
 (* ========== Handler Implementation ========== *)
 
+type t = State.t
+
 (* Run a computation with state handlers *)
 let with_state_handler (initial_state : State.t) (f : unit -> 'a) : 'a * State.t
     =
@@ -50,6 +52,7 @@ let get_state () = Effect.perform Get_state
 
 (* Update the state *)
 let put_state state = Effect.perform (Put_state state)
+let get_mode state = State.get_mode state
 
 (* Update the state using a function *)
 let update_state f =

@@ -213,6 +213,20 @@ let handle_player_input (state : State.t) : State.t =
         in
         Ui_log.console "Hybrid mode %s" mode;
         { state with backend }
+    | Some Input.ToggleUnifiedMode ->
+        let backend =
+          if Backend.get_config state.backend |> Backend.config_use_unified then
+            Backend.disable_effects state.backend
+          else Backend.enable_unified state.backend
+        in
+
+        let mode =
+          if Backend.get_config state.backend |> Backend.config_use_unified then
+            "enabled"
+          else "disabled"
+        in
+        Ui_log.console "Unified effect system %s" mode;
+        { state with backend }
     | _ -> state
   in
 

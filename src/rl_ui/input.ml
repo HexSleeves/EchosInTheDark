@@ -11,6 +11,7 @@ type ui_action =
   | ToggleRender
   | ToggleEffects
   | ToggleHybridMode
+  | ToggleUnifiedMode
   | OpenMenu
   | CloseMenu
 (* Add more UI-specific actions as needed *)
@@ -32,6 +33,7 @@ let key_action_map : (Raylib.Key.t * ui_action) list =
     (Raylib.Key.T, ToggleRender);
     (Raylib.Key.E, ToggleEffects);
     (Raylib.Key.H, ToggleHybridMode);
+    (Raylib.Key.U, ToggleUnifiedMode);
     (* Add more mappings as needed *)
   ]
 

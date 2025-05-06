@@ -2,10 +2,11 @@ open Base
 open Rl_types
 
 (* Configuration for the backend *)
-type config = { use_effects : bool; use_hybrid : bool }
+type config = { use_effects : bool; use_hybrid : bool; use_unified : bool }
 
 (* Default configuration *)
-let default_config = { use_effects = false; use_hybrid = false }
+let default_config =
+  { use_effects = false; use_hybrid = false; use_unified = false }
 
 type t = { state : State.t; config : config }
 
@@ -77,10 +78,16 @@ let process_turns_hybrid (backend : t) : t =
         backend.state;
   }
 
+(* Process turns using the unified effect system *)
+let process_turns_unified (backend : t) : t =
+  let module ESI = Effect_integrations.Effect_systems_integration in
+  { backend with state = ESI.process_turns backend.state }
+
 (* Process turns using the appropriate approach based on configuration *)
 let process_turns (backend : t) : t =
   if backend.config.use_effects then
     if backend.config.use_hybrid then process_turns_hybrid backend
+    else if backend.config.use_unified then process_turns_unified backend
     else process_turns_with_effects backend
   else process_turns_traditional backend
 
@@ -93,17 +100,36 @@ let config_use_effects (config : config) : bool = config.use_effects
 (* Check if hybrid mode is enabled *)
 let config_use_hybrid (config : config) : bool = config.use_hybrid
 
+(* Check if unified mode is enabled *)
+let config_use_unified (config : config) : bool = config.use_unified
+
 (* Enable effect handlers *)
 let enable_effects (backend : t) : t =
-  { backend with config = { use_effects = true; use_hybrid = false } }
+  {
+    backend with
+    config = { use_effects = true; use_hybrid = false; use_unified = false };
+  }
 
 (* Enable hybrid mode (gradual adoption) *)
 let enable_hybrid (backend : t) : t =
-  { backend with config = { use_effects = true; use_hybrid = true } }
+  {
+    backend with
+    config = { use_effects = true; use_hybrid = true; use_unified = false };
+  }
+
+(* Enable unified mode *)
+let enable_unified (backend : t) : t =
+  {
+    backend with
+    config = { use_effects = true; use_hybrid = false; use_unified = true };
+  }
 
 (* Disable effect handlers *)
 let disable_effects (backend : t) : t =
-  { backend with config = { use_effects = false; use_hybrid = false } }
+  {
+    backend with
+    config = { use_effects = false; use_hybrid = false; use_unified = false };
+  }
 
 let run_ai_step (backend : t) : t =
   let new_state =

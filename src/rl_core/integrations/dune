@@ -6,7 +6,8 @@
   effect_turn_system_integration
   effect_event_system_integration
   effect_action_handler_integration
-  effect_state_integration)
+  effect_state_integration
+  effect_systems_integration)
  (libraries
   base
   core_kernel
