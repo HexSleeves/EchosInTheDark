@@ -11,11 +11,40 @@ open Stdlib
 
 (* ========== Effect Types ========== *)
 
-(* Effect for getting the current state *)
-type _ Effect.t += Get_state : State.t Effect.t
-
-(* Effect for updating the state *)
-type _ Effect.t += Put_state : State.t -> unit Effect.t
+type _ Effect.t +=
+  | (* Effect for getting the current state *)
+      Get_state :
+      State.t Effect.t
+  | (* Effect for updating the state *)
+      Put_state :
+      State.t
+      -> unit Effect.t
+  | (* Effect for getting the current mode *)
+      Get_mode :
+      CtrlMode.t Effect.t
+  | (* Effect for setting the mode *)
+      Set_mode :
+      CtrlMode.t
+      -> unit Effect.t
+  | (* Effect for getting the next actor from the turn queue *)
+      Get_next_actor :
+      (int * int) option Effect.t
+  | (* Effect for checking if an actor is alive *)
+      Is_actor_alive :
+      int
+      -> bool Effect.t
+  | (* Effect for checking if the player has an action queued *)
+      Has_queued_action :
+      int
+      -> bool Effect.t
+  | (* Effect for getting an actor *)
+      Get_actor :
+      int
+      -> Actor.t option Effect.t
+  | (* Effect for updating an actor *)
+      Update_actor :
+      int * (Actor.t -> Actor.t)
+      -> unit Effect.t
 
 (* ========== Handler Implementation ========== *)
 
@@ -24,7 +53,7 @@ type t = State.t
 (* Run a computation with state handlers *)
 let with_state_handler (initial_state : State.t) (f : unit -> 'a) : 'a * State.t
     =
-  let state = ref initial_state in
+  let state_ref = ref initial_state in
   let result =
     Effect.Deep.try_with f ()
       {
@@ -34,16 +63,64 @@ let with_state_handler (initial_state : State.t) (f : unit -> 'a) : 'a * State.t
             | Get_state ->
                 Some
                   (fun (k : (a, _) Effect.Deep.continuation) ->
-                    Effect.Deep.continue k !state)
+                    Effect.Deep.continue k !state_ref)
             | Put_state new_state ->
                 Some
                   (fun (k : (a, _) Effect.Deep.continuation) ->
-                    state := new_state;
+                    state_ref := new_state;
+                    Effect.Deep.continue k ())
+            | Get_mode ->
+                Some
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
+                    let mode = State.get_mode !state_ref in
+                    Effect.Deep.continue k mode)
+            | Set_mode mode ->
+                Some
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
+                    state_ref := State.set_mode mode !state_ref;
+                    Effect.Deep.continue k ())
+            | Get_next_actor ->
+                Some
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
+                    let turn_queue = State.get_turn_queue !state_ref in
+                    let result, new_turn_queue =
+                      Turn_queue.get_next_actor turn_queue
+                    in
+                    state_ref := State.set_turn_queue new_turn_queue !state_ref;
+                    Effect.Deep.continue k result)
+            | Is_actor_alive id ->
+                Some
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
+                    let is_alive =
+                      match State.get_actor !state_ref id with
+                      | Some actor -> Actor.is_alive actor
+                      | None -> false
+                    in
+                    Effect.Deep.continue k is_alive)
+            | Has_queued_action id ->
+                Some
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
+                    let has_action =
+                      match State.get_actor !state_ref id with
+                      | Some actor ->
+                          Option.is_some (Actor.peek_next_action actor)
+                      | None -> false
+                    in
+                    Effect.Deep.continue k has_action)
+            | Get_actor id ->
+                Some
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
+                    let actor = State.get_actor !state_ref id in
+                    Effect.Deep.continue k actor)
+            | Update_actor (id, f) ->
+                Some
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
+                    state_ref := State.update_actor !state_ref id f;
                     Effect.Deep.continue k ())
             | _ -> None);
       }
   in
-  (result, !state)
+  (result, !state_ref)
 
 (* ========== Utility Functions ========== *)
 
@@ -52,7 +129,12 @@ let get_state () = Effect.perform Get_state
 
 (* Update the state *)
 let put_state state = Effect.perform (Put_state state)
-let get_mode state = State.get_mode state
+
+(* Get the current mode *)
+let get_mode () = Effect.perform Get_mode
+
+(* Set the mode *)
+let set_mode mode = Effect.perform (Set_mode mode)
 
 (* Update the state using a function *)
 let update_state f =

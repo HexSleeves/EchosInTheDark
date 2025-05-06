@@ -2,11 +2,10 @@ open Base
 open Rl_types
 
 (* Configuration for the backend *)
-type config = { use_effects : bool; use_hybrid : bool; use_unified : bool }
+type config = { use_unified : bool }
 
 (* Default configuration *)
-let default_config =
-  { use_effects = false; use_hybrid = false; use_unified = false }
+let default_config = { use_unified = true }
 
 type t = { state : State.t; config : config }
 
@@ -60,24 +59,6 @@ let move_entity (id : int) (position : Components.Position.t) (backend : t) : t
 let process_turns_traditional (backend : t) : t =
   { backend with state = Systems.Turn_system.process_turns backend.state }
 
-(* Process turns using the effect-based approach *)
-let process_turns_with_effects (backend : t) : t =
-  {
-    backend with
-    state =
-      Effect_integrations.Effect_turn_system_integration.process_turns
-        backend.state;
-  }
-
-(* Process turns using the hybrid approach (gradual adoption) *)
-let process_turns_hybrid (backend : t) : t =
-  {
-    backend with
-    state =
-      Effect_integrations.Effect_turn_system_integration.process_turns_hybrid
-        backend.state;
-  }
-
 (* Process turns using the unified effect system *)
 let process_turns_unified (backend : t) : t =
   let module ESI = Effect_integrations.Effect_systems_integration in
@@ -85,53 +66,25 @@ let process_turns_unified (backend : t) : t =
 
 (* Process turns using the appropriate approach based on configuration *)
 let process_turns (backend : t) : t =
-  if backend.config.use_effects then
-    if backend.config.use_hybrid then process_turns_hybrid backend
-    else if backend.config.use_unified then process_turns_unified backend
-    else process_turns_with_effects backend
+  if backend.config.use_unified then process_turns_unified backend
   else process_turns_traditional backend
 
 (* Get the configuration *)
 let get_config (backend : t) : config = backend.config
 
-(* Check if effects are enabled *)
-let config_use_effects (config : config) : bool = config.use_effects
-
-(* Check if hybrid mode is enabled *)
-let config_use_hybrid (config : config) : bool = config.use_hybrid
-
 (* Check if unified mode is enabled *)
 let config_use_unified (config : config) : bool = config.use_unified
 
-(* Enable effect handlers *)
-let enable_effects (backend : t) : t =
-  {
-    backend with
-    config = { use_effects = true; use_hybrid = false; use_unified = false };
-  }
-
-(* Enable hybrid mode (gradual adoption) *)
-let enable_hybrid (backend : t) : t =
-  {
-    backend with
-    config = { use_effects = true; use_hybrid = true; use_unified = false };
-  }
-
 (* Enable unified mode *)
 let enable_unified (backend : t) : t =
-  {
-    backend with
-    config = { use_effects = true; use_hybrid = false; use_unified = true };
-  }
+  { backend with config = { use_unified = true } }
 
-(* Disable effect handlers *)
-let disable_effects (backend : t) : t =
-  {
-    backend with
-    config = { use_effects = false; use_hybrid = false; use_unified = false };
-  }
+(* Disable unified mode *)
+let disable_unified (backend : t) : t =
+  { backend with config = { use_unified = false } }
 
 let run_ai_step (backend : t) : t =
+  Logs.info (fun m -> m "Running AI step");
   let new_state =
     List.fold (State.get_creatures backend.state) ~init:backend.state
       ~f:(fun state' creature_id ->

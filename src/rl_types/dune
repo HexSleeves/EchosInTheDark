@@ -3,7 +3,7 @@
 (library
  (name rl_types)
  (modules rl_types loc biome)
- (libraries base core_kernel logs)
+ (libraries base core_kernel logs raylib)
  (preprocess
   (pps
    ppx_jane

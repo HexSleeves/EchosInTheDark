@@ -58,7 +58,14 @@ module Position = struct
     Option.value_exn (Hashtbl.find table id)
       ~message:(Printf.sprintf "No position for entity id %d" id)
 
-  let set id pos = Hashtbl.set table ~key:id ~data:pos
+  let set id pos =
+    Logs.info (fun m ->
+        m "[Position.set] Entity %d moved to world: %s, chunk: %s, local: %s" id
+          (Loc.to_string pos.world_pos)
+          (Loc.to_string pos.chunk_pos)
+          (Loc.to_string pos.local_pos));
+    Hashtbl.set table ~key:id ~data:pos
+
   let remove id = Hashtbl.remove table id
 
   let show t =

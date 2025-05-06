@@ -24,6 +24,11 @@ module Loc = struct
 
   (* Get the y coordinate *)
   let y t = t.y
+
+  let from_vec (vec : Raylib.Vector2.t) : t =
+    make
+      (Float.to_int (Raylib.Vector2.x vec))
+      (Float.to_int (Raylib.Vector2.y vec))
 end
 
 module Direction = struct

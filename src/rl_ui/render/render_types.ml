@@ -20,4 +20,5 @@ type render_context = {
   flags : Raylib.ConfigFlags.t list;
   render_mode : Render_constants.render_mode;
   tileset_config : tileset_config;
+  map_origin : Raylib.Vector2.t;
 }

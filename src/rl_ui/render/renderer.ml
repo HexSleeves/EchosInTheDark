@@ -77,6 +77,7 @@ let create_render_context ?(title = "Echoes in the Dark")
     window_width;
     window_height;
     tile_render_size;
+    map_origin = Raylib.Vector2.create 0.0 0.0;
     font_config = init_font_config ~font_path ~font_size;
     tileset_config = init_tileset_config ~tileset_path ~tile_width ~tile_height;
   }

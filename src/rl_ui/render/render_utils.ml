@@ -19,11 +19,14 @@ let grid_to_screen ~(tile_render_size : Raylib.Vector2.t) (loc : Rl_types.Loc.t)
     (Float.of_int loc.x *. Raylib.Vector2.x tile_render_size)
     (Float.of_int loc.y *. Raylib.Vector2.y tile_render_size)
 
-let screen_to_grid ~(tile_render_size : Raylib.Vector2.t)
-    (vec : Raylib.Vector2.t) =
+let screen_to_grid ~(ctx : Render_types.render_context)
+    (screen_pos : Raylib.Vector2.t) =
+  let rel_mouse_pos = Raylib.Vector2.subtract screen_pos ctx.map_origin in
   Rl_types.Loc.make
-    (Float.to_int (Raylib.Vector2.x vec /. Raylib.Vector2.x tile_render_size))
-    (Float.to_int (Raylib.Vector2.y vec /. Raylib.Vector2.y tile_render_size))
+    (Float.to_int
+       (Raylib.Vector2.x rel_mouse_pos /. Raylib.Vector2.x ctx.tile_render_size))
+    (Float.to_int
+       (Raylib.Vector2.y rel_mouse_pos /. Raylib.Vector2.y ctx.tile_render_size))
 
 let occupied_positions (entities : int list) : Set.M(PosSet).t =
   List.fold entities

@@ -10,7 +10,6 @@
   rl_types
   entities
   components
-  packed_components
   events
   core_log
   state

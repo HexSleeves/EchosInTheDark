@@ -92,6 +92,7 @@ let render (state : State.t) : State.t option =
   let player_id = Backend.get_player_id backend in
   let player_pos = Components.Position.get player_id in
 
+  let ctx = ref state.render_ctx in
   Option.iter player_pos ~f:(fun player_pos ->
       let chunk_manager = Backend.get_chunk_manager backend in
       let chunk_coords =
@@ -117,39 +118,38 @@ let render (state : State.t) : State.t option =
           (Raylib.Rectangle.x main_view_rect)
           (Raylib.Rectangle.y main_view_rect)
       in
-      let ctx = { state.render_ctx with tile_render_size } in
+
+      ctx := { state.render_ctx with tile_render_size; map_origin };
 
       (match Chunk_manager.get_loaded_chunk chunk_coords chunk_manager with
       | None -> ()
       | Some chunk ->
-          Renderer.render_chunk chunk ~ctx ~backend ~map_origin ~entities);
+          Renderer.render_chunk chunk ~ctx:!ctx ~backend ~map_origin ~entities);
 
       (* Draw a border around the main map view *)
       Raylib.draw_rectangle_lines_ex main_view_rect 2.0
         Render_constants.color_gold;
 
       (* Render other panels *)
-      R.draw_top_bar ~rect:top_bar_rect ~ctx ~backend;
-      R.draw_minimap ~rect:minimap_rect ~backend ~ctx;
+      R.draw_top_bar ~rect:top_bar_rect ~ctx:!ctx ~backend;
+      R.draw_minimap ~rect:minimap_rect ~backend ~ctx:!ctx;
 
       let messages = Ui_log.get_console_messages () in
       R.draw_message_log ~messages ~rect:message_log_rect;
-      R.draw_bottom_bar ~rect:bottom_bar_rect ~ctx);
+      R.draw_bottom_bar ~rect:bottom_bar_rect ~ctx:!ctx);
 
-  if Backend.get_debug backend then R.render_fps_overlay ~ctx:state.render_ctx;
+  if Backend.get_debug backend then R.render_fps_overlay ~ctx:!ctx;
 
-  None
+  Some { state with render_ctx = !ctx }
 
 let handle_mouse (state : State.t) =
   let open Raylib in
   if is_mouse_button_pressed MouseButton.Left then
     let tile_pos =
-      Render_utils.screen_to_grid
-        ~tile_render_size:state.render_ctx.tile_render_size
-        (get_mouse_position ())
+      Render_utils.screen_to_grid ~ctx:state.render_ctx (get_mouse_position ())
     in
-
     let position = Components.Position.make tile_pos in
+
     let backend =
       Backend.move_entity
         (Backend.get_player_id state.backend)
@@ -185,38 +185,10 @@ let handle_player_input (state : State.t) : State.t =
           state with
           render_ctx = { state.render_ctx with render_mode = new_mode };
         }
-    | Some Input.ToggleEffects ->
-        let backend =
-          if Backend.get_config state.backend |> Backend.config_use_effects then
-            Backend.disable_effects state.backend
-          else Backend.enable_effects state.backend
-        in
-
-        let mode =
-          if Backend.get_config backend |> Backend.config_use_effects then
-            "enabled"
-          else "disabled"
-        in
-        Ui_log.console "Effect handlers %s" mode;
-        { state with backend }
-    | Some Input.ToggleHybridMode ->
-        let backend =
-          if Backend.get_config state.backend |> Backend.config_use_hybrid then
-            Backend.disable_effects state.backend
-          else Backend.enable_hybrid state.backend
-        in
-
-        let mode =
-          if Backend.get_config state.backend |> Backend.config_use_hybrid then
-            "enabled"
-          else "disabled"
-        in
-        Ui_log.console "Hybrid mode %s" mode;
-        { state with backend }
     | Some Input.ToggleUnifiedMode ->
         let backend =
           if Backend.get_config state.backend |> Backend.config_use_unified then
-            Backend.disable_effects state.backend
+            Backend.disable_unified state.backend
           else Backend.enable_unified state.backend
         in
 
@@ -237,6 +209,8 @@ let handle_player_input (state : State.t) : State.t =
           (Backend.get_player_id state.backend)
           action
       in
+
+      Logs.info (fun m -> m "Action: %s" (T.Action.show action));
 
       { state with backend = Backend.set_mode T.CtrlMode.AI backend }
   | _ -> state

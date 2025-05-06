@@ -31,8 +31,6 @@ let key_action_map : (Raylib.Key.t * ui_action) list =
     (Raylib.Key.Period, Backend BackendAction.StairsDown);
     (Raylib.Key.Space, Backend BackendAction.Wait);
     (Raylib.Key.T, ToggleRender);
-    (Raylib.Key.E, ToggleEffects);
-    (Raylib.Key.H, ToggleHybridMode);
     (Raylib.Key.U, ToggleUnifiedMode);
     (* Add more mappings as needed *)
   ]
