@@ -39,10 +39,6 @@ let () =
 
   Logger.setup_logger level;
 
-  (* Initialize systems *)
-  Logs.info (fun m -> m "Initializing packed component system...");
-  Systems.Packed_system.init ();
-
   (* Initialize profiling if enabled *)
   if !enable_profiling then
     Logs.info (fun m -> m "Performance profiling enabled")

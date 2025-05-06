@@ -195,31 +195,6 @@ let handle_player_input (state : State.t) : State.t =
 
 let handle_tick (state : State.t) : State.t =
   let open Rl_core in
-  (* Profile every 100th frame if profiling is enabled *)
-  let _profiling_result =
-    if
-      state.enable_profiling
-      && Float.compare (Raylib.get_time ()) 5.0 >= 0
-      && Int.rem (Float.to_int (Raylib.get_time ())) 10 = 0
-    then (
-      Ui_log.info (fun m -> m "Running performance profiling...");
-      try
-        Profiler.profile_component_access ();
-        Profiler.profile_batch_operations ()
-      with e ->
-        Ui_log.err (fun m -> m "Error in profiling: %s" (Exn.to_string e)))
-  in
-
-  (* Sync to packed components for performance improvements *)
-  let _sync_result =
-    if state.enable_profiling then (
-      try Backend.sync_from_hashtables ()
-      with e ->
-        Ui_log.err (fun m ->
-            m "Error syncing to packed components: %s" (Exn.to_string e));
-        ())
-  in
-
   let backend = state.backend in
   let new_state =
     match Backend.get_mode backend with
@@ -233,16 +208,6 @@ let handle_tick (state : State.t) : State.t =
           screen = GameOver;
           backend = Backend.set_mode T.CtrlMode.Normal backend;
         }
-  in
-
-  (* Sync back from packed components to hashtables if we've been using them *)
-  let _sync_back_result =
-    if state.enable_profiling then (
-      try Backend.sync_to_hashtables ()
-      with e ->
-        Ui_log.err (fun m ->
-            m "Error syncing from packed components: %s" (Exn.to_string e));
-        ())
   in
 
   new_state

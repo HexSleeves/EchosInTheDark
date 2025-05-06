@@ -24,8 +24,7 @@
   systems
   rl_types
   chunk_manager
-  entity_manager
-  profiler)
+  entity_manager)
  (preprocess
   (pps ppx_jane ppx_compare ppx_deriving.show)))
 
