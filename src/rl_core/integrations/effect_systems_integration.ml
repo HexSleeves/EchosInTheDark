@@ -3,6 +3,10 @@
    This module provides a unified interface for all game systems using effect handlers.
    It composes the individual effect handler modules to create a layered approach
    where each system focuses on its specific domain.
+
+   SIMPLIFIED: The action handler now directly implements simple actions without
+   going through the event bus, reducing indirection and complexity. Only actions
+   that need to notify multiple systems (like combat) still use the event bus.
 *)
 
 open Base

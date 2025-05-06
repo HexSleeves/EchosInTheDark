@@ -148,14 +148,14 @@ let handle_mouse (state : State.t) =
     let tile_pos =
       Render_utils.screen_to_grid ~ctx:state.render_ctx (get_mouse_position ())
     in
-    let position = Components.Position.make tile_pos in
 
     let backend =
-      Backend.move_entity
+      Backend.queue_actor_action state.backend
         (Backend.get_player_id state.backend)
-        position state.backend
+        (T.Action.Teleport tile_pos)
     in
-    { state with backend }
+
+    { state with backend = Backend.set_mode T.CtrlMode.AI backend }
   else state
 
 let handle_player_input (state : State.t) : State.t =
@@ -185,20 +185,6 @@ let handle_player_input (state : State.t) : State.t =
           state with
           render_ctx = { state.render_ctx with render_mode = new_mode };
         }
-    | Some Input.ToggleUnifiedMode ->
-        let backend =
-          if Backend.get_config state.backend |> Backend.config_use_unified then
-            Backend.disable_unified state.backend
-          else Backend.enable_unified state.backend
-        in
-
-        let mode =
-          if Backend.get_config state.backend |> Backend.config_use_unified then
-            "enabled"
-          else "disabled"
-        in
-        Ui_log.console "Unified effect system %s" mode;
-        { state with backend }
     | _ -> state
   in
 

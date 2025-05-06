@@ -48,9 +48,6 @@ let subscribe_movement_events handler =
 let subscribe_combat_events handler =
   subscribe_category [ Events.Event_bus.CombatEvent ] handler
 
-let subscribe_item_events handler =
-  subscribe_category [ Events.Event_bus.ItemEvent ] handler
-
 (* Example: Movement event handler using effects *)
 let handle_movement_events () =
   subscribe_movement_events (function
@@ -77,22 +74,11 @@ let handle_combat_events () =
         log_info (Printf.sprintf "Entity %d died" entity_id)
     | _ -> ())
 
-(* Example: Item event handler using effects *)
-let handle_item_events () =
-  subscribe_item_events (function
-    | Events.Event_bus.ItemPickedUp { player_id; item_id } ->
-        log_info
-          (Printf.sprintf "Player %d picked up item %d" player_id item_id)
-    | Events.Event_bus.ItemDropped { player_id; item_id } ->
-        log_info (Printf.sprintf "Player %d dropped item %d" player_id item_id)
-    | _ -> ())
-
 (* Initialize all event handlers *)
 let init () =
   with_event_system (fun () ->
       handle_movement_events ();
       handle_combat_events ();
-      handle_item_events ();
 
       (* Example of a custom event handler that updates state *)
       subscribe (function

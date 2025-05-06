@@ -1,19 +1,13 @@
 open Base
 open Rl_types
 
-(* Configuration for the backend *)
-type config = { use_unified : bool }
+type t = { state : State.t }
 
-(* Default configuration *)
-let default_config = { use_unified = true }
-
-type t = { state : State.t; config : config }
-
-let make ?(config = default_config) ~debug ~w ~h ~seed ~depth () : t =
+let make ~debug ~w ~h ~seed ~depth () : t =
   (* Initialize systems *)
-  Systems.Log_system.init ();
-  Systems.Combat_system.init ();
-  Systems.Item_system.init ();
+  Systems.init ();
+
+  (* This now initializes Log_system and Combat_system *)
 
   (* Initialize performance optimization systems *)
   let state =
@@ -25,13 +19,13 @@ let make ?(config = default_config) ~debug ~w ~h ~seed ~depth () : t =
       State.make ~debug ~w ~h ~seed ~depth
   in
 
-  { state; config }
+  { state }
 
 let get_debug (backend : t) : bool = State.get_debug backend.state
 let get_mode (backend : t) = State.get_mode backend.state
 
 let set_mode mode (backend : t) : t =
-  { backend with state = State.set_mode mode backend.state }
+  { state = State.set_mode mode backend.state }
 
 (* Entity *)
 let get_player_id (backend : t) = State.get_player_id backend.state
@@ -41,6 +35,7 @@ let get_entities (backend : t) = State.get_entities backend.state
 let get_chunk_manager (backend : t) : Chunk_manager.t =
   State.get_chunk_manager backend.state
 
+(* Queue an action for an actor *)
 let queue_actor_action (backend : t) (actor_id : Actor.actor_id)
     (action : Action.t) : t =
   let new_state = State.queue_actor_action backend.state actor_id action in
@@ -49,40 +44,14 @@ let queue_actor_action (backend : t) (actor_id : Actor.actor_id)
       (Turn_queue.schedule_now (State.get_turn_queue new_state) actor_id)
       new_state
   in
-  { backend with state = new_state }
-
-let move_entity (id : int) (position : Components.Position.t) (backend : t) : t
-    =
-  { backend with state = State.move_entity id position backend.state }
-
-(* Process turns using the traditional approach *)
-let process_turns_traditional (backend : t) : t =
-  { backend with state = Systems.Turn_system.process_turns backend.state }
-
-(* Process turns using the unified effect system *)
-let process_turns_unified (backend : t) : t =
-  let module ESI = Effect_integrations.Effect_systems_integration in
-  { backend with state = ESI.process_turns backend.state }
+  { state = new_state }
 
 (* Process turns using the appropriate approach based on configuration *)
 let process_turns (backend : t) : t =
-  if backend.config.use_unified then process_turns_unified backend
-  else process_turns_traditional backend
+  let module ESI = Effect_integrations.Effect_systems_integration in
+  { state = ESI.process_turns backend.state }
 
-(* Get the configuration *)
-let get_config (backend : t) : config = backend.config
-
-(* Check if unified mode is enabled *)
-let config_use_unified (config : config) : bool = config.use_unified
-
-(* Enable unified mode *)
-let enable_unified (backend : t) : t =
-  { backend with config = { use_unified = true } }
-
-(* Disable unified mode *)
-let disable_unified (backend : t) : t =
-  { backend with config = { use_unified = false } }
-
+(* Run an AI step *)
 let run_ai_step (backend : t) : t =
   Logs.info (fun m -> m "Running AI step");
   let new_state =
@@ -102,4 +71,4 @@ let run_ai_step (backend : t) : t =
         | _ -> state')
   in
   let new_state = State.set_normal_mode new_state in
-  { backend with state = new_state }
+  { state = new_state }

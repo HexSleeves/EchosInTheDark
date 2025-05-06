@@ -82,11 +82,7 @@ let subscribe_movement_events handler =
 let subscribe_combat_events handler =
   subscribe_category [ Events.Event_bus.CombatEvent ] handler
 
-let subscribe_item_events handler =
-  subscribe_category [ Events.Event_bus.ItemEvent ] handler
-
-let subscribe_stairs_events handler =
-  subscribe_category [ Events.Event_bus.StairsEvent ] handler
+(* Item and Stairs event subscription functions removed - functionality now in action_handler *)
 
 (* ========== Integration Functions ========== *)
 

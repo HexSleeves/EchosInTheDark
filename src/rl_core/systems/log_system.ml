@@ -24,12 +24,5 @@ let init () =
         fun state ->
           Stdio.printf "Entity %d died\n" entity_id;
           state
-    | ItemDropped { player_id; item_id } ->
-        fun state ->
-          Stdio.printf "Entity %d dropped item %d\n" item_id player_id;
-          state
-    | ItemPickedUp { player_id; item_id } ->
-        fun state ->
-          Stdio.printf "Entity %d picked up item %d\n" item_id player_id;
-          state
+    (* ItemDropped and ItemPickedUp events removed - now handled directly in action_handler *)
     | _ -> fun state -> state)

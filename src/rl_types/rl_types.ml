@@ -31,6 +31,7 @@ module Action = struct
 
   type t =
     | Move of Direction.t
+    | Teleport of Loc.t
     | Interact of int
     | Pickup of int
     | Drop of int
@@ -42,6 +43,7 @@ module Action = struct
 
   let to_string = function
     | Move dir -> "Move " ^ Direction.to_string dir
+    | Teleport pos -> "Teleport " ^ Loc.to_string pos
     | Interact id -> "Interact " ^ Int.to_string id
     | Pickup id -> "Pickup " ^ Int.to_string id
     | Drop id -> "Drop " ^ Int.to_string id
