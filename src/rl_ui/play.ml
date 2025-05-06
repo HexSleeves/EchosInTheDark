@@ -143,13 +143,19 @@ let render (state : State.t) : State.t option =
 let handle_mouse (state : State.t) =
   let open Raylib in
   if is_mouse_button_pressed MouseButton.Left then
-    let mouse_pos = get_mouse_position () in
-    let tile_render_size = state.render_ctx.tile_render_size in
-    let tile_pos = Render_utils.screen_to_grid ~tile_render_size mouse_pos in
-    let player_id = Backend.get_player_id state.backend in
+    let tile_pos =
+      Render_utils.screen_to_grid
+        ~tile_render_size:state.render_ctx.tile_render_size
+        (get_mouse_position ())
+    in
+
     let position = Components.Position.make tile_pos in
-    let b = Backend.move_entity player_id position state.backend in
-    { state with backend = b }
+    let backend =
+      Backend.move_entity
+        (Backend.get_player_id state.backend)
+        position state.backend
+    in
+    { state with backend }
   else state
 
 let handle_player_input (state : State.t) : State.t =
@@ -179,6 +185,34 @@ let handle_player_input (state : State.t) : State.t =
           state with
           render_ctx = { state.render_ctx with render_mode = new_mode };
         }
+    | Some Input.ToggleEffects ->
+        let backend =
+          if Backend.get_config state.backend |> Backend.config_use_effects then
+            Backend.disable_effects state.backend
+          else Backend.enable_effects state.backend
+        in
+
+        let mode =
+          if Backend.get_config backend |> Backend.config_use_effects then
+            "enabled"
+          else "disabled"
+        in
+        Ui_log.console "Effect handlers %s" mode;
+        { state with backend }
+    | Some Input.ToggleHybridMode ->
+        let backend =
+          if Backend.get_config state.backend |> Backend.config_use_hybrid then
+            Backend.disable_effects state.backend
+          else Backend.enable_hybrid state.backend
+        in
+
+        let mode =
+          if Backend.get_config state.backend |> Backend.config_use_hybrid then
+            "enabled"
+          else "disabled"
+        in
+        Ui_log.console "Hybrid mode %s" mode;
+        { state with backend }
     | _ -> state
   in
 

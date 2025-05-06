@@ -6,8 +6,12 @@
    (:standard -warn-error -A -w -30))))
 
 (library
- (name rl_core)
- (modules ai backend input)
+ (name learnings)
+ (modules
+  effect_handlers
+  effect_examples
+  effect_turn_system
+  effect_event_system)
  (libraries
   base
   components
@@ -28,18 +32,3 @@
   effect_integrations)
  (preprocess
   (pps ppx_jane ppx_compare ppx_deriving.show)))
-
-(library
- (name core_log)
- (modules core_log)
- (libraries base core_kernel logs))
-
-(library
- (name core_utils)
- (modules util)
- (libraries base core_kernel logs rl_types components))
-
-(library
- (name turn_queue)
- (modules turn_queue)
- (libraries base core_kernel logs rl_types core_log bheap))

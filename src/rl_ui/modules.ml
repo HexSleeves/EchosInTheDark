@@ -97,7 +97,7 @@ let create_initial_state (render_ctx : RT.render_context) (config : init_config)
     | Some b -> b
     | None ->
         Backend.make ~debug:config.debug ~w:config.width ~h:config.height ~seed
-          ~depth:1
+          ~depth:1 ()
   in
 
   (* Initialize profiling if enabled *)

@@ -9,6 +9,8 @@ module Direction = Direction
 type ui_action =
   | Backend of BackendAction.t
   | ToggleRender
+  | ToggleEffects
+  | ToggleHybridMode
   | OpenMenu
   | CloseMenu
 (* Add more UI-specific actions as needed *)
@@ -28,6 +30,8 @@ let key_action_map : (Raylib.Key.t * ui_action) list =
     (Raylib.Key.Period, Backend BackendAction.StairsDown);
     (Raylib.Key.Space, Backend BackendAction.Wait);
     (Raylib.Key.T, ToggleRender);
+    (Raylib.Key.E, ToggleEffects);
+    (Raylib.Key.H, ToggleHybridMode);
     (* Add more mappings as needed *)
   ]
 
