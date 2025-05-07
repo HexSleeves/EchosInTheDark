@@ -38,7 +38,7 @@ let run_with_all_handlers (state : State.t) (f : unit -> 'a) : State.t =
 
 (* Process turns using the layered effect handler approach *)
 let process_turns (state : State.t) : State.t =
-  (* Use the Turn module's process_turns_hybrid function with our layered handlers *)
+  (* Use the Turn module's process_turns function with our layered handlers *)
   run_with_all_handlers state (fun () ->
       (* This will use the Turn module's implementation but with all effect handlers available *)
-      Turn_effects.process_turns_hybrid state)
+      Turn_effects.process_turns state)

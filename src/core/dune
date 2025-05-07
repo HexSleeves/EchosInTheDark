@@ -12,12 +12,9 @@
   base
   components
   console
-  core_kernel
-  core_kernel.pairing_heap
   logger
   dungeon
   entities
-  events
   logs
   worldgen
   utils
@@ -43,4 +40,6 @@
 (library
  (name turn_queue)
  (modules turn_queue)
- (libraries base core_kernel logs types logger bheap))
+ (libraries base containers logs types logger)
+ (preprocess
+  (pps ppx_jane ppx_compare ppx_deriving_yojson ppx_deriving.show)))

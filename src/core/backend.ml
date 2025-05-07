@@ -42,7 +42,7 @@ let queue_actor_action (backend : t) (actor_id : Actor.actor_id)
   let new_state = State.queue_actor_action backend.state actor_id action in
   let new_state =
     State.set_turn_queue
-      (Turn_queue.schedule_now (State.get_turn_queue new_state) actor_id)
+      (Turn_queue.schedule_now actor_id (State.get_turn_queue new_state))
       new_state
   in
   { state = new_state }
@@ -64,9 +64,8 @@ let run_ai_step (backend : t) : t =
               State.queue_actor_action state' creature_id action
             in
             State.set_turn_queue
-              (Turn_queue.schedule_now
-                 (State.get_turn_queue new_state)
-                 creature_id)
+              (Turn_queue.schedule_now creature_id
+                 (State.get_turn_queue new_state))
               new_state
         | _ -> state')
   in

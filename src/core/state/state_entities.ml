@@ -85,7 +85,10 @@ let add_entity (entity_id : int) (state : State_types.t) : State_types.t =
 
 let remove_entity (entity_id : int) (state : State_types.t) : State_types.t =
   remove_entity_from_index entity_id state |> fun state ->
-  { state with turn_queue = Turn_queue.remove_actor state.turn_queue entity_id }
+  {
+    state with
+    turn_queue = Turn_queue.remove_entity entity_id state.turn_queue;
+  }
   |> fun state ->
   match Components.Position.get entity_id with
   | Some pos -> spawn_corpse_entity ~pos:pos.world_pos state

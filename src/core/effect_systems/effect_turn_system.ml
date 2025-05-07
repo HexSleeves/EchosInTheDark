@@ -44,7 +44,7 @@ let with_turn_queue (state : State.t) (f : unit -> 'a) : 'a * State.t =
                   (fun (k : (a, _) Effect.Deep.continuation) ->
                     let turn_queue = State.get_turn_queue !state_ref in
                     let new_turn_queue =
-                      Turn_queue.schedule_at turn_queue id time
+                      Turn_queue.schedule_at id time turn_queue
                     in
                     state_ref := State.set_turn_queue new_turn_queue !state_ref;
                     Effect.Deep.continue k ())
@@ -61,9 +61,11 @@ let with_turn_queue (state : State.t) (f : unit -> 'a) : 'a * State.t =
                 Some
                   (fun (k : (a, _) Effect.Deep.continuation) ->
                     let turn_queue = State.get_turn_queue !state_ref in
+
                     let result, new_turn_queue =
                       Turn_queue.get_next_actor turn_queue
                     in
+
                     state_ref := State.set_turn_queue new_turn_queue !state_ref;
                     Effect.Deep.continue k result)
             | _ -> None);
@@ -164,7 +166,7 @@ let process_actor_turn (id : int) (time : int) : unit =
 (* This function allows for integration with the effect systems integration.
    It uses effect handlers for turn queue and action handling, and is designed to be
    called from within the effect_systems_integration.ml's run_with_all_handlers function. *)
-let process_turns_hybrid (_state : State.t) : unit =
+let process_turns (_state : State.t) : unit =
   (* Define the process_turns_loop function *)
   let rec process_turns_loop () =
     match get_mode () with

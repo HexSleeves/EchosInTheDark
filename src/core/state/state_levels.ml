@@ -3,18 +3,20 @@ open State_types
 
 let setup_entities_for_level ~em ~actor_manager ~turn_queue =
   Entity_manager.all_entities em
-  |> List.fold_left ~init:(actor_manager, turn_queue) ~f:(fun (am, tq) int ->
+  |> List.fold_left ~init:(actor_manager, turn_queue)
+       ~f:(fun (am, tq) entity_id ->
          let actor =
-           match Components.Kind.get int with
+           match Components.Kind.get entity_id with
            | Some Player -> Actor_manager.create_player_actor
            | Some Creature -> Actor_manager.create_rat_actor
            | _ -> failwith "Unknown entity kind"
          in
 
-         match Turn_queue.is_scheduled tq int with
-         | true -> (Actor_manager.add int actor am, tq)
+         match Turn_queue.is_scheduled entity_id tq with
+         | true -> (Actor_manager.add entity_id actor am, tq)
          | false ->
-             (Actor_manager.add int actor am, Turn_queue.schedule_at tq int 0))
+             ( Actor_manager.add entity_id actor am,
+               Turn_queue.schedule_at 0 entity_id tq ))
 
 let transition_to_next_level (state : State_types.t) : State_types.t =
   (* Save current chunk_manager *)
