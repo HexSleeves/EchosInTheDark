@@ -49,8 +49,7 @@ let queue_actor_action (backend : t) (actor_id : Actor.actor_id)
 
 (* Process turns using the appropriate approach based on configuration *)
 let process_turns (backend : t) : t =
-  let module ESI = Effect_systems.Effect_systems_integration in
-  { state = ESI.process_turns backend.state }
+  { state = Effect_systems.process_turns backend.state }
 
 (* Run an AI step *)
 let run_ai_step (backend : t) : t =

@@ -3,12 +3,11 @@
 (library
  (name effect_systems)
  (modules
-  handlers
-  turn_system
-  effect_event_system_integration
-  effect_action_handler_integration
-  effect_state_integration
-  effect_systems_integration)
+  effect_action_handler
+  effect_state
+  effect_systems
+  effect_turn_system
+  handlers)
  (libraries
   base
   core_kernel

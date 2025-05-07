@@ -12,10 +12,9 @@
 open Base
 
 (* Import the individual effect handler modules *)
-module Turn_effects = Turn_system
-module Event_effects = Effect_event_system_integration
-module Action_effects = Effect_action_handler_integration
-module State_effects = Effect_state_integration
+module Turn_effects = Effect_turn_system
+module Action_effects = Effect_action_handler
+module State_effects = Effect_state
 
 (* ========== Layered Handler Implementation ========== *)
 
@@ -25,10 +24,9 @@ let with_all_handlers (state : State.t) (f : unit -> 'a) : 'a * State.t =
   let first_result, final_state =
     State_effects.with_state_handler state (fun () ->
         Action_effects.with_action_handler state (fun () ->
-            Event_effects.with_event_system state (fun () ->
-                Turn_effects.with_turn_queue state f)))
+            Turn_effects.with_turn_queue state f))
     |> fun (result_after, final_state) ->
-    (result_after |> fst |> fst |> fst, final_state)
+    (result_after |> fst |> fst, final_state)
   in
 
   (first_result, final_state)

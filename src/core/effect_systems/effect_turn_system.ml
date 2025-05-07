@@ -10,7 +10,8 @@ open Types
 open Stdlib
 
 (* Import the action handler integration for performing actions *)
-module Action_handler = Effect_action_handler_integration
+module Action_handler = Effect_action_handler
+module State_effects = Effect_state
 
 (* ========== Effect Types ========== *)
 
@@ -85,28 +86,25 @@ let perform_action = Action_handler.perform_action
 
 (* ========== State Integration ========== *)
 (* Get the game mode *)
-let get_mode () = Effect_state_integration.get_mode ()
+let get_mode () = State_effects.get_mode ()
 
 (* Set the game mode *)
-let set_mode mode = Effect_state_integration.set_mode mode
+let set_mode mode = State_effects.set_mode mode
 
 (* Get the next actor from the turn queue *)
 let get_next_actor () = Effect.perform Get_next_actor
 
 (* Check if an actor is alive *)
-let is_actor_alive id =
-  Effect.perform (Effect_state_integration.Is_actor_alive id)
+let is_actor_alive id = Effect.perform (State_effects.Is_actor_alive id)
 
 (* Get an actor *)
-let get_actor id = Effect.perform (Effect_state_integration.Get_actor id)
+let get_actor id = Effect.perform (State_effects.Get_actor id)
 
 (* Check if the player has an action queued *)
-let has_queued_action id =
-  Effect.perform (Effect_state_integration.Has_queued_action id)
+let has_queued_action id = Effect.perform (State_effects.Has_queued_action id)
 
 (* Update an actor *)
-let update_actor id f =
-  Effect.perform (Effect_state_integration.Update_actor (id, f))
+let update_actor id f = Effect.perform (State_effects.Update_actor (id, f))
 
 (* ========== Integration Functions ========== *)
 

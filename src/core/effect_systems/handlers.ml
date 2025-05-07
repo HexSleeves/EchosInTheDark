@@ -2,7 +2,6 @@ open Base
 open Types
 open Events.Event_bus
 open Components
-module Event_effects = Effect_event_system_integration
 
 module Log =
   (val Logger.make_logger "action_handler" ~doc:"Action handler logs" ())
@@ -142,11 +141,11 @@ let handle_combat (state : State.t) (entity_id : int) (target_id : int) :
   let defender_stats = Stats.get target_id in
   match (attacker_stats, defender_stats) with
   | Some _, Some _ ->
-      Event_effects.publish_event
-        (EntityAttacked { attacker_id = entity_id; defender_id = target_id });
-
       (* Combat still uses event bus as it may need to notify multiple systems *)
-      (state, default_action_result)
+      ( publish
+          (EntityAttacked { attacker_id = entity_id; defender_id = target_id })
+          state,
+        default_action_result )
   | _ ->
       (state, Error (Failure "Attacker or defender not found or missing stats"))
 
