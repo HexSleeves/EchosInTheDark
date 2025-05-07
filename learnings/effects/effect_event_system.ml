@@ -7,7 +7,10 @@
 open Base
 open Types
 open Stdlib
-module Log = (val Logger.make_logger "effect_event_system")
+
+module Log =
+  (val Logger.make_logger "effect_event_system" ~doc:"Effect event system logs"
+         ())
 
 (* Define our own logging functions *)
 let log_info msg = Log.info (fun m -> m "%s" msg)

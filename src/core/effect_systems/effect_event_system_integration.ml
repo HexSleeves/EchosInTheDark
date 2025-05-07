@@ -7,22 +7,21 @@
 
 open Base
 open Types
+open Stdlib
 
 (* ========== Effect Types ========== *)
 
 (* Effect for publishing an event *)
-type _ Stdlib.Effect.t +=
-  | Publish_event : Events.Event_bus.event -> unit Stdlib.Effect.t
+type _ Effect.t += Publish_event : Events.Event_bus.event -> unit Effect.t
 
 (* Effect for subscribing to events *)
-type _ Stdlib.Effect.t +=
-  | Subscribe : (Events.Event_bus.event -> unit) -> unit Stdlib.Effect.t
+type _ Effect.t += Subscribe : (Events.Event_bus.event -> unit) -> unit Effect.t
 
 (* Effect for subscribing to specific event categories *)
-type _ Stdlib.Effect.t +=
+type _ Effect.t +=
   | Subscribe_category :
       Events.Event_bus.event_category list * (Events.Event_bus.event -> unit)
-      -> unit Stdlib.Effect.t
+      -> unit Effect.t
 
 (* ========== Handler Implementation ========== *)
 
@@ -30,31 +29,31 @@ type _ Stdlib.Effect.t +=
 let with_event_system (state : State.t) (f : unit -> 'a) : 'a * State.t =
   let state_ref = ref state in
   let result =
-    Stdlib.Effect.Deep.try_with f ()
+    Effect.Deep.try_with f ()
       {
         effc =
-          (fun (type a) (eff : a Stdlib.Effect.t) ->
+          (fun (type a) (eff : a Effect.t) ->
             match eff with
             | Publish_event event ->
                 Some
-                  (fun (k : (a, _) Stdlib.Effect.Deep.continuation) ->
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
                     state_ref := Events.Event_bus.publish event !state_ref;
-                    Stdlib.Effect.Deep.continue k ())
+                    Effect.Deep.continue k ())
             | Subscribe handler_fn ->
                 Some
-                  (fun (k : (a, _) Stdlib.Effect.Deep.continuation) ->
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
                     Events.Event_bus.subscribe (fun event state ->
                         handler_fn event;
                         state);
-                    Stdlib.Effect.Deep.continue k ())
+                    Effect.Deep.continue k ())
             | Subscribe_category (categories, handler_fn) ->
                 Some
-                  (fun (k : (a, _) Stdlib.Effect.Deep.continuation) ->
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
                     Events.Event_bus.subscribe_category categories
                       (fun event state ->
                         handler_fn event;
                         state);
-                    Stdlib.Effect.Deep.continue k ())
+                    Effect.Deep.continue k ())
             | _ -> None);
       }
   in
@@ -63,14 +62,14 @@ let with_event_system (state : State.t) (f : unit -> 'a) : 'a * State.t =
 (* ========== Utility Functions ========== *)
 
 (* Publish an event *)
-let publish_event event = Stdlib.Effect.perform (Publish_event event)
+let publish_event event = Effect.perform (Publish_event event)
 
 (* Subscribe to all events *)
-let subscribe handler = Stdlib.Effect.perform (Subscribe handler)
+let subscribe handler = Effect.perform (Subscribe handler)
 
 (* Subscribe to specific event categories *)
 let subscribe_category categories handler =
-  Stdlib.Effect.perform (Subscribe_category (categories, handler))
+  Effect.perform (Subscribe_category (categories, handler))
 
 (* Convenience functions for subscribing to specific event types *)
 let subscribe_player_events handler =

@@ -8,7 +8,7 @@ let calculate_damage ~attacker_stats ~defender_stats =
   max 1 base_damage
 
 let init () =
-  subscribe (function
+  subscribe_combat_events (function
     | EntityAttacked { attacker_id; defender_id } -> (
         fun state ->
           match (Stats.get attacker_id, Stats.get defender_id) with

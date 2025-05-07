@@ -26,9 +26,6 @@ type _ Effect.t +=
       Set_mode :
       CtrlMode.t
       -> unit Effect.t
-  | (* Effect for getting the next actor from the turn queue *)
-      Get_next_actor :
-      (int * int) option Effect.t
   | (* Effect for checking if an actor is alive *)
       Is_actor_alive :
       int
@@ -79,15 +76,6 @@ let with_state_handler (initial_state : State.t) (f : unit -> 'a) : 'a * State.t
                   (fun (k : (a, _) Effect.Deep.continuation) ->
                     state_ref := State.set_mode mode !state_ref;
                     Effect.Deep.continue k ())
-            | Get_next_actor ->
-                Some
-                  (fun (k : (a, _) Effect.Deep.continuation) ->
-                    let turn_queue = State.get_turn_queue !state_ref in
-                    let result, new_turn_queue =
-                      Turn_queue.get_next_actor turn_queue
-                    in
-                    state_ref := State.set_turn_queue new_turn_queue !state_ref;
-                    Effect.Deep.continue k result)
             | Is_actor_alive id ->
                 Some
                   (fun (k : (a, _) Effect.Deep.continuation) ->

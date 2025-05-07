@@ -2,17 +2,6 @@
 
 (library
  (name systems)
- (libraries
-  base
-  core_kernel
-  unix
-  logs
-  types
-  entities
-  components
-  events
-  logger
-  state
-  state_types)
+ (libraries base components events logger logs state state_types types)
  (preprocess
   (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))

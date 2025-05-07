@@ -19,7 +19,6 @@
   entities
   events
   logs
-  logs.fmt
   worldgen
   utils
   state

@@ -7,12 +7,13 @@
 
 open Base
 open Types
+open Stdlib
 
 (* ========== Effect Types ========== *)
 
 (* Effect for performing an action *)
-type _ Stdlib.Effect.t +=
-  | Perform_action : int * Action.t -> (int, exn) Result.t Stdlib.Effect.t
+type _ Effect.t +=
+  | Perform_action : int * Action.t -> (int, exn) Result.t Effect.t
 
 (* ========== Handler Implementation ========== *)
 
@@ -20,20 +21,19 @@ type _ Stdlib.Effect.t +=
 let with_action_handler (state : State.t) (f : unit -> 'a) : 'a * State.t =
   let state_ref = ref state in
   let result =
-    Stdlib.Effect.Deep.try_with f ()
+    Effect.Deep.try_with f ()
       {
         effc =
-          (fun (type a) (eff : a Stdlib.Effect.t) ->
+          (fun (type a) (eff : a Effect.t) ->
             match eff with
             | Perform_action (entity_id, action) ->
                 Some
-                  (fun (k : (a, _) Stdlib.Effect.Deep.continuation) ->
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
                     let new_state, result =
-                      Systems.Action_handler.handle_action !state_ref entity_id
-                        action
+                      Handlers.handle_action !state_ref entity_id action
                     in
                     state_ref := new_state;
-                    Stdlib.Effect.Deep.continue k result)
+                    Effect.Deep.continue k result)
             | _ -> None);
       }
   in
@@ -43,7 +43,7 @@ let with_action_handler (state : State.t) (f : unit -> 'a) : 'a * State.t =
 
 (* Perform an action for an entity *)
 let perform_action entity_id action =
-  Stdlib.Effect.perform (Perform_action (entity_id, action))
+  Effect.perform (Perform_action (entity_id, action))
 
 (* ========== Integration Functions ========== *)
 

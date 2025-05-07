@@ -1,5 +1,5 @@
 (executable
  (name echos_dark)
  (public_name echos_dark)
- (modules echos_dark logger)
- (libraries ui loader))
+ (modules echos_dark)
+ (libraries ui loader logger))

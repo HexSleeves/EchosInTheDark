@@ -15,6 +15,9 @@ module Action_handler = Effect_action_handler_integration
 (* ========== Effect Types ========== *)
 
 type _ Effect.t +=
+  | (* Effect for getting the next actor from the turn queue *)
+      Get_next_actor :
+      (int * int) option Effect.t
   | (* Effect for scheduling an actor in the turn queue *)
       Schedule_actor :
       int * int
@@ -53,6 +56,15 @@ let with_turn_queue (state : State.t) (f : unit -> 'a) : 'a * State.t =
                       | _ -> false
                     in
                     Effect.Deep.continue k is_player)
+            | Get_next_actor ->
+                Some
+                  (fun (k : (a, _) Effect.Deep.continuation) ->
+                    let turn_queue = State.get_turn_queue !state_ref in
+                    let result, new_turn_queue =
+                      Turn_queue.get_next_actor turn_queue
+                    in
+                    state_ref := State.set_turn_queue new_turn_queue !state_ref;
+                    Effect.Deep.continue k result)
             | _ -> None);
       }
   in
@@ -69,7 +81,7 @@ let is_player id = Effect.perform (Is_player id)
 (* ========== Action Handler Integration ========== *)
 
 (* Perform an action - now using the action handler integration *)
-let perform_action = Effect_action_handler_integration.perform_action
+let perform_action = Action_handler.perform_action
 
 (* ========== State Integration ========== *)
 (* Get the game mode *)
@@ -78,15 +90,15 @@ let get_mode () = Effect_state_integration.get_mode ()
 (* Set the game mode *)
 let set_mode mode = Effect_state_integration.set_mode mode
 
+(* Get the next actor from the turn queue *)
+let get_next_actor () = Effect.perform Get_next_actor
+
 (* Check if an actor is alive *)
 let is_actor_alive id =
   Effect.perform (Effect_state_integration.Is_actor_alive id)
 
 (* Get an actor *)
 let get_actor id = Effect.perform (Effect_state_integration.Get_actor id)
-
-(* Get the next actor from the turn queue *)
-let get_next_actor () = Effect.perform Effect_state_integration.Get_next_actor
 
 (* Check if the player has an action queued *)
 let has_queued_action id =

@@ -24,5 +24,4 @@ let init () =
         fun state ->
           Stdio.printf "Entity %d died\n" entity_id;
           state
-    (* ItemDropped and ItemPickedUp events removed - now handled directly in action_handler *)
     | _ -> fun state -> state)

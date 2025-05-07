@@ -3,6 +3,7 @@
 (library
  (name effect_systems)
  (modules
+  handlers
   turn_system
   effect_event_system_integration
   effect_action_handler_integration
